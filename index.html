@@ -1,0 +1,1846 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grupo Giraudo — Sistema de Gestión</title>
+<style>
+:root {
+  --bordo: #5c0a1a;
+  --bordo-medio: #7a1228;
+  --bordo-claro: #f5e6e9;
+  --bordo-hover: #4a0815;
+  --bordo-suave: #e8c5cc;
+  --verde: #2d5a1b;
+  --verde-claro: #e8f5e0;
+  --tierra: #8b5e3c;
+  --tierra-claro: #f5ede4;
+  --cielo: #1a3a5c;
+  --cielo-claro: #e4eff8;
+  --gris: #f4f4f2;
+  --gris-borde: #e0e0dc;
+  --texto: #1a1a18;
+  --texto-suave: #6b6b65;
+  --blanco: #ffffff;
+  --rojo: #c0392b;
+  --rojo-claro: #fdecea;
+  --amarillo: #d4a017;
+  --amarillo-claro: #fef8e4;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--gris);color:var(--texto);min-height:100vh}
+.app{display:flex;min-height:100vh}
+.sidebar{width:240px;background:var(--bordo);color:white;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform 0.3s}
+.main{margin-left:240px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:white;border-bottom:1px solid var(--gris-borde);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.content{padding:24px;flex:1}
+.sidebar-logo{padding:20px 16px 16px;border-bottom:1px solid rgba(255,255,255,0.15)}
+.sidebar-logo h1{font-size:16px;font-weight:700;letter-spacing:0.5px}
+.sidebar-logo p{font-size:11px;opacity:0.7;margin-top:2px}
+.sidebar-section{padding:12px 8px 4px 16px;font-size:10px;text-transform:uppercase;letter-spacing:1px;opacity:0.5;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:13px;cursor:pointer;border-radius:6px;margin:1px 8px;transition:background 0.15s;opacity:0.85}
+.nav-item:hover{background:rgba(255,255,255,0.15);opacity:1}
+.nav-item.active{background:rgba(255,255,255,0.2);opacity:1;font-weight:600}
+.sidebar-footer{margin-top:auto;padding:16px;border-top:1px solid rgba(255,255,255,0.15);font-size:12px;opacity:0.7}
+.topbar-title{font-size:16px;font-weight:600;color:var(--texto)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.campo-selector{font-size:13px;padding:6px 12px;border:1px solid var(--gris-borde);border-radius:6px;background:white;color:var(--texto);cursor:pointer}
+.btn{padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:500;border:none;transition:all 0.15s}
+.btn-primary{background:var(--bordo);color:white}
+.btn-primary:hover{background:var(--bordo-hover)}
+.btn-secondary{background:white;color:var(--texto);border:1px solid var(--gris-borde)}
+.btn-secondary:hover{background:var(--gris)}
+.btn-success{background:var(--verde);color:white}
+.section{display:none}
+.section.active{display:block}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px}
+.stat-card{background:white;border-radius:10px;padding:16px;border:1px solid var(--gris-borde)}
+.stat-card .label{font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.stat-card .value{font-size:26px;font-weight:700}
+.stat-card .sub{font-size:11px;color:var(--texto-suave);margin-top:2px}
+.card{background:white;border-radius:10px;border:1px solid var(--gris-borde);margin-bottom:16px;overflow:hidden}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--gris-borde);display:flex;align-items:center;justify-content:space-between}
+.card-header h3{font-size:14px;font-weight:600}
+.card-body{padding:18px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid.cols-3{grid-template-columns:1fr 1fr 1fr}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group.full{grid-column:1/-1}
+.form-group label{font-size:12px;color:var(--texto-suave);font-weight:500}
+.form-group input,.form-group select,.form-group textarea{padding:8px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;color:var(--texto);background:white;transition:border-color 0.15s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--bordo-medio)}
+.form-group textarea{resize:vertical;min-height:70px}
+.form-actions{margin-top:16px;display:flex;gap:10px;align-items:center}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--texto-suave);border-bottom:1px solid var(--gris-borde);background:var(--gris)}
+td{padding:10px 12px;border-bottom:1px solid var(--gris-borde);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--gris)}
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-bordo{background:var(--bordo-claro);color:var(--bordo)}
+.badge-green{background:var(--verde-claro);color:var(--verde)}
+.badge-red{background:var(--rojo-claro);color:var(--rojo)}
+.badge-blue{background:var(--cielo-claro);color:var(--cielo)}
+.badge-yellow{background:var(--amarillo-claro);color:var(--amarillo)}
+.badge-tierra{background:var(--tierra-claro);color:var(--tierra)}
+.badge-gray{background:#f0f0ee;color:var(--texto-suave)}
+.tabs{display:flex;gap:4px;border-bottom:2px solid var(--gris-borde);margin-bottom:20px}
+.tab{padding:8px 16px;font-size:13px;cursor:pointer;color:var(--texto-suave);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.15s}
+.tab:hover{color:var(--texto)}
+.tab.active{color:var(--bordo);border-bottom-color:var(--bordo);font-weight:600}
+.chat-box{background:white;border-radius:10px;border:1px solid var(--gris-borde)}
+.chat-messages{height:320px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+.msg{padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;max-width:85%}
+.msg-user{background:var(--bordo-claro);color:var(--bordo);align-self:flex-end}
+.msg-ai{background:var(--gris);color:var(--texto);align-self:flex-start}
+.chat-input-row{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--gris-borde)}
+.chat-input-row input{flex:1;padding:8px 12px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px}
+.quick-queries{display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px 0}
+.quick-q{font-size:11px;padding:4px 10px;border:1px solid var(--gris-borde);border-radius:20px;cursor:pointer;color:var(--texto-suave);background:white;transition:all 0.15s}
+.quick-q:hover{background:var(--bordo-claro);border-color:var(--bordo-medio);color:var(--bordo)}
+.import-result{background:var(--gris);border-radius:8px;padding:12px;margin-top:12px;font-size:13px;display:none;line-height:1.8}
+.alert{padding:12px 16px;border-radius:8px;font-size:13px;margin-bottom:12px;display:flex;align-items:flex-start;gap:10px}
+.alert-bordo{background:var(--bordo-claro);border-left:3px solid var(--bordo-medio)}
+.alert-warning{background:var(--amarillo-claro);border-left:3px solid var(--amarillo)}
+.alert-success{background:var(--verde-claro);border-left:3px solid var(--verde)}
+.alert-info{background:var(--cielo-claro);border-left:3px solid var(--cielo)}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bordo);color:white;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;transform:translateY(10px);transition:all 0.3s;z-index:1000;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.empty-state{text-align:center;padding:48px 24px;color:var(--texto-suave)}
+.empty-state .icon{font-size:40px;margin-bottom:12px}
+.empty-state h3{font-size:15px;font-weight:600;margin-bottom:6px;color:var(--texto)}
+.menu-toggle{display:none;background:none;border:none;cursor:pointer;padding:4px}
+.resumen-box{background:var(--bordo-claro);border:1px solid var(--bordo-suave);border-radius:10px;padding:16px;margin-bottom:16px}
+.resumen-box h4{font-size:13px;font-weight:600;color:var(--bordo);margin-bottom:12px}
+.resumen-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.resumen-item{background:white;border-radius:8px;padding:12px;border:1px solid var(--bordo-suave)}
+.resumen-item .ri-label{font-size:11px;color:var(--texto-suave);margin-bottom:4px}
+.resumen-item .ri-value{font-size:16px;font-weight:700;color:var(--bordo)}
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0}
+  .menu-toggle{display:flex}
+  .form-grid{grid-template-columns:1fr}
+  .form-grid.cols-3{grid-template-columns:1fr}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:99}
+.overlay.show{display:block}
+.precio-card{background:white;border:1px solid var(--gris-borde);border-radius:10px;padding:14px;transition:border-color 0.2s;cursor:default}
+.precio-card:hover{border-color:var(--bordo-suave)}
+.pc-nombre{font-size:12px;color:var(--texto-suave);margin-bottom:6px;font-weight:500}
+.pc-precio{font-size:22px;font-weight:700;color:var(--bordo)}
+.pc-unidad{font-size:11px;color:var(--texto-suave);margin-top:2px}
+.pc-var{font-size:12px;margin-top:4px;font-weight:500}
+.pc-var.sube{color:#2d7a1b}
+.pc-var.baja{color:var(--rojo)}
+.pc-fecha{font-size:10px;color:var(--texto-suave);margin-top:4px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <h1>🌾 Grupo Giraudo</h1>
+    <p>Sistema de gestión agropecuaria</p>
+  </div>
+  <div class="sidebar-section">Principal</div>
+  <div class="nav-item active" onclick="showSection('dashboard',this)">📊 Dashboard</div>
+  <div class="nav-item" onclick="showSection('importar',this)">📥 Importar jornada</div>
+  <div class="nav-item" onclick="showSection('ia',this)">🤖 Consultas IA</div>
+
+  <div class="sidebar-section">Ganadería</div>
+  <div class="nav-item" onclick="showSection('animales',this)">🐄 Animales</div>
+  <div class="nav-item" onclick="showSection('eventos',this)">💉 Eventos manga</div>
+  <div class="nav-item" onclick="showSection('pesadas',this)">⚖️ Pesadas</div>
+  <div class="nav-item" onclick="showSection('hoteleria',this)">🏨 Hotelería</div>
+  <div class="nav-item" onclick="showSection('alimentacion',this)">🌽 Alimentación</div>
+  <div class="nav-item" onclick="showSection('liq_hacienda',this)">📄 Liquid. hacienda</div>
+
+  <div class="sidebar-section">Agricultura</div>
+  <div class="nav-item" onclick="showSection('trabajos_agri',this)">🌾 Trabajos de campo</div>
+  <div class="nav-item" onclick="showSection('lotes',this)">🗺️ Lotes / Historia</div>
+  <div class="nav-item" onclick="showSection('liq_granos',this)">📄 Liquid. granos</div>
+  <div class="nav-item" onclick="showSection('certificaciones',this)">📋 Certificaciones</div>
+
+  <div class="sidebar-section">Maquinaria</div>
+  <div class="nav-item" onclick="showSection('maquinaria',this)">🚜 Inventario</div>
+  <div class="nav-item" onclick="showSection('mantenimiento',this)">🔧 Mantenimiento</div>
+
+  <div class="sidebar-section">Mercado</div>
+  <div class="nav-item" onclick="showSection('precios',this)">📈 Precios relativos</div>
+
+  <div class="sidebar-section">Contabilidad</div>
+  <div class="nav-item" onclick="showSection('boletas',this)">🧾 Boletas recibidas</div>
+  <div class="nav-item" onclick="showSection('movimientos',this)">💰 Movimientos</div>
+  <div class="nav-item" onclick="showSection('retenciones',this)">📑 Retenciones</div>
+  <div class="nav-item" onclick="showSection('balance',this)">📊 Balance mensual</div>
+
+  <div class="sidebar-footer">
+    <div style="font-weight:600;margin-bottom:2px">Francisco Giraudo</div>
+    <div style="opacity:0.6">Administrador</div>
+  </div>
+</aside>
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <span class="topbar-title" id="topbar-title">Dashboard</span>
+    </div>
+    <div class="topbar-right">
+      <select class="campo-selector" id="campo-global">
+        <option value="">Todos los campos</option>
+        <option value="Don Alfredo">Don Alfredo (Azcona)</option>
+        <option value="Doña Vica">Doña Vica</option>
+        <option value="Sant-Yago">Sant-Yago</option>
+      </select>
+      <span style="font-size:12px;color:#999" id="fecha-top"></span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div id="section-dashboard" class="section active">
+      <div class="stats-row">
+        <div class="stat-card"><div class="label">Animales propios</div><div class="value" id="st-animales" style="color:var(--bordo)">—</div><div class="sub">rodeo actual</div></div>
+        <div class="stat-card"><div class="label">En hotelería</div><div class="value" id="st-hotel" style="color:var(--cielo)">19</div><div class="sub">animales terceros</div></div>
+        <div class="stat-card"><div class="label">Eventos este mes</div><div class="value" id="st-eventos" style="color:var(--tierra)">—</div><div class="sub">manga / sanidad</div></div>
+        <div class="stat-card"><div class="label">Liq. granos 25/26</div><div class="value" id="st-liqgranos" style="color:var(--bordo)">9</div><div class="sub">liquidaciones</div></div>
+        <div class="stat-card"><div class="label">Kg vendidos granos</div><div class="value" style="color:var(--verde);font-size:18px">726.969</div><div class="sub">campaña 25/26</div></div>
+        <div class="stat-card"><div class="label">Máquinas</div><div class="value" style="color:var(--texto-suave)">47</div><div class="sub">en inventario</div></div>
+      </div>
+
+      <div class="resumen-box">
+        <h4>📊 Resumen campaña 25/26 — Granos</h4>
+        <div class="resumen-grid">
+          <div class="resumen-item"><div class="ri-label">Ret. IVA acumulada</div><div class="ri-value">$12.412.730</div></div>
+          <div class="resumen-item"><div class="ri-label">IVA RG 4310/2018</div><div class="ri-value">$13.654.001</div></div>
+          <div class="resumen-item"><div class="ri-label">Comisiones Turaglio</div><div class="ri-value">$6.382.843</div></div>
+          <div class="resumen-item"><div class="ri-label">Fletes a puerto</div><div class="ri-value">$29.760.175</div></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="card">
+          <div class="card-header"><h3>Últimos eventos</h3></div>
+          <div class="card-body" id="ultimos-eventos">
+            <div class="empty-state"><div class="icon">📋</div><h3>Sin eventos aún</h3><p>Cargá tu primer evento</p></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Alertas y recordatorios</h3></div>
+          <div class="card-body" id="alertas-dash">
+            <div class="alert alert-bordo">🐄 Destete registrado: 41 terneros propios + 10 en hotelería — 06/05/2026</div>
+            <div class="alert alert-info">🌾 Campaña 25/26: 726.969 kg de granos vendidos</div>
+            <div class="alert alert-warning">📋 Central Ganadera: liquidación pendiente de cargar</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMPORTAR JORNADA -->
+    <div id="section-importar" class="section">
+      <div class="card">
+        <div class="card-header"><h3>📥 Importar jornada de trabajo</h3></div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--texto-suave);margin-bottom:16px">Cargá cualquier trabajo del campo — ganadería, agricultura o maquinaria — escribiendo con tus palabras o subiendo una foto. Podés cargar el día de hoy o registros históricos.</p>
+
+          <div class="tabs" style="margin-bottom:16px">
+            <div class="tab active" onclick="switchTabImportar(this,'imp-tab-texto')">✏️ Cargar por texto</div>
+            <div class="tab" onclick="switchTabImportar(this,'imp-tab-imagen')">📸 Cargar por imagen</div>
+          </div>
+
+          <!-- TAB TEXTO -->
+          <div id="imp-tab-texto">
+            <div class="form-grid">
+              <div class="form-group"><label>Fecha de la jornada</label><input type="date" id="imp-fecha"></div>
+              <div class="form-group"><label>Campo</label>
+                <select id="imp-campo"><option>Don Alfredo (Azcona)</option><option>Doña Vica</option><option>Sant-Yago</option><option>Varios</option></select>
+              </div>
+              <div class="form-group full">
+                <label>Descripción del trabajo</label>
+                <textarea id="imp-texto" style="min-height:150px" placeholder="Ejemplos de lo que podés escribir:
+
+GANADERÍA: Destete terneros Don Alfredo. Vacas AA 46 animales, pesada 421kg, Glipondin 4 5cc. Terneros 41 propios (18 machos, 23 hembras), peso 141kg, Glipondin 1cc + Ivomec Gold 2cc.
+
+AGRICULTURA: Siembra soja lote 3, 34 has, contratista Truccone, semilla DM 4670 60kg/ha. Pulverización lote 1 y 2, 90 has, glifosato 3lt/ha, Barrios.
+
+MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Reparación enrolladora, rotura de correa, $12000."></textarea>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-primary" id="btn-importar" onclick="importarJornada()">🤖 Interpretar y cargar con IA</button>
+              <span id="imp-status" style="font-size:13px;color:var(--texto-suave)"></span>
+            </div>
+          </div>
+
+          <!-- TAB IMAGEN -->
+          <div id="imp-tab-imagen" style="display:none">
+            <div class="form-grid">
+              <div class="form-group"><label>Fecha de la jornada</label><input type="date" id="imp-fecha-img"></div>
+              <div class="form-group"><label>Campo</label>
+                <select id="imp-campo-img"><option>Don Alfredo (Azcona)</option><option>Doña Vica</option><option>Sant-Yago</option><option>Varios</option></select>
+              </div>
+            </div>
+            <div style="border:2px dashed var(--bordo-suave);border-radius:8px;padding:30px;text-align:center;cursor:pointer;background:var(--bordo-claro);margin:12px 0" onclick="document.getElementById('imp-archivo').click()">
+              <div style="font-size:36px;margin-bottom:8px">📸</div>
+              <div style="font-size:14px;color:var(--bordo);font-weight:500">Hacé click para subir una foto o imagen</div>
+              <div style="font-size:12px;color:var(--texto-suave);margin-top:4px">Planilla, libreta, hoja de campo, boleta — cualquier imagen con datos</div>
+              <input type="file" id="imp-archivo" accept="image/*,.pdf" style="display:none" onchange="previewImagen(this)">
+            </div>
+            <div id="imp-img-preview" style="display:none;margin-bottom:12px">
+              <img id="imp-img-thumb" style="max-height:150px;border-radius:8px;border:1px solid var(--gris-borde)">
+              <div id="imp-img-nombre" style="font-size:12px;color:var(--texto-suave);margin-top:4px"></div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-primary" id="btn-importar-img" onclick="importarJornadaImagen()">🤖 Leer imagen y cargar con IA</button>
+              <span id="imp-status-img" style="font-size:13px;color:var(--texto-suave)"></span>
+            </div>
+          </div>
+
+          <div class="import-result" id="import-result"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IA -->
+    <div id="section-ia" class="section">
+      <div class="card">
+        <div class="card-header"><h3>🤖 Consultas IA — Grupo Giraudo</h3></div>
+        <div class="quick-queries">
+          <span class="quick-q" onclick="preguntaRapida('Dame un resumen general del campo')">Resumen general</span>
+          <span class="quick-q" onclick="preguntaRapida('¿Cuántos animales tengo por categoría?')">Stock ganadero</span>
+          <span class="quick-q" onclick="preguntaRapida('¿Cuánto tenemos de retención de IVA acumulada en granos?')">Ret. IVA granos</span>
+          <span class="quick-q" onclick="preguntaRapida('¿Cuánto pagamos de flete a puerto en la campaña?')">Fletes campaña</span>
+          <span class="quick-q" onclick="preguntaRapida('¿Qué hacienda tenemos en hotelería?')">Hotelería</span>
+          <span class="quick-q" onclick="preguntaRapida('¿Cuál es la evolución de peso de los lotes?')">Pesadas GDP</span>
+          <span class="quick-q" onclick="preguntaRapida('¿Qué trabajos agrícolas se hicieron este mes?')">Trabajos mes</span>
+          <span class="quick-q" onclick="preguntaRapida('¿Cuánto vendimos en hacienda en 2025?')">Ventas hacienda</span>
+        </div>
+        <div class="chat-box" style="margin:12px 16px 16px">
+          <div class="chat-messages" id="chat-msgs">
+            <div class="msg msg-ai">Hola! Soy el asistente del Grupo Giraudo. Tengo cargada toda la información de la empresa — campos, hacienda, liquidaciones de granos, maquinaria y más. ¿En qué te puedo ayudar? 🐄🌾</div>
+          </div>
+          <div class="chat-input-row">
+            <input type="text" id="chat-input" placeholder="Preguntame lo que necesites sobre el campo..." onkeydown="if(event.key==='Enter')enviarConsulta()">
+            <button class="btn btn-primary" onclick="enviarConsulta()">Enviar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANIMALES -->
+    <div id="section-animales" class="section">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab(this,'tab-ani-form')">Registrar</div>
+        <div class="tab" onclick="switchTab(this,'tab-ani-lista')">Ver animales</div>
+      </div>
+      <div id="tab-ani-form">
+        <div class="card">
+          <div class="card-header"><h3>Nuevo animal</h3></div>
+          <div class="card-body">
+            <div class="form-grid cols-3">
+              <div class="form-group"><label>N° caravana electrónica</label><input type="text" id="ani-caravana" placeholder="Ej: 032010035961100"></div>
+              <div class="form-group"><label>Categoría</label><select id="ani-cat"><option>Vaca</option><option>Vaquillona</option><option>Toro</option><option>Torito</option><option>Ternero</option><option>Ternera</option><option>Novillo</option></select></div>
+              <div class="form-group"><label>Sexo</label><select id="ani-sexo"><option>Macho</option><option>Hembra</option></select></div>
+              <div class="form-group"><label>Raza</label><input type="text" id="ani-raza" placeholder="Aberdeen Angus" value="Aberdeen Angus"></div>
+              <div class="form-group"><label>Fecha nacimiento</label><input type="date" id="ani-fnac"></div>
+              <div class="form-group"><label>Lote / Potrero</label><input type="text" id="ani-lote" placeholder="Ej: Corral"></div>
+              <div class="form-group"><label>Peso inicial (kg)</label><input type="number" id="ani-peso"></div>
+              <div class="form-group"><label>Campo</label><select id="ani-campo"><option>Don Alfredo (Azcona)</option><option>Doña Vica</option></select></div>
+              <div class="form-group"><label>Propietario</label><select id="ani-prop"><option value="propio">Propio</option><option value="hoteleria">Hotelería</option></select></div>
+              <div class="form-group full"><label>Observaciones</label><textarea id="ani-obs"></textarea></div>
+            </div>
+            <div class="form-actions"><button class="btn btn-primary" onclick="guardarAnimal()">Registrar animal</button></div>
+          </div>
+        </div>
+      </div>
+      <div id="tab-ani-lista" style="display:none">
+        <div class="card">
+          <div class="card-header"><h3>Animales registrados</h3>
+            <input type="text" placeholder="Buscar caravana..." style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;width:200px" oninput="filtrarAnimales(this.value)">
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Caravana</th><th>Categoría</th><th>Raza</th><th>Lote</th><th>Peso ini.</th><th>Propietario</th></tr></thead>
+          <tbody id="tabla-animales"><tr><td colspan="6"><div class="empty-state"><div class="icon">🐄</div><h3>Sin animales registrados</h3></div></td></tr></tbody></table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EVENTOS -->
+    <div id="section-eventos" class="section">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab(this,'tab-ev-form')">Registrar</div>
+        <div class="tab" onclick="switchTab(this,'tab-ev-lista')">Historial</div>
+      </div>
+      <div id="tab-ev-form">
+        <div class="card">
+          <div class="card-header"><h3>Nuevo evento de manga / sanidad</h3></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group"><label>Fecha</label><input type="date" id="ev-fecha"></div>
+              <div class="form-group"><label>Tipo</label><select id="ev-tipo"><option>Vacunación</option><option>Desparasitación</option><option>Tratamiento</option><option>Destete</option><option>Nacimiento</option><option>Mortandad</option><option>Caravana electrónica</option><option>Tacto / Preñez</option><option>Servicio / IATF</option><option>Otro</option></select></div>
+              <div class="form-group"><label>Campo</label><select id="ev-campo"><option>Don Alfredo (Azcona)</option><option>Doña Vica</option><option>Sant-Yago</option></select></div>
+              <div class="form-group"><label>Lote</label><input type="text" id="ev-lote" placeholder="Ej: Corral, Lote 3"></div>
+              <div class="form-group"><label>Categoría</label><select id="ev-cat"><option>Todos</option><option>Terneros</option><option>Terneras</option><option>Vacas</option><option>Vaquillonas</option><option>Toros</option></select></div>
+              <div class="form-group"><label>Cantidad animales</label><input type="number" id="ev-cant"></div>
+              <div class="form-group"><label>Producto / Vacuna</label><input type="text" id="ev-producto" placeholder="Ej: Glipondin 4, Ivomec Gold"></div>
+              <div class="form-group"><label>Dosis</label><input type="text" id="ev-dosis" placeholder="Ej: 5cc/animal"></div>
+              <div class="form-group full"><label>Observaciones</label><textarea id="ev-obs"></textarea></div>
+            </div>
+            <div class="form-actions"><button class="btn btn-primary" onclick="guardarEvento()">Registrar evento</button></div>
+          </div>
+        </div>
+      </div>
+      <div id="tab-ev-lista" style="display:none">
+        <div class="card">
+          <div class="card-header"><h3>Historial de eventos</h3></div>
+          <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Campo</th><th>Lote</th><th>Categoría</th><th>Cant.</th><th>Producto</th><th>Dosis</th></tr></thead>
+          <tbody id="tabla-eventos"><tr><td colspan="8"><div class="empty-state"><div class="icon">📋</div><h3>Sin eventos</h3></div></td></tr></tbody></table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PESADAS -->
+    <div id="section-pesadas" class="section">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab(this,'tab-pes-form')">Registrar</div>
+        <div class="tab" onclick="switchTab(this,'tab-pes-lista')">Historial</div>
+      </div>
+      <div id="tab-pes-form">
+        <div class="card">
+          <div class="card-header"><h3>Nueva pesada</h3></div>
+          <div class="card-body">
+            <div class="form-grid cols-3">
+              <div class="form-group"><label>Fecha</label><input type="date" id="pes-fecha"></div>
+              <div class="form-group"><label>Campo</label><select id="pes-campo"><option>Don Alfredo (Azcona)</option><option>Doña Vica</option></select></div>
+              <div class="form-group"><label>Lote</label><input type="text" id="pes-lote"></div>
+              <div class="form-group"><label>Categoría</label><select id="pes-cat"><option>Terneros</option><option>Vacas</option><option>Vaquillonas</option><option>Novillos</option><option>Toros</option><option>Mixto</option></select></div>
+              <div class="form-group"><label>Cant. animales</label><input type="number" id="pes-cant"></div>
+              <div class="form-group"><label>Peso promedio (kg)</label><input type="number" id="pes-prom"></div>
+              <div class="form-group"><label>Peso total (kg)</label><input type="number" id="pes-total" placeholder="Se calcula automático"></div>
+              <div class="form-group full"><label>Observaciones</label><textarea id="pes-obs"></textarea></div>
+            </div>
+            <div class="form-actions"><button class="btn btn-primary" onclick="guardarPesada()">Registrar pesada</button></div>
+          </div>
+        </div>
+      </div>
+      <div id="tab-pes-lista" style="display:none">
+        <div class="card">
+          <div class="card-header"><h3>Historial de pesadas</h3></div>
+          <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Campo</th><th>Lote</th><th>Categoría</th><th>Animales</th><th>Peso prom.</th><th>Peso total</th><th>GDP*</th></tr></thead>
+          <tbody id="tabla-pesadas"><tr><td colspan="8"><div class="empty-state"><div class="icon">⚖️</div><h3>Sin pesadas</h3></div></td></tr></tbody></table></div>
+          <div style="padding:8px 16px;font-size:11px;color:var(--texto-suave)">* GDP calculada entre pesadas del mismo lote</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOTELERIA -->
+    <div id="section-hoteleria" class="section">
+      <div class="card">
+        <div class="card-header"><h3>🏨 Hacienda en hotelería</h3><button class="btn btn-primary" onclick="toggleForm('form-hotel')">+ Agregar</button></div>
+        <div id="form-hotel" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+          <div class="form-grid">
+            <div class="form-group"><label>Propietario</label><input type="text" id="hot-dueno" placeholder="Ej: Santiagueños"></div>
+            <div class="form-group"><label>Fecha ingreso</label><input type="date" id="hot-fecha"></div>
+            <div class="form-group"><label>Categoría</label><select id="hot-cat"><option>Terneros/as</option><option>Vacas</option><option>Novillos</option><option>Vaquillonas</option><option>Toros</option></select></div>
+            <div class="form-group"><label>Cantidad</label><input type="number" id="hot-cant"></div>
+            <div class="form-group"><label>Raza</label><input type="text" id="hot-raza"></div>
+            <div class="form-group"><label>Peso promedio (kg)</label><input type="number" id="hot-peso"></div>
+            <div class="form-group full"><label>Observaciones</label><textarea id="hot-obs"></textarea></div>
+          </div>
+          <div class="form-actions"><button class="btn btn-primary" onclick="guardarHoteleria()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-hotel')">Cancelar</button></div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Propietario</th><th>Categoría</th><th>Raza</th><th>Cantidad</th><th>Peso prom.</th><th>Ingreso</th><th>Estado</th></tr></thead>
+        <tbody id="tabla-hotel"><tr><td colspan="7"><div class="empty-state"><div class="icon">🏨</div><h3>Sin hacienda en hotelería</h3></div></td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- ALIMENTACION -->
+    <div id="section-alimentacion" class="section">
+      <div class="card">
+        <div class="card-header"><h3>🌽 Alimentación y dietas</h3><button class="btn btn-primary" onclick="toggleForm('form-ali')">+ Registrar</button></div>
+        <div id="form-ali" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+          <div class="form-grid">
+            <div class="form-group"><label>Fecha</label><input type="date" id="ali-fecha"></div>
+            <div class="form-group"><label>Lote</label><input type="text" id="ali-lote"></div>
+            <div class="form-group"><label>Campo</label><select id="ali-campo"><option>Don Alfredo (Azcona)</option><option>Doña Vica</option></select></div>
+            <div class="form-group"><label>Cant. animales</label><input type="number" id="ali-cant"></div>
+            <div class="form-group"><label>Base forrajera</label><select id="ali-base"><option>Pastoreo natural</option><option>Grama Rodes</option><option>Alfalfa</option><option>Silaje de maíz</option><option>Maíz grano</option><option>Sorgo</option><option>Rollos alfalfa</option><option>Rollos pasturas</option><option>Mixto</option></select></div>
+            <div class="form-group"><label>Suplemento</label><input type="text" id="ali-sup" placeholder="Ej: Maíz molido, urea"></div>
+            <div class="form-group"><label>kg/animal/día</label><input type="number" id="ali-kg"></div>
+            <div class="form-group full"><label>Observaciones</label><textarea id="ali-obs"></textarea></div>
+          </div>
+          <div class="form-actions"><button class="btn btn-primary" onclick="guardarAlimentacion()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-ali')">Cancelar</button></div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Campo</th><th>Lote</th><th>Animales</th><th>Base forrajera</th><th>Suplemento</th><th>kg/animal</th></tr></thead>
+        <tbody id="tabla-ali"><tr><td colspan="7"><div class="empty-state"><div class="icon">🌽</div><h3>Sin registros</h3></div></td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- LIQUIDACIONES HACIENDA -->
+    <div id="section-liq_hacienda" class="section">
+      <div class="resumen-box">
+        <h4>📊 Resumen ventas hacienda 2025</h4>
+        <div class="resumen-grid">
+          <div class="resumen-item"><div class="ri-label">Total cabezas vendidas</div><div class="ri-value">413</div></div>
+          <div class="resumen-item"><div class="ri-label">Total neto cobrado</div><div class="ri-value" style="font-size:13px">$511.724.920</div></div>
+          <div class="resumen-item"><div class="ri-label">Ret. Ganancias hacienda</div><div class="ri-value" style="font-size:13px">$26.773.716</div></div>
+          <div class="resumen-item"><div class="ri-label">Consignatarios</div><div class="ri-value" style="font-size:13px">Ferialvarez / Gananor</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Liquidaciones de hacienda</h3><button class="btn btn-primary" onclick="toggleForm('form-liqhac')">+ Registrar</button></div>
+        <div id="form-liqhac" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+          <div class="form-grid">
+            <div class="form-group"><label>Fecha</label><input type="date" id="lh-fecha"></div>
+            <div class="form-group"><label>N° liquidación</label><input type="text" id="lh-num" placeholder="Ej: 0005-26460"></div>
+            <div class="form-group"><label>Consignatario</label><select id="lh-cons"><option>Ferialvarez SRL</option><option>Gananor Pujol</option><option>Central Ganadera</option><option>Otro</option></select></div>
+            <div class="form-group"><label>Categoría</label><select id="lh-cat"><option>Terneros invernada</option><option>Terneras invernada</option><option>Vacas invernada</option><option>Vacas preñadas</option><option>Vaquillonas invernada</option><option>Novillos</option><option>Toros</option></select></div>
+            <div class="form-group"><label>Cabezas</label><input type="number" id="lh-cab"></div>
+            <div class="form-group"><label>Kg totales</label><input type="number" id="lh-kg"></div>
+            <div class="form-group"><label>Precio ($/kg o $/cab)</label><input type="number" id="lh-precio"></div>
+            <div class="form-group"><label>Subtotal $</label><input type="number" id="lh-sub"></div>
+            <div class="form-group"><label>Comisión $</label><input type="number" id="lh-com"></div>
+            <div class="form-group"><label>Ret. Ganancias $</label><input type="number" id="lh-gan"></div>
+            <div class="form-group"><label>IVA $</label><input type="number" id="lh-iva"></div>
+            <div class="form-group"><label>Total neto $</label><input type="number" id="lh-neto"></div>
+          </div>
+          <div class="form-actions"><button class="btn btn-primary" onclick="guardarLiqHacienda()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-liqhac')">Cancelar</button></div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>N° Liquid.</th><th>Consignatario</th><th>Categoría</th><th>Cab.</th><th>Subtotal</th><th>Ret. Gan.</th><th>Neto</th></tr></thead>
+        <tbody id="tabla-liqhac">
+          <tr><td>12/09/2025</td><td>0005-26959</td><td>Ferialvarez</td><td><span class="badge badge-bordo">90 Vacas preñadas</span></td><td>90</td><td>$144.000.000</td><td>—</td><td><strong>$152.755.200</strong></td></tr>
+          <tr><td>25/07/2025</td><td>0005-26460</td><td>Ferialvarez</td><td><span class="badge badge-bordo">48 Terneros</span></td><td>48</td><td>$35.991.830</td><td>—</td><td><strong>$38.180.133</strong></td></tr>
+          <tr><td>20/11/2025</td><td>2004-09986</td><td>Gananor Pujol</td><td><span class="badge badge-bordo">95 Vaq.+Terneros</span></td><td>95</td><td>$90.162.880</td><td>$8.655.636</td><td><strong>$86.989.147</strong></td></tr>
+          <tr><td>05/12/2025</td><td>2004-10070</td><td>Gananor Pujol</td><td><span class="badge badge-bordo">45 Vaq.+Vacas+Toros</span></td><td>45</td><td>$65.250.000</td><td>$6.264.000</td><td><strong>$62.953.200</strong></td></tr>
+          <tr><td>18/12/2025</td><td>2004-10107</td><td>Gananor Pujol</td><td><span class="badge badge-bordo">30 Vacas preñez</span></td><td>30</td><td>$45.000.000</td><td>$4.320.000</td><td><strong>$43.416.000</strong></td></tr>
+          <tr><td>26/12/2025</td><td>2004-10146</td><td>Gananor Pujol</td><td><span class="badge badge-bordo">36 Vacas preñez</span></td><td>36</td><td>$78.480.000</td><td>$7.534.080</td><td><strong>$75.717.504</strong></td></tr>
+        </tbody></table></div>
+      </div>
+    </div>
+
+    <!-- LIQUIDACIONES GRANOS -->
+    <div id="section-liq_granos" class="section">
+      <div class="resumen-box">
+        <h4>📊 Resumen liquidaciones granos — Campaña 25/26</h4>
+        <div class="resumen-grid">
+          <div class="resumen-item"><div class="ri-label">Trigo vendido</div><div class="ri-value">198.189 kg</div></div>
+          <div class="resumen-item"><div class="ri-label">Girasol vendido</div><div class="ri-value">67.557 kg</div></div>
+          <div class="resumen-item"><div class="ri-label">Maíz vendido</div><div class="ri-value">237.116 kg</div></div>
+          <div class="resumen-item"><div class="ri-label">Soja vendida</div><div class="ri-value">224.107 kg</div></div>
+          <div class="resumen-item"><div class="ri-label">Ret. IVA acumulada</div><div class="ri-value">$12.412.730</div></div>
+          <div class="resumen-item"><div class="ri-label">IVA RG 4310/2018</div><div class="ri-value">$13.654.001</div></div>
+          <div class="resumen-item"><div class="ri-label">Comisiones</div><div class="ri-value">$6.382.843</div></div>
+          <div class="resumen-item"><div class="ri-label">Fletes a puerto</div><div class="ri-value">$29.760.175</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Liquidaciones de granos</h3><button class="btn btn-primary" onclick="toggleForm('form-liqgr')">+ Registrar</button></div>
+        <div id="form-liqgr" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+          <div class="form-grid">
+            <div class="form-group"><label>Fecha</label><input type="date" id="lg-fecha"></div>
+            <div class="form-group"><label>C.O.E.</label><input type="text" id="lg-coe"></div>
+            <div class="form-group"><label>Tipo</label><select id="lg-tipo"><option>Venta</option><option>Canje</option><option>Ajuste calidad</option></select></div>
+            <div class="form-group"><label>Acopiador</label><select id="lg-acop"><option>Turaglio Cereales</option><option>CEC Agroinsumos</option><option>Otro</option></select></div>
+            <div class="form-group"><label>Grano</label><select id="lg-grano"><option>Soja</option><option>Maíz</option><option>Trigo</option><option>Girasol</option><option>Sorgo</option></select></div>
+            <div class="form-group"><label>Kg</label><input type="number" id="lg-kg"></div>
+            <div class="form-group"><label>Precio $/kg</label><input type="number" id="lg-precio"></div>
+            <div class="form-group"><label>Subtotal $</label><input type="number" id="lg-sub"></div>
+            <div class="form-group"><label>Ret. IVA $</label><input type="number" id="lg-retiva"></div>
+            <div class="form-group"><label>IVA RG 4310 $</label><input type="number" id="lg-rg4310"></div>
+            <div class="form-group"><label>Flete $</label><input type="number" id="lg-flete"></div>
+            <div class="form-group"><label>Comisión $</label><input type="number" id="lg-com"></div>
+            <div class="form-group"><label>Neto a cobrar $</label><input type="number" id="lg-neto"></div>
+          </div>
+          <div class="form-actions"><button class="btn btn-primary" onclick="guardarLiqGrano()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-liqgr')">Cancelar</button></div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Grano</th><th>Kg</th><th>$/kg</th><th>Ret. IVA</th><th>RG 4310</th><th>Flete</th><th>Neto</th></tr></thead>
+        <tbody id="tabla-liqgr">
+          <tr><td>04/02/2026</td><td><span class="badge badge-green">Venta</span></td><td>Trigo</td><td>60.000</td><td>$254,30</td><td>$762.900</td><td>$839.190</td><td>$2.178.000</td><td><strong>$12.701.618</strong></td></tr>
+          <tr><td>10/02/2026</td><td><span class="badge badge-green">Venta</span></td><td>Trigo</td><td>30.000</td><td>$261,00</td><td>$391.500</td><td>$430.650</td><td>$1.089.000</td><td><strong>$6.546.825</strong></td></tr>
+          <tr><td>26/02/2026</td><td><span class="badge badge-green">Venta</span></td><td>Trigo</td><td>108.189</td><td>$250,00</td><td>$1.352.363</td><td>$1.487.599</td><td>$3.927.261</td><td><strong>$22.449.247</strong></td></tr>
+          <tr><td>12/03/2026</td><td><span class="badge badge-green">Venta</span></td><td>Girasol</td><td>60.000</td><td>$520,22</td><td>$1.560.660</td><td>$1.716.726</td><td>$2.758.800</td><td><strong>$26.900.017</strong></td></tr>
+          <tr><td>12/03/2026</td><td><span class="badge badge-green">Venta</span></td><td>Girasol</td><td>7.557</td><td>$534,28</td><td>$201.878</td><td>$222.065</td><td>$274.319</td><td><strong>$3.562.169</strong></td></tr>
+          <tr><td>07/04/2026</td><td><span class="badge badge-green">Venta</span></td><td>Maíz</td><td>237.116</td><td>$256,00</td><td>$3.035.085</td><td>$3.338.593</td><td>$10.041.863</td><td><strong>$49.154.498</strong></td></tr>
+          <tr><td>07/04/2026</td><td><span class="badge badge-blue">Canje</span></td><td>Maíz</td><td>36.878</td><td>$256,00</td><td>—</td><td>—</td><td>$1.561.783</td><td><strong>$8.693.261</strong></td></tr>
+          <tr><td>29/04/2026</td><td><span class="badge badge-green">Venta</span></td><td>Soja</td><td>68.096</td><td>$435,00</td><td>$1.481.088</td><td>$1.629.197</td><td>$2.883.866</td><td><strong>$26.003.307</strong></td></tr>
+          <tr><td>14/05/2026</td><td><span class="badge badge-blue">Canje</span></td><td>Soja</td><td>31.180</td><td>$447,09</td><td>—</td><td>—</td><td>—</td><td><strong>$15.028.878</strong></td></tr>
+          <tr><td>20/05/2026</td><td><span class="badge badge-green">Venta</span></td><td>Soja</td><td>156.011</td><td>$465,00</td><td>$3.627.256</td><td>$3.989.981</td><td>$6.607.066</td><td><strong>$64.139.009</strong></td></tr>
+          <tr><td>16/04/2026</td><td><span class="badge badge-yellow">Ajuste</span></td><td>Girasol</td><td>—</td><td>$520,22</td><td>$77.861</td><td>$85.647</td><td>—</td><td><strong>$2.423.204</strong></td></tr>
+          <tr><td>16/04/2026</td><td><span class="badge badge-yellow">Ajuste</span></td><td>Girasol</td><td>—</td><td>$534,28</td><td>$7.066</td><td>$7.772</td><td>—</td><td><strong>$250.026</strong></td></tr>
+          <tr><td>16/04/2026</td><td><span class="badge badge-yellow">Ajuste</span></td><td>Girasol</td><td>—</td><td>$534,28</td><td>$1.901</td><td>$2.092</td><td>—</td><td><strong>$62.025</strong></td></tr>
+        </tbody></table></div>
+      </div>
+    </div>
+
+    <!-- CERTIFICACIONES -->
+    <div id="section-certificaciones" class="section">
+      <div class="card">
+        <div class="card-header"><h3>📋 Certificaciones de depósito — Campaña 25/26</h3></div>
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>C.O.E.</th><th>Grano</th><th>CTGs</th><th>Kg bruto</th><th>Merma</th><th>Kg neto</th><th>Depositario</th></tr></thead>
+        <tbody>
+          <tr><td>24/03/2026</td><td>332022269672</td><td><span class="badge badge-yellow">Maíz</span></td><td>3</td><td>79.480 kg</td><td>4.317 kg</td><td><strong>75.163 kg</strong></td><td>Turaglio</td></tr>
+          <tr><td>11/05/2026</td><td>332022702461</td><td><span class="badge badge-green">Soja</span></td><td>8</td><td>224.680 kg</td><td>573 kg</td><td><strong>224.107 kg</strong></td><td>Turaglio</td></tr>
+        </tbody></table></div>
+      </div>
+    </div>
+
+    <!-- TRABAJOS AGRICOLAS -->
+    <div id="section-trabajos_agri" class="section">
+      <div class="card">
+        <div class="card-header"><h3>🌾 Trabajos de campo</h3>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" onclick="toggleForm('form-trab-texto')">📝 Cargar por texto</button>
+            <button class="btn btn-secondary" onclick="toggleForm('form-trab')">+ Formulario</button>
+          </div>
+        </div>
+
+        <!-- CARGA POR TEXTO -->
+        <div id="form-trab-texto" style="display:none;padding:18px;border-top:1px solid var(--gris-borde);background:var(--bordo-claro)">
+          <p style="font-size:13px;color:var(--bordo);margin-bottom:12px">✏️ Describí el trabajo con tus palabras y la IA lo interpreta y carga automáticamente. Podés cargar varios trabajos juntos.</p>
+          <div class="form-grid">
+            <div class="form-group"><label>Campo</label>
+              <select id="trt-campo"><option>Don Alfredo (Azcona)</option><option>Doña Vica</option><option>Sant-Yago</option></select>
+            </div>
+            <div class="form-group"><label>Fecha (si no la mencionás en el texto)</label>
+              <input type="date" id="trt-fecha">
+            </div>
+            <div class="form-group full">
+              <label>Descripción del trabajo</label>
+              <textarea id="trt-texto" style="min-height:120px" placeholder="Ejemplos:
+- Siembra soja lote 3, 34 has, 15/10/2022, contratista Truccone, semilla DM 4670 60kg/ha
+- Pulverización lote 1 y 2, 90 has, glifosato 3lt/ha + 2-4D 0.5lt/ha, Barrios, 20/11/2022
+- Cosecha trigo lote 4, 33 has, rendimiento 4200kg/ha, Lucas Cordero, 05/12/2022
+- Fertilización lote 3 soja, 34 has, urea 100kg/ha, Francisco Giraudo, 01/10/2022"></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" id="btn-trab-texto" onclick="importarTrabajoTexto()">🤖 Interpretar y cargar con IA</button>
+            <button class="btn btn-secondary" onclick="toggleForm('form-trab-texto')">Cancelar</button>
+            <span id="trt-status" style="font-size:13px;color:var(--texto-suave)"></span>
+          </div>
+          <div id="trt-result" style="background:white;border-radius:8px;padding:12px;margin-top:12px;font-size:13px;display:none;line-height:1.8"></div>
+        </div>
+
+        <!-- FORMULARIO MANUAL -->
+        <div id="form-trab" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+          <div class="form-grid">
+            <div class="form-group"><label>Fecha</label><input type="date" id="tr-fecha"></div>
+            <div class="form-group"><label>Tipo</label><select id="tr-tipo"><option>Siembra</option><option>Pulverización</option><option>Fertilización</option><option>Cosecha</option><option>Henificación</option><option>Enrollado</option><option>Labranza</option><option>Otro</option></select></div>
+            <div class="form-group"><label>Campo</label><select id="tr-campo"><option>Don Alfredo (Azcona)</option><option>Doña Vica</option><option>Sant-Yago</option></select></div>
+            <div class="form-group"><label>Lote</label><input type="text" id="tr-lote"></div>
+            <div class="form-group"><label>Hectáreas</label><input type="number" id="tr-has"></div>
+            <div class="form-group"><label>Cultivo</label><input type="text" id="tr-cultivo" placeholder="Ej: Alfalfa, Maíz, Soja"></div>
+            <div class="form-group"><label>Contratista</label><input type="text" id="tr-cont"></div>
+            <div class="form-group full"><label>Descripción / Insumos</label><textarea id="tr-desc"></textarea></div>
+          </div>
+          <div class="form-actions"><button class="btn btn-primary" onclick="guardarTrabajo()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-trab')">Cancelar</button></div>
+        </div>
+
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Campo</th><th>Lote</th><th>Has</th><th>Cultivo</th><th>Contratista</th></tr></thead>
+        <tbody id="tabla-trabajos"><tr><td colspan="7"><div class="empty-state"><div class="icon">🌾</div><h3>Sin trabajos registrados</h3></div></td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- LOTES -->
+    <div id="section-lotes" class="section">
+      <div class="card">
+        <div class="card-header"><h3>🗺️ Lotes por campo</h3></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+            <div style="background:var(--bordo-claro);border:1px solid var(--bordo-suave);border-radius:8px;padding:14px">
+              <div style="font-weight:600;font-size:13px;color:var(--bordo);margin-bottom:8px">Don Alfredo (Azcona) — Ganadería</div>
+              <div style="font-size:12px;color:var(--texto-suave)">Lote 1 — 12 has | Lote 2 — 19 has | Lote 3 — 34 has</div>
+              <div style="font-size:12px;color:var(--texto-suave)">Lote 4 — 33 has | Lote 5 — 9 has | Lote 6 — 30 has</div>
+              <div style="font-size:12px;color:var(--texto-suave)">Lote 7 — 30 has | Lote 8 — 23 has | Lote 9 — 33 has | Lote 10 — 34 has</div>
+              <div style="font-weight:600;font-size:12px;color:var(--bordo);margin-top:8px">Total: 257 has — Alquilado</div>
+            </div>
+            <div style="background:var(--cielo-claro);border:1px solid #9bb8d4;border-radius:8px;padding:14px">
+              <div style="font-weight:600;font-size:13px;color:var(--cielo);margin-bottom:8px">Doña Vica — Agricultura</div>
+              <div style="font-size:12px;color:var(--texto-suave)">Lote 1 — 78 has | Lote 2 — 72 has | Lote 3 — 60 has</div>
+              <div style="font-weight:600;font-size:12px;color:var(--cielo);margin-top:8px">Total: 210 has — Familiar</div>
+              <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">📌 Arranca registro campaña 25/26</div>
+            </div>
+            <div style="background:var(--tierra-claro);border:1px solid #c49a7a;border-radius:8px;padding:14px">
+              <div style="font-weight:600;font-size:13px;color:var(--tierra);margin-bottom:8px">Sant-Yago — Agricultura</div>
+              <div style="font-size:12px;color:var(--texto-suave)">Lote 1 — 15 has | Lote 2 — 237 has | Lote 3 — 28 has</div>
+              <div style="font-weight:600;font-size:12px;color:var(--tierra);margin-top:8px">Total: 280 has — Familiar</div>
+              <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">📌 Arranca registro campaña 25/26</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAQUINARIA -->
+    <div id="section-maquinaria" class="section">
+      <div class="card">
+        <div class="card-header"><h3>🚜 Inventario de maquinaria — Grupo Giraudo</h3><button class="btn btn-primary" onclick="toggleForm('form-maq')">+ Agregar</button></div>
+        <div id="form-maq" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+          <div class="form-grid">
+            <div class="form-group"><label>Descripción</label><input type="text" id="maq-nombre"></div>
+            <div class="form-group"><label>Marca</label><input type="text" id="maq-marca"></div>
+            <div class="form-group"><label>Año</label><input type="number" id="maq-anio"></div>
+            <div class="form-group"><label>Valor compra</label><input type="text" id="maq-valor"></div>
+            <div class="form-group"><label>Hs/km/has actuales</label><input type="number" id="maq-horas"></div>
+            <div class="form-group"><label>Categoría</label><select id="maq-cat"><option>Tractor</option><option>Cosecha</option><option>Siembra</option><option>Henificación/Silaje</option><option>Movilidad</option><option>Herramienta</option><option>Otro</option></select></div>
+          </div>
+          <div class="form-actions"><button class="btn btn-primary" onclick="guardarMaquina()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-maq')">Cancelar</button></div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Máquina</th><th>Categoría</th><th>Año</th><th>Valor compra</th><th>Hs/km actuales</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Case IH Puma 190</strong></td><td><span class="badge badge-bordo">Tractor</span></td><td>2015</td><td>USD 125.000</td><td>—</td></tr>
+          <tr><td><strong>Case IH Puma 140</strong></td><td><span class="badge badge-bordo">Tractor</span></td><td>2018</td><td>USD 110.000</td><td>4.580 hs</td></tr>
+          <tr><td><strong>AGCO-Allis 6.125</strong></td><td><span class="badge badge-bordo">Tractor</span></td><td>2005</td><td>USD 32.000</td><td>8.620 hs</td></tr>
+          <tr><td><strong>Deutz AX80</strong></td><td><span class="badge badge-bordo">Tractor</span></td><td>1985</td><td>USD 28.000</td><td>—</td></tr>
+          <tr><td><strong>Deutz 50</strong></td><td><span class="badge badge-bordo">Tractor</span></td><td>1962</td><td>USD 5.500</td><td>—</td></tr>
+          <tr><td><strong>Case IH 2388</strong></td><td><span class="badge badge-yellow">Cosecha</span></td><td>2008</td><td>USD 220.000</td><td>—</td></tr>
+          <tr><td><strong>Super Walter 630 WG</strong></td><td><span class="badge badge-green">Siembra</span></td><td>2012</td><td>USD 15.500</td><td>—</td></tr>
+          <tr><td><strong>New Holland RB460C</strong></td><td><span class="badge badge-tierra">Henificación</span></td><td>2018</td><td>USD 48.500</td><td>19.339 rollos</td></tr>
+          <tr><td><strong>Segadora NH 313</strong></td><td><span class="badge badge-tierra">Henificación</span></td><td>2023</td><td>USD 50.000</td><td>1.945 has</td></tr>
+          <tr><td><strong>Picadora Mainero 4751</strong></td><td><span class="badge badge-tierra">Henificación</span></td><td>2025</td><td>USD 11.000</td><td>—</td></tr>
+          <tr><td><strong>Amarok Highline 2.0 TDI</strong></td><td><span class="badge badge-blue">Movilidad</span></td><td>2018</td><td>—</td><td>—</td></tr>
+          <tr><td><strong>Toyota Hilux 4x4</strong></td><td><span class="badge badge-blue">Movilidad</span></td><td>2019</td><td>—</td><td>—</td></tr>
+        </tbody></table></div>
+        <div style="padding:8px 16px;font-size:11px;color:var(--texto-suave)">Mostrando principales. Total inventario: 47 equipos.</div>
+      </div>
+    </div>
+
+    <!-- MANTENIMIENTO -->
+    <div id="section-mantenimiento" class="section">
+      <div class="card">
+        <div class="card-header"><h3>🔧 Mantenimiento</h3><button class="btn btn-primary" onclick="toggleForm('form-mant')">+ Registrar</button></div>
+        <div id="form-mant" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+          <div class="form-grid">
+            <div class="form-group"><label>Fecha</label><input type="date" id="mant-fecha"></div>
+            <div class="form-group"><label>Máquina</label><select id="mant-maq"><option>Case Puma 190</option><option>Case Puma 140</option><option>AGCO 6.125</option><option>Deutz AX80</option><option>Segadora NH313</option><option>Enrolladora RB460C</option><option>Picadora 4751</option><option>Amarok</option><option>Hilux</option><option>Otra</option></select></div>
+            <div class="form-group"><label>Hs/km al momento</label><input type="number" id="mant-horas"></div>
+            <div class="form-group"><label>Costo $</label><input type="number" id="mant-costo"></div>
+            <div class="form-group full"><label>Descripción</label><textarea id="mant-desc" placeholder="Ej: Cambio aceite motor y filtros..."></textarea></div>
+          </div>
+          <div class="form-actions"><button class="btn btn-primary" onclick="guardarMantenimiento()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-mant')">Cancelar</button></div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Máquina</th><th>Hs/km</th><th>Descripción</th><th>Costo</th></tr></thead>
+        <tbody id="tabla-mant"><tr><td colspan="5"><div class="empty-state"><div class="icon">🔧</div><h3>Sin registros</h3></div></td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- PRECIOS RELATIVOS -->
+    <div id="section-precios" class="section">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div>
+          <div style="font-size:13px;color:var(--texto-suave)" id="precios-ultima-act">Última actualización: —</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" onclick="actualizarPreciosIA()">🤖 Actualizar con IA</button>
+          <button class="btn btn-secondary" onclick="toggleForm('form-precio-manual')">✏️ Cargar manual</button>
+        </div>
+      </div>
+
+      <!-- Carga manual -->
+      <div id="form-precio-manual" style="display:none" class="card">
+        <div class="card-header"><h3>Cargar precio manual</h3></div>
+        <div class="card-body">
+          <div class="form-grid cols-3">
+            <div class="form-group"><label>Categoría</label>
+              <select id="pm-cat" onchange="actualizarProductos()">
+                <option value="granos">Granos</option>
+                <option value="hacienda">Hacienda</option>
+                <option value="insumos">Insumos</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Producto</label>
+              <select id="pm-producto">
+                <option>Soja</option><option>Maíz</option><option>Trigo</option><option>Girasol</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Unidad</label>
+              <select id="pm-unidad">
+                <option>$/tn</option><option>$/kg</option><option>$/lt</option><option>$/unidad</option><option>$/bolsa</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Precio $</label><input type="number" id="pm-precio" placeholder="Ej: 465000"></div>
+            <div class="form-group"><label>Fecha</label><input type="date" id="pm-fecha"></div>
+            <div class="form-group"><label>Fuente</label><input type="text" id="pm-fuente" placeholder="Ej: Turaglio, Rosgan, propio"></div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="guardarPrecioManual()">Guardar precio</button>
+            <button class="btn btn-secondary" onclick="toggleForm('form-precio-manual')">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Granos -->
+      <div class="card">
+        <div class="card-header"><h3>🌾 Granos — Precio pizarra</h3></div>
+        <div class="card-body">
+          <div id="grid-granos" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
+            <div class="precio-card" id="pc-soja" data-producto="Soja"><div class="pc-nombre">Soja</div><div class="pc-precio">—</div><div class="pc-unidad">$/tn</div><div class="pc-var">—</div><div class="pc-fecha">—</div></div>
+            <div class="precio-card" id="pc-maiz" data-producto="Maíz"><div class="pc-nombre">Maíz</div><div class="pc-precio">—</div><div class="pc-unidad">$/tn</div><div class="pc-var">—</div><div class="pc-fecha">—</div></div>
+            <div class="precio-card" id="pc-trigo" data-producto="Trigo"><div class="pc-nombre">Trigo</div><div class="pc-precio">—</div><div class="pc-unidad">$/tn</div><div class="pc-var">—</div><div class="pc-fecha">—</div></div>
+            <div class="precio-card" id="pc-girasol" data-producto="Girasol"><div class="pc-nombre">Girasol</div><div class="pc-precio">—</div><div class="pc-unidad">$/tn</div><div class="pc-var">—</div><div class="pc-fecha">—</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hacienda -->
+      <div class="card">
+        <div class="card-header"><h3>🐄 Hacienda — Precio mercado</h3></div>
+        <div class="card-body">
+          <div id="grid-hacienda" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
+            <div class="precio-card" data-producto="Ternero invernada"><div class="pc-nombre">Ternero invernada</div><div class="pc-precio">—</div><div class="pc-unidad">$/kg</div><div class="pc-var">—</div><div class="pc-fecha">—</div></div>
+            <div class="precio-card" data-producto="Ternera invernada"><div class="pc-nombre">Ternera invernada</div><div class="pc-precio">—</div><div class="pc-unidad">$/kg</div><div class="pc-var">—</div><div class="pc-fecha">—</div></div>
+            <div class="precio-card" data-producto="Novillo"><div class="pc-nombre">Novillo</div><div class="pc-precio">—</div><div class="pc-unidad">$/kg</div><div class="pc-var">—</div><div class="pc-fecha">—</div></div>
+            <div class="precio-card" data-producto="Vaca preñada"><div class="pc-nombre">Vaca preñada</div><div class="pc-precio">—</div><div class="pc-unidad">$/cab</div><div class="pc-var">—</div><div class="pc-fecha">—</div></div>
+            <div class="precio-card" data-producto="Vaquillona invernada"><div class="pc-nombre">Vaquillona invernada</div><div class="pc-precio">—</div><div class="pc-unidad">$/kg</div><div class="pc-var">—</div><div class="pc-fecha">—</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Insumos -->
+      <div class="card">
+        <div class="card-header"><h3>🛢️ Insumos — Precios locales</h3></div>
+        <div class="card-body">
+          <div id="grid-insumos" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
+            <div class="precio-card" data-producto="Gasoil"><div class="pc-nombre">Gasoil</div><div class="pc-precio">—</div><div class="pc-unidad">$/lt</div><div class="pc-var">—</div><div class="pc-fecha">—</div></div>
+            <div class="precio-card" data-producto="Glifosato 48%"><div class="pc-nombre">Glifosato 48%</div><div class="pc-precio">—</div><div class="pc-unidad">$/lt</div><div class="pc-var">—</div><div class="pc-fecha">—</div></div>
+            <div class="precio-card" data-producto="Semilla soja RR"><div class="pc-nombre">Semilla soja RR</div><div class="pc-precio">—</div><div class="pc-unidad">$/bolsa</div><div class="pc-var">—</div><div class="pc-fecha">—</div></div>
+            <div class="precio-card" data-producto="Semilla maíz"><div class="pc-nombre">Semilla maíz</div><div class="pc-precio">—</div><div class="pc-unidad">$/bolsa</div><div class="pc-var">—</div><div class="pc-fecha">—</div></div>
+            <div class="precio-card" data-producto="Urea"><div class="pc-nombre">Urea</div><div class="pc-precio">—</div><div class="pc-unidad">$/tn</div><div class="pc-var">—</div><div class="pc-fecha">—</div></div>
+            <div class="precio-card" data-producto="Ivomec Gold"><div class="pc-nombre">Ivomec Gold</div><div class="pc-precio">—</div><div class="pc-unidad">$/500ml</div><div class="pc-var">—</div><div class="pc-fecha">—</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Relaciones -->
+      <div class="card">
+        <div class="card-header"><h3>⚖️ Relaciones clave</h3><span style="font-size:12px;color:var(--texto-suave)">Se calculan automáticamente con los precios cargados</span></div>
+        <div class="card-body">
+          <div id="grid-relaciones" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+            <div style="background:var(--gris);border-radius:8px;padding:14px;border:1px solid var(--gris-borde)">
+              <div style="font-size:12px;color:var(--texto-suave);margin-bottom:4px">Soja / Gasoil</div>
+              <div style="font-size:20px;font-weight:700;color:var(--bordo)" id="rel-soja-gasoil">—</div>
+              <div style="font-size:11px;color:var(--texto-suave)">litros de gasoil por tonelada de soja</div>
+            </div>
+            <div style="background:var(--gris);border-radius:8px;padding:14px;border:1px solid var(--gris-borde)">
+              <div style="font-size:12px;color:var(--texto-suave);margin-bottom:4px">Ternero / Maíz</div>
+              <div style="font-size:20px;font-weight:700;color:var(--bordo)" id="rel-ternero-maiz">—</div>
+              <div style="font-size:11px;color:var(--texto-suave)">kg de maíz por kg de ternero</div>
+            </div>
+            <div style="background:var(--gris);border-radius:8px;padding:14px;border:1px solid var(--gris-borde)">
+              <div style="font-size:12px;color:var(--texto-suave);margin-bottom:4px">Novillo / Soja</div>
+              <div style="font-size:20px;font-weight:700;color:var(--bordo)" id="rel-novillo-soja">—</div>
+              <div style="font-size:11px;color:var(--texto-suave)">kg de soja por kg de novillo</div>
+            </div>
+            <div style="background:var(--gris);border-radius:8px;padding:14px;border:1px solid var(--gris-borde)">
+              <div style="font-size:12px;color:var(--texto-suave);margin-bottom:4px">Maíz / Gasoil</div>
+              <div style="font-size:20px;font-weight:700;color:var(--bordo)" id="rel-maiz-gasoil">—</div>
+              <div style="font-size:11px;color:var(--texto-suave)">litros de gasoil por tonelada de maíz</div>
+            </div>
+            <div style="background:var(--gris);border-radius:8px;padding:14px;border:1px solid var(--gris-borde)">
+              <div style="font-size:12px;color:var(--texto-suave);margin-bottom:4px">Soja / Urea</div>
+              <div style="font-size:20px;font-weight:700;color:var(--bordo)" id="rel-soja-urea">—</div>
+              <div style="font-size:11px;color:var(--texto-suave)">kg de urea por tonelada de soja</div>
+            </div>
+            <div style="background:var(--gris);border-radius:8px;padding:14px;border:1px solid var(--gris-borde)">
+              <div style="font-size:12px;color:var(--texto-suave);margin-bottom:4px">Ternero / Soja</div>
+              <div style="font-size:20px;font-weight:700;color:var(--bordo)" id="rel-ternero-soja">—</div>
+              <div style="font-size:11px;color:var(--texto-suave)">kg de soja por kg de ternero</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Historial -->
+      <div class="card">
+        <div class="card-header"><h3>📋 Historial de precios registrados</h3></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>Fecha</th><th>Categoría</th><th>Producto</th><th>Precio</th><th>Unidad</th><th>Fuente</th></tr></thead>
+          <tbody id="tabla-precios"><tr><td colspan="6"><div class="empty-state"><div class="icon">📈</div><h3>Sin precios registrados</h3><p>Hacé click en "Actualizar con IA" para cargar los precios de mercado</p></div></td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOLETAS RECIBIDAS -->
+    <div id="section-boletas" class="section">
+      <div class="card">
+        <div class="card-header">
+          <h3>🧾 Boletas recibidas — Carga con IA</h3>
+          <div style="display:flex;gap:8px">
+            <select id="bol-filtro-firma" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="filtrarBoletas()">
+              <option value="">Todas las firmas</option>
+              <option value="Francisco J. Giraudo">Francisco J. Giraudo</option>
+              <option value="Giraudo SH">Giraudo SH</option>
+            </select>
+            <button class="btn btn-primary" onclick="toggleForm('form-boleta')">+ Cargar boleta</button>
+          </div>
+        </div>
+
+        <div id="form-boleta" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+            <div>
+              <p style="font-size:13px;color:var(--texto-suave);margin-bottom:12px">📸 <strong>Opción 1:</strong> Subí una foto o PDF de la boleta y la IA extrae todos los datos automáticamente.</p>
+              <div style="border:2px dashed var(--bordo-suave);border-radius:8px;padding:20px;text-align:center;cursor:pointer;background:var(--bordo-claro)" onclick="document.getElementById('bol-archivo').click()">
+                <div style="font-size:28px;margin-bottom:8px">📄</div>
+                <div style="font-size:13px;color:var(--bordo);font-weight:500">Hacé click para subir</div>
+                <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">JPG, PNG o PDF</div>
+                <input type="file" id="bol-archivo" accept="image/*,.pdf" style="display:none" onchange="procesarBoleta(this)">
+              </div>
+              <div id="bol-preview" style="margin-top:8px;font-size:13px;color:var(--bordo);display:none"></div>
+            </div>
+            <div>
+              <p style="font-size:13px;color:var(--texto-suave);margin-bottom:12px">✏️ <strong>Opción 2:</strong> Cargá manualmente los datos de la boleta.</p>
+              <div class="form-grid">
+                <div class="form-group"><label>Firma receptora</label>
+                  <select id="bol-firma">
+                    <option value="Giraudo SH">Giraudo SH (30-71599118-3)</option>
+                    <option value="Francisco J. Giraudo">Francisco J. Giraudo (20-16226904-7)</option>
+                  </select>
+                </div>
+                <div class="form-group"><label>Fecha</label><input type="date" id="bol-fecha"></div>
+                <div class="form-group"><label>Vencimiento</label><input type="date" id="bol-vto"></div>
+                <div class="form-group"><label>N° comprobante</label><input type="text" id="bol-num" placeholder="Ej: A-0001-00001234"></div>
+                <div class="form-group full"><label>Proveedor</label><input type="text" id="bol-prov" placeholder="Ej: Veterinaria San Martín"></div>
+                <div class="form-group"><label>CUIT proveedor</label><input type="text" id="bol-cuit" placeholder="Ej: 20-12345678-9"></div>
+                <div class="form-group"><label>Categoría</label>
+                  <select id="bol-cat">
+                    <option>Insumos agrícolas</option>
+                    <option>Veterinaria</option>
+                    <option>Combustible</option>
+                    <option>Arrendamiento</option>
+                    <option>Maquinaria / Repuestos</option>
+                    <option>Mano de obra</option>
+                    <option>Servicios</option>
+                    <option>Semillas</option>
+                    <option>Agroquímicos</option>
+                    <option>Fertilizantes</option>
+                    <option>Otro</option>
+                  </select>
+                </div>
+                <div class="form-group"><label>Campo</label>
+                  <select id="bol-campo">
+                    <option>Don Alfredo (Azcona)</option>
+                    <option>Doña Vica</option>
+                    <option>Sant-Yago</option>
+                    <option>General (todos)</option>
+                  </select>
+                </div>
+                <div class="form-group"><label>Subtotal $</label><input type="number" id="bol-sub"></div>
+                <div class="form-group"><label>IVA $</label><input type="number" id="bol-iva"></div>
+                <div class="form-group full"><label>Total $</label><input type="number" id="bol-total" style="font-weight:600"></div>
+                <div class="form-group full"><label>Descripción / Artículos</label><textarea id="bol-desc" placeholder="Ej: Ivomec Gold 500ml x 10 unidades..."></textarea></div>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="guardarBoleta()">Guardar boleta</button>
+            <button class="btn btn-secondary" onclick="toggleForm('form-boleta')">Cancelar</button>
+            <span id="bol-status" style="font-size:13px;color:var(--texto-suave)"></span>
+          </div>
+          <div id="bol-result" style="background:var(--bordo-claro);border-radius:8px;padding:12px;margin-top:12px;font-size:13px;display:none;line-height:1.8"></div>
+        </div>
+
+        <!-- Resumen por firma -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px;border-bottom:1px solid var(--gris-borde)">
+          <div style="background:var(--bordo-claro);border-radius:8px;padding:12px;border:1px solid var(--bordo-suave)">
+            <div style="font-size:12px;color:var(--bordo);font-weight:600;margin-bottom:4px">Francisco J. Giraudo</div>
+            <div style="font-size:11px;color:var(--texto-suave)">CUIT 20-16226904-7</div>
+            <div style="font-size:18px;font-weight:700;color:var(--bordo);margin-top:6px" id="total-firma-fj">$0</div>
+            <div style="font-size:11px;color:var(--texto-suave)" id="cant-firma-fj">0 boletas</div>
+          </div>
+          <div style="background:var(--bordo-claro);border-radius:8px;padding:12px;border:1px solid var(--bordo-suave)">
+            <div style="font-size:12px;color:var(--bordo);font-weight:600;margin-bottom:4px">Giraudo SH</div>
+            <div style="font-size:11px;color:var(--texto-suave)">CUIT 30-71599118-3</div>
+            <div style="font-size:18px;font-weight:700;color:var(--bordo);margin-top:6px" id="total-firma-sh">$0</div>
+            <div style="font-size:11px;color:var(--texto-suave)" id="cant-firma-sh">0 boletas</div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Fecha</th><th>Firma</th><th>Proveedor</th><th>N° Comp.</th><th>Categoría</th><th>Campo</th><th>Subtotal</th><th>IVA</th><th>Total</th><th>Vto.</th></tr></thead>
+            <tbody id="tabla-boletas">
+              <tr><td colspan="10"><div class="empty-state"><div class="icon">🧾</div><h3>Sin boletas cargadas</h3><p>Subí una foto o PDF de la boleta para cargarla automáticamente</p></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MOVIMIENTOS -->
+    <div id="section-movimientos" class="section">
+      <div class="card">
+        <div class="card-header"><h3>💰 Movimientos contables</h3><button class="btn btn-primary" onclick="toggleForm('form-mov')">+ Agregar</button></div>
+        <div id="form-mov" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+          <div class="form-grid">
+            <div class="form-group"><label>Fecha</label><input type="date" id="mov-fecha"></div>
+            <div class="form-group"><label>Tipo</label><select id="mov-tipo"><option>Ingreso</option><option>Egreso</option></select></div>
+            <div class="form-group"><label>Categoría</label><select id="mov-cat"><option>Venta hacienda</option><option>Venta granos</option><option>Venta rollos</option><option>Servicio cosecha</option><option>Servicio henificación</option><option>Insumos</option><option>Arrendamiento</option><option>Combustible</option><option>Mano de obra</option><option>Veterinaria</option><option>Maquinaria</option><option>Cheque</option><option>Otro</option></select></div>
+            <div class="form-group"><label>Proveedor / Cliente</label><input type="text" id="mov-prov"></div>
+            <div class="form-group"><label>Importe $</label><input type="number" id="mov-importe"></div>
+            <div class="form-group"><label>N° comprobante</label><input type="text" id="mov-comp"></div>
+            <div class="form-group full"><label>Concepto</label><textarea id="mov-concepto"></textarea></div>
+          </div>
+          <div class="form-actions"><button class="btn btn-primary" onclick="guardarMovimiento()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-mov')">Cancelar</button></div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Proveedor/Cliente</th><th>Comprobante</th><th>Importe</th></tr></thead>
+        <tbody id="tabla-movimientos"><tr><td colspan="6"><div class="empty-state"><div class="icon">💰</div><h3>Sin movimientos</h3></div></td></tr></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- RETENCIONES -->
+    <div id="section-retenciones" class="section">
+      <div class="resumen-box">
+        <h4>📑 Resumen retenciones acumuladas</h4>
+        <div class="resumen-grid">
+          <div class="resumen-item"><div class="ri-label">Ret. IVA granos 25/26</div><div class="ri-value">$12.412.730</div></div>
+          <div class="resumen-item"><div class="ri-label">IVA RG 4310/2018</div><div class="ri-value">$13.654.001</div></div>
+          <div class="resumen-item"><div class="ri-label">Ret. Ganancias hacienda 2025</div><div class="ri-value">$26.773.716</div></div>
+          <div class="resumen-item"><div class="ri-label">Ret. Ganancias granos</div><div class="ri-value">$0</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Detalle por liquidación</h3></div>
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Grano/Hacienda</th><th>Concepto</th><th>Base cálculo</th><th>Alícuota</th><th>Retención</th></tr></thead>
+        <tbody>
+          <tr><td>04/02/2026</td><td>Trigo</td><td>Ret. IVA</td><td>$15.258.000</td><td>5%</td><td><strong>$762.900</strong></td></tr>
+          <tr><td>10/02/2026</td><td>Trigo</td><td>Ret. IVA</td><td>$7.830.000</td><td>5%</td><td><strong>$391.500</strong></td></tr>
+          <tr><td>26/02/2026</td><td>Trigo</td><td>Ret. IVA</td><td>$27.047.250</td><td>5%</td><td><strong>$1.352.363</strong></td></tr>
+          <tr><td>12/03/2026</td><td>Girasol</td><td>Ret. IVA</td><td>$31.213.200</td><td>5%</td><td><strong>$1.560.660</strong></td></tr>
+          <tr><td>12/03/2026</td><td>Girasol</td><td>Ret. IVA</td><td>$4.037.554</td><td>5%</td><td><strong>$201.878</strong></td></tr>
+          <tr><td>07/04/2026</td><td>Maíz</td><td>Ret. IVA</td><td>$60.701.696</td><td>5%</td><td><strong>$3.035.085</strong></td></tr>
+          <tr><td>29/04/2026</td><td>Soja</td><td>Ret. IVA</td><td>$29.621.760</td><td>5%</td><td><strong>$1.481.088</strong></td></tr>
+          <tr><td>20/05/2026</td><td>Soja</td><td>Ret. IVA</td><td>$72.545.115</td><td>5%</td><td><strong>$3.627.256</strong></td></tr>
+          <tr style="background:var(--bordo-claro)"><td colspan="5"><strong>TOTAL RET. IVA GRANOS</strong></td><td><strong>$12.412.730</strong></td></tr>
+          <tr><td>20/11/2025</td><td>Hacienda</td><td>Ret. Ganancias</td><td>—</td><td>—</td><td><strong>$8.655.636</strong></td></tr>
+          <tr><td>05/12/2025</td><td>Hacienda</td><td>Ret. Ganancias</td><td>—</td><td>—</td><td><strong>$6.264.000</strong></td></tr>
+          <tr><td>18/12/2025</td><td>Hacienda</td><td>Ret. Ganancias</td><td>—</td><td>—</td><td><strong>$4.320.000</strong></td></tr>
+          <tr><td>26/12/2025</td><td>Hacienda</td><td>Ret. Ganancias</td><td>—</td><td>—</td><td><strong>$7.534.080</strong></td></tr>
+          <tr style="background:var(--bordo-claro)"><td colspan="5"><strong>TOTAL RET. GANANCIAS HACIENDA</strong></td><td><strong>$26.773.716</strong></td></tr>
+        </tbody></table></div>
+      </div>
+    </div>
+
+    <!-- BALANCE -->
+    <div id="section-balance" class="section">
+      <div class="card">
+        <div class="card-header">
+          <h3>📊 Balance mensual</h3>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="bal-mes" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px">
+              <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+            </select>
+            <select id="bal-anio" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px">
+              <option>2026</option><option>2025</option>
+            </select>
+            <button class="btn btn-primary" onclick="generarBalance()">🤖 Generar con IA</button>
+            <button class="btn btn-secondary" onclick="exportarExcel()">📥 Exportar Excel</button>
+          </div>
+        </div>
+        <div class="card-body" id="balance-content">
+          <div class="empty-state"><div class="icon">📊</div><h3>Seleccioná mes y año</h3><p>Hacé click en "Generar con IA" para el resumen mensual completo</p></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://lwzqtrjtqzfkvdztrvse.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_fb8e8haYdLGyHmnJ3KBA-g_ChkEIhY1';
+
+const hoy = new Date();
+document.getElementById('fecha-top').textContent = hoy.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+document.querySelectorAll('input[type="date"]').forEach(i=>{if(!i.value)i.value=hoy.toISOString().split('T')[0]});
+
+async function sb(method,table,data=null,query=''){
+  const url=`${SUPABASE_URL}/rest/v1/${table}${query}`;
+  const opts={method,headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Prefer':method==='POST'?'return=representation':''}};
+  if(data)opts.body=JSON.stringify(data);
+  const r=await fetch(url,opts);
+  if(!r.ok){console.error(await r.text());return null}
+  return method==='DELETE'?null:r.json();
+}
+
+function showSection(id,el){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('section-'+id).classList.add('active');
+  if(el)el.classList.add('active');
+  const titles={dashboard:'Dashboard',importar:'Importar jornada',ia:'Consultas IA',animales:'Animales',eventos:'Eventos manga',pesadas:'Pesadas',hoteleria:'Hotelería',alimentacion:'Alimentación',liq_hacienda:'Liquidaciones hacienda',trabajos_agri:'Trabajos de campo',lotes:'Lotes / Historia',liq_granos:'Liquidaciones granos',certificaciones:'Certificaciones',maquinaria:'Maquinaria',mantenimiento:'Mantenimiento',precios:'Precios relativos',boletas:'Boletas recibidas',movimientos:'Movimientos',retenciones:'Retenciones',balance:'Balance mensual'};
+  if(id==='boletas') cargarBoletas();
+  if(id==='precios') cargarHistorialPrecios();
+  if(id==='trabajos_agri') cargarTrabajos();
+  document.getElementById('topbar-title').textContent=titles[id]||id;
+  closeSidebar();
+}
+
+function switchTab(tabEl,targetId){
+  const section=tabEl.closest('.section');
+  section.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  tabEl.classList.add('active');
+  section.querySelectorAll('[id]').forEach(el=>{
+    if(el.id.startsWith('tab-'))el.style.display=(el.id===targetId)?'':'none';
+  });
+  if(targetId.includes('lista')){
+    if(targetId.includes('ani'))cargarAnimales();
+    if(targetId.includes('ev'))cargarEventos();
+    if(targetId.includes('pes'))cargarPesadas();
+  }
+}
+
+function toggleForm(id){const f=document.getElementById(id);f.style.display=f.style.display==='none'?'':'none'}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('show')}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show')}
+
+function toast(msg,color='var(--bordo)'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.background=color;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+async function guardarAnimal(){
+  const data={caravana:document.getElementById('ani-caravana').value,categoria:document.getElementById('ani-cat').value,sexo:document.getElementById('ani-sexo').value,raza:document.getElementById('ani-raza').value,fecha_nacimiento:document.getElementById('ani-fnac').value||null,lote:document.getElementById('ani-lote').value,peso_inicial:parseFloat(document.getElementById('ani-peso').value)||null,observaciones:document.getElementById('ani-obs').value,propietario:'propio'};
+  const r=await sb('POST','animales',data);
+  if(r)toast('✅ Animal registrado');else toast('❌ Error','var(--rojo)');
+}
+
+async function cargarAnimales(){
+  const rows=await sb('GET','animales','','?order=created_at.desc');
+  const tbody=document.getElementById('tabla-animales');
+  if(!rows||!rows.length){tbody.innerHTML='<tr><td colspan="6"><div class="empty-state"><div class="icon">🐄</div><h3>Sin animales</h3></div></td></tr>';return}
+  tbody.innerHTML=rows.map(a=>`<tr><td><strong>${a.caravana||'—'}</strong></td><td>${a.categoria}</td><td>${a.raza||'—'}</td><td>${a.lote||'—'}</td><td>${a.peso_inicial?a.peso_inicial+' kg':'—'}</td><td><span class="badge badge-${a.propietario==='propio'?'bordo':'blue'}">${a.propietario}</span></td></tr>`).join('');
+}
+
+function filtrarAnimales(q){document.querySelectorAll('#tabla-animales tr').forEach(tr=>{tr.style.display=tr.textContent.toLowerCase().includes(q.toLowerCase())?'':'none'})}
+
+async function guardarEvento(){
+  const data={tipo:document.getElementById('ev-tipo').value,fecha:document.getElementById('ev-fecha').value,campo:document.getElementById('ev-campo').value,lote:document.getElementById('ev-lote').value,titulo:`${document.getElementById('ev-tipo').value}: ${document.getElementById('ev-producto').value||''}`,cantidad_animales:parseInt(document.getElementById('ev-cant').value)||null,detalle:{categoria:document.getElementById('ev-cat').value,producto:document.getElementById('ev-producto').value,dosis:document.getElementById('ev-dosis').value,observaciones:document.getElementById('ev-obs').value}};
+  const r=await sb('POST','eventos_ganaderos',data);
+  if(r)toast('✅ Evento registrado');else toast('❌ Error','var(--rojo)');
+}
+
+async function cargarEventos(){
+  const rows=await sb('GET','eventos_ganaderos','','?order=fecha.desc');
+  const tbody=document.getElementById('tabla-eventos');
+  if(!rows||!rows.length){tbody.innerHTML='<tr><td colspan="8"><div class="empty-state"><div class="icon">📋</div><h3>Sin eventos</h3></div></td></tr>';return}
+  tbody.innerHTML=rows.map(e=>`<tr><td>${e.fecha||'—'}</td><td><span class="badge badge-bordo">${e.tipo}</span></td><td>${e.campo||'—'}</td><td>${e.lote||'—'}</td><td>${e.detalle?.categoria||'—'}</td><td>${e.cantidad_animales||'—'}</td><td>${e.detalle?.producto||'—'}</td><td>${e.detalle?.dosis||'—'}</td></tr>`).join('');
+}
+
+async function guardarPesada(){
+  const cant=parseInt(document.getElementById('pes-cant').value)||null;
+  const prom=parseFloat(document.getElementById('pes-prom').value)||null;
+  const data={fecha:document.getElementById('pes-fecha').value,campo:document.getElementById('pes-campo').value,lote:document.getElementById('pes-lote').value,cantidad_animales:cant,peso_promedio:prom,peso_total:parseFloat(document.getElementById('pes-total').value)||(cant&&prom?Math.round(cant*prom):null),observaciones:document.getElementById('pes-obs').value};
+  const r=await sb('POST','pesadas',data);
+  if(r)toast('✅ Pesada registrada');else toast('❌ Error','var(--rojo)');
+}
+
+async function cargarPesadas(){
+  const rows=await sb('GET','pesadas','','?order=fecha.desc');
+  const tbody=document.getElementById('tabla-pesadas');
+  if(!rows||!rows.length){tbody.innerHTML='<tr><td colspan="8"><div class="empty-state"><div class="icon">⚖️</div><h3>Sin pesadas</h3></div></td></tr>';return}
+  tbody.innerHTML=rows.map(p=>`<tr><td>${p.fecha||'—'}</td><td>${p.campo||'—'}</td><td>${p.lote||'—'}</td><td>${p.categoria||'—'}</td><td>${p.cantidad_animales||'—'}</td><td><strong>${p.peso_promedio?p.peso_promedio+' kg':'—'}</strong></td><td>${p.peso_total?p.peso_total.toLocaleString()+' kg':'—'}</td><td><span class="badge badge-gray">—</span></td></tr>`).join('');
+}
+
+async function guardarHoteleria(){
+  const data={propietario:document.getElementById('hot-dueno').value,fecha_ingreso:document.getElementById('hot-fecha').value,categoria:document.getElementById('hot-cat').value,cantidad:parseInt(document.getElementById('hot-cant').value)||null,raza:document.getElementById('hot-raza').value,peso_promedio:parseFloat(document.getElementById('hot-peso').value)||null,observaciones:document.getElementById('hot-obs').value,activo:true};
+  const r=await sb('POST','hoteleria',data);
+  if(r){toast('✅ Guardado');toggleForm('form-hotel');cargarHoteleria()}else toast('❌ Error','var(--rojo)');
+}
+
+async function cargarHoteleria(){
+  const rows=await sb('GET','hoteleria','','?order=fecha_ingreso.desc');
+  const tbody=document.getElementById('tabla-hotel');
+  if(!rows||!rows.length){tbody.innerHTML='<tr><td colspan="7"><div class="empty-state"><div class="icon">🏨</div><h3>Sin hacienda en hotelería</h3></div></td></tr>';return}
+  tbody.innerHTML=rows.map(h=>`<tr><td><strong>${h.propietario}</strong></td><td>${h.categoria}</td><td>${h.raza||'—'}</td><td>${h.cantidad||'—'}</td><td>${h.peso_promedio?h.peso_promedio+' kg':'—'}</td><td>${h.fecha_ingreso||'—'}</td><td><span class="badge badge-${h.activo?'green':'gray'}">${h.activo?'Activo':'Egresado'}</span></td></tr>`).join('');
+}
+
+async function guardarAlimentacion(){
+  const data={tipo:'alimentacion',fecha:document.getElementById('ali-fecha').value,campo:document.getElementById('ali-campo').value,lote:document.getElementById('ali-lote').value,descripcion:document.getElementById('ali-base').value,detalle:{cantidad_animales:document.getElementById('ali-cant').value,suplemento:document.getElementById('ali-sup').value,kg_animal_dia:document.getElementById('ali-kg').value,observaciones:document.getElementById('ali-obs').value}};
+  const r=await sb('POST','trabajos_agricolas',data);
+  if(r){toast('✅ Dieta registrada');toggleForm('form-ali')}else toast('❌ Error','var(--rojo)');
+}
+
+async function importarTrabajoTexto() {
+  const texto = document.getElementById('trt-texto').value.trim();
+  const campo = document.getElementById('trt-campo').value;
+  const fecha = document.getElementById('trt-fecha').value;
+  if (!texto) { toast('Describí el trabajo primero', 'var(--tierra)'); return; }
+
+  const btn = document.getElementById('btn-trab-texto');
+  btn.disabled = true; btn.textContent = '⏳ Procesando...';
+  document.getElementById('trt-status').textContent = 'La IA está interpretando...';
+  const result = document.getElementById('trt-result');
+  result.style.display = 'block'; result.innerHTML = 'Analizando...';
+
+  try {
+    const res = await fetch('/api/claude', {
+      method: 'POST',
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        system: `Sos un asistente agropecuario del Grupo Giraudo, Argentina. El usuario describe trabajos de campo. Extraé cada trabajo y devolvé SOLO JSON válido sin backticks:
+{"trabajos":[{"tipo":"Siembra|Pulverización|Fertilización|Cosecha|Henificación|Enrollado|Labranza|Otro","fecha":"YYYY-MM-DD","campo":"string","lote":"string","hectareas":null,"cultivo":"string","contratista":"string","descripcion":"string","detalle":{}}]}
+Campo por defecto: "${campo}". Fecha por defecto: "${fecha || new Date().toISOString().split('T')[0]}". Si hay varios trabajos en el texto, creá un objeto por cada uno. Lote siempre como "Lote X".`,
+        messages: [{ role: 'user', content: texto }]
+      })
+    });
+
+    const json = await res.json();
+    let raw = json.content?.[0]?.text || '{}';
+    raw = raw.replace(/```json|```/g, '').trim();
+    const p = JSON.parse(raw);
+
+    let summary = [], errors = [];
+    if (p.trabajos?.length) {
+      for (const t of p.trabajos) {
+        const r = await sb('POST', 'trabajos_agricolas', {
+          tipo: t.tipo, fecha: t.fecha, campo: t.campo || campo,
+          lote: t.lote, hectareas: t.hectareas, cultivo: t.cultivo,
+          contratista: t.contratista, descripcion: t.descripcion,
+          detalle: t.detalle || {}
+        });
+        if (r) summary.push(`✅ ${t.tipo} — ${t.cultivo || ''} ${t.lote || ''} ${t.fecha || ''}`);
+        else errors.push(`❌ Error: ${t.tipo}`);
+      }
+    }
+
+    result.innerHTML = [...summary, ...errors].join('<br>') || 'No se encontraron datos.';
+    if (summary.length) {
+      toast(`✅ ${summary.length} trabajo${summary.length > 1 ? 's' : ''} registrado${summary.length > 1 ? 's' : ''}`);
+      document.getElementById('trt-texto').value = '';
+      cargarTrabajos();
+    }
+  } catch(e) {
+    result.innerHTML = '❌ Error al procesar. Verificá tu conexión.';
+    console.error(e);
+  }
+  btn.disabled = false; btn.textContent = '🤖 Interpretar y cargar con IA';
+  document.getElementById('trt-status').textContent = '';
+}
+
+async function guardarTrabajo(){
+  const data={tipo:document.getElementById('tr-tipo').value,fecha:document.getElementById('tr-fecha').value,campo:document.getElementById('tr-campo').value,lote:document.getElementById('tr-lote').value,hectareas:parseFloat(document.getElementById('tr-has').value)||null,cultivo:document.getElementById('tr-cultivo').value,contratista:document.getElementById('tr-cont').value,descripcion:document.getElementById('tr-desc').value};
+  const r=await sb('POST','trabajos_agricolas',data);
+  if(r){toast('✅ Trabajo registrado');toggleForm('form-trab');cargarTrabajos()}else toast('❌ Error','var(--rojo)');
+}
+
+async function cargarTrabajos(){
+  const rows = await sb('GET','trabajos_agricolas','','?not.tipo=eq.alimentacion&order=fecha.desc');
+  const tbody=document.getElementById('tabla-trabajos');
+  if(!rows||!rows.length){tbody.innerHTML='<tr><td colspan="7"><div class="empty-state"><div class="icon">🌾</div><h3>Sin trabajos</h3></div></td></tr>';return}
+  const colors={Siembra:'green',Pulverización:'blue',Fertilización:'yellow',Cosecha:'tierra',Henificación:'bordo'};
+  tbody.innerHTML=rows.map(t=>`<tr><td>${t.fecha||'—'}</td><td><span class="badge badge-${colors[t.tipo]||'gray'}">${t.tipo}</span></td><td>${t.campo||'—'}</td><td>${t.lote||'—'}</td><td>${t.hectareas?t.hectareas+' has':'—'}</td><td>${t.cultivo||'—'}</td><td>${t.contratista||'—'}</td></tr>`).join('');
+}
+
+async function guardarLiqHacienda(){
+  const data={fecha:document.getElementById('lh-fecha').value,concepto:`Venta ${document.getElementById('lh-cat').value} - ${document.getElementById('lh-cons').value}`,proveedor_cliente:document.getElementById('lh-cons').value,importe:parseFloat(document.getElementById('lh-neto').value)||null,tipo:'Ingreso',categoria:'Venta hacienda',detalle:{num_liquidacion:document.getElementById('lh-num').value,categoria:document.getElementById('lh-cat').value,cabezas:document.getElementById('lh-cab').value,kg:document.getElementById('lh-kg').value,precio:document.getElementById('lh-precio').value,subtotal:document.getElementById('lh-sub').value,comision:document.getElementById('lh-com').value,ret_ganancias:document.getElementById('lh-gan').value,iva:document.getElementById('lh-iva').value}};
+  const r=await sb('POST','movimientos',data);
+  if(r){toast('✅ Liquidación registrada');toggleForm('form-liqhac')}else toast('❌ Error','var(--rojo)');
+}
+
+async function guardarLiqGrano(){
+  const data={fecha:document.getElementById('lg-fecha').value,concepto:`Liquid. ${document.getElementById('lg-grano').value} - ${document.getElementById('lg-tipo').value}`,proveedor_cliente:document.getElementById('lg-acop').value,importe:parseFloat(document.getElementById('lg-neto').value)||null,tipo:'Ingreso',categoria:'Venta granos',detalle:{coe:document.getElementById('lg-coe').value,tipo_op:document.getElementById('lg-tipo').value,grano:document.getElementById('lg-grano').value,kg:document.getElementById('lg-kg').value,precio_kg:document.getElementById('lg-precio').value,ret_iva:document.getElementById('lg-retiva').value,rg4310:document.getElementById('lg-rg4310').value,flete:document.getElementById('lg-flete').value,comision:document.getElementById('lg-com').value}};
+  const r=await sb('POST','movimientos',data);
+  if(r){toast('✅ Liquidación registrada');toggleForm('form-liqgr')}else toast('❌ Error','var(--rojo)');
+}
+
+async function guardarMaquina(){
+  const data={nombre:document.getElementById('maq-nombre').value,marca:document.getElementById('maq-marca').value,anio_compra:parseInt(document.getElementById('maq-anio').value)||null,valor_compra:document.getElementById('maq-valor').value,horas_actuales:parseFloat(document.getElementById('maq-horas').value)||null};
+  const r=await sb('POST','maquinaria',data);
+  if(r){toast('✅ Máquina registrada');toggleForm('form-maq')}else toast('❌ Error','var(--rojo)');
+}
+
+async function guardarMantenimiento(){
+  const data={fecha:document.getElementById('mant-fecha').value,descripcion:`${document.getElementById('mant-maq').value}: ${document.getElementById('mant-desc').value}`,datos_procesados:{maquina:document.getElementById('mant-maq').value,horas_km:document.getElementById('mant-horas').value,costo:document.getElementById('mant-costo').value}};
+  const r=await sb('POST','jornadas',data);
+  if(r){
+    toast('✅ Mantenimiento registrado');
+    const tbody=document.getElementById('tabla-mant');
+    const wasEmpty=tbody.innerHTML.includes('empty-state');
+    const row=`<tr><td>${data.fecha}</td><td>${document.getElementById('mant-maq').value}</td><td>${document.getElementById('mant-horas').value||'—'}</td><td>${document.getElementById('mant-desc').value}</td><td>${document.getElementById('mant-costo').value?'$'+parseInt(document.getElementById('mant-costo').value).toLocaleString():'—'}</td></tr>`;
+    tbody.innerHTML=wasEmpty?row:row+tbody.innerHTML;
+    toggleForm('form-mant');
+  }else toast('❌ Error','var(--rojo)');
+}
+
+async function guardarMovimiento(){
+  const data={fecha:document.getElementById('mov-fecha').value,concepto:document.getElementById('mov-concepto').value,proveedor_cliente:document.getElementById('mov-prov').value,importe:parseFloat(document.getElementById('mov-importe').value)||null,tipo:document.getElementById('mov-tipo').value,categoria:document.getElementById('mov-cat').value,comprobante:document.getElementById('mov-comp').value};
+  const r=await sb('POST','movimientos',data);
+  if(r){
+    toast('✅ Movimiento registrado');toggleForm('form-mov');
+    const tbody=document.getElementById('tabla-movimientos');
+    const color=data.tipo==='Ingreso'?'green':'red';
+    const wasEmpty=tbody.innerHTML.includes('empty-state');
+    const row=`<tr><td>${data.fecha}</td><td><span class="badge badge-${color}">${data.tipo}</span></td><td>${data.categoria}</td><td>${data.proveedor_cliente||'—'}</td><td>${data.comprobante||'—'}</td><td style="font-weight:600;color:var(--${color==='green'?'verde':'rojo'})">${data.tipo==='Ingreso'?'+':'−'}$${(data.importe||0).toLocaleString()}</td></tr>`;
+    tbody.innerHTML=wasEmpty?row:row+tbody.innerHTML;
+  }else toast('❌ Error','var(--rojo)');
+}
+
+async function switchTabImportar(tabEl, targetId) {
+  tabEl.closest('.tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  tabEl.classList.add('active');
+  ['imp-tab-texto','imp-tab-imagen'].forEach(id => {
+    document.getElementById(id).style.display = id === targetId ? '' : 'none';
+  });
+}
+
+function previewImagen(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const preview = document.getElementById('imp-img-preview');
+  const thumb = document.getElementById('imp-img-thumb');
+  const nombre = document.getElementById('imp-img-nombre');
+  if (file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = e => { thumb.src = e.target.result; preview.style.display = 'block'; };
+    reader.readAsDataURL(file);
+  } else {
+    preview.style.display = 'block';
+    thumb.style.display = 'none';
+  }
+  nombre.textContent = `📄 ${file.name}`;
+}
+
+async function importarJornadaImagen() {
+  const file = document.getElementById('imp-archivo').files[0];
+  const fecha = document.getElementById('imp-fecha-img').value;
+  const campo = document.getElementById('imp-campo-img').value;
+  if (!file) { toast('Subí una imagen primero', 'var(--tierra)'); return; }
+
+  const btn = document.getElementById('btn-importar-img');
+  btn.disabled = true; btn.textContent = '⏳ Leyendo imagen...';
+  document.getElementById('imp-status-img').textContent = 'La IA está analizando la imagen...';
+  const result = document.getElementById('import-result');
+  result.style.display = 'block'; result.innerHTML = 'Procesando imagen...';
+
+  try {
+    const base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = () => rej(new Error('Error'));
+      r.readAsDataURL(file);
+    });
+
+    const isPdf = file.type === 'application/pdf';
+    const content = isPdf ? [
+      { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
+      { type: 'text', text: 'Extraé todos los datos de este documento de campo y cargalos.' }
+    ] : [
+      { type: 'image', source: { type: 'base64', media_type: file.type, data: base64 } },
+      { type: 'text', text: 'Extraé todos los datos de esta imagen de campo y cargalos.' }
+    ];
+
+    const res = await fetch('/api/claude', {
+      method: 'POST',
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        system: buildImportSystem(campo, fecha),
+        messages: [{ role: 'user', content }]
+      })
+    });
+
+    const json = await res.json();
+    let raw = json.content?.[0]?.text || '{}';
+    raw = raw.replace(/```json|```/g, '').trim();
+    const p = JSON.parse(raw);
+    await procesarDatosImportados(p, fecha, result);
+
+  } catch(e) {
+    result.innerHTML = '❌ Error al procesar la imagen.';
+    console.error(e);
+  }
+  btn.disabled = false; btn.textContent = '🤖 Leer imagen y cargar con IA';
+  document.getElementById('imp-status-img').textContent = '';
+}
+
+function buildImportSystem(campo, fecha) {
+  return `Sos el asistente del Grupo Giraudo, empresa agropecuaria de Córdoba, Argentina. Analizá el contenido y extraé TODOS los datos. Devolvé SOLO JSON válido sin backticks:
+{"eventos":[{"tipo":"Vacunación|Desparasitación|Tratamiento|Destete|Nacimiento|Mortandad|Caravana electrónica|Tacto / Preñez|Servicio / IATF|Otro","titulo":"string","fecha":"${fecha||new Date().toISOString().split('T')[0]}","campo":"${campo}","lote":"string","cantidad_animales":null,"detalle":{"producto":"","dosis":"","observaciones":""}}],
+"pesadas":[{"fecha":"string","campo":"${campo}","lote":"string","cantidad_animales":null,"peso_promedio":null,"observaciones":""}],
+"trabajos":[{"tipo":"Siembra|Pulverización|Fertilización|Cosecha|Henificación|Enrollado|Labranza|Otro","fecha":"string","campo":"${campo}","lote":"string","hectareas":null,"cultivo":"string","contratista":"string","descripcion":"string"}],
+"mantenimiento":[{"fecha":"string","maquina":"string","descripcion":"string","horas_km":"string","costo":null}],
+"hoteleria":[{"propietario":"string","categoria":"string","cantidad":null,"raza":"string","peso_promedio":null}],
+"animales":[{"caravana":"string","categoria":"string","raza":"string","sexo":"string","lote":"string","peso_inicial":null}]}
+Separar hacienda propia de hotelería. Incluir trabajos agrícolas Y mantenimiento de maquinaria si los hay.`;
+}
+
+async function procesarDatosImportados(p, fecha, resultEl) {
+  let summary = [], errors = [];
+
+  if (p.eventos?.length) {
+    for (const e of p.eventos) {
+      const r = await sb('POST','eventos_ganaderos',{tipo:e.tipo,titulo:e.titulo,fecha:e.fecha||fecha,campo:e.campo,lote:e.lote,cantidad_animales:e.cantidad_animales,detalle:e.detalle});
+      if(r) summary.push(`✅ Evento: ${e.titulo||e.tipo}`); else errors.push(`❌ Error evento`);
+    }
+  }
+  if (p.pesadas?.length) {
+    for (const ps of p.pesadas) {
+      if (ps.peso_promedio) {
+        const r = await sb('POST','pesadas',ps);
+        if(r) summary.push(`✅ Pesada: ${ps.lote} — ${ps.peso_promedio}kg`);
+      }
+    }
+  }
+  if (p.trabajos?.length) {
+    for (const t of p.trabajos) {
+      const r = await sb('POST','trabajos_agricolas',{tipo:t.tipo,fecha:t.fecha||fecha,campo:t.campo,lote:t.lote,hectareas:t.hectareas,cultivo:t.cultivo,contratista:t.contratista,descripcion:t.descripcion});
+      if(r) summary.push(`✅ Trabajo: ${t.tipo} ${t.cultivo||''} ${t.lote||''}`); else errors.push(`❌ Error trabajo`);
+    }
+  }
+  if (p.mantenimiento?.length) {
+    for (const m of p.mantenimiento) {
+      const r = await sb('POST','jornadas',{fecha:m.fecha||fecha,descripcion:`Mantenimiento: ${m.maquina}`,datos_procesados:m});
+      if(r) summary.push(`✅ Mantenimiento: ${m.maquina}`);
+    }
+  }
+  if (p.hoteleria?.length) {
+    for (const h of p.hoteleria) {
+      const r = await sb('POST','hoteleria',{...h,activo:true});
+      if(r) summary.push(`✅ Hotelería: ${h.cantidad} ${h.categoria} de ${h.propietario}`);
+    }
+  }
+  if (p.animales?.length) {
+    for (const a of p.animales) {
+      const r = await sb('POST','animales',{...a,propietario:'propio'});
+      if(r) summary.push(`✅ Animal: caravana ${a.caravana}`);
+    }
+  }
+
+  await sb('POST','jornadas',{fecha,descripcion:'Importación jornada',datos_procesados:p});
+  resultEl.innerHTML = [...summary,...errors].join('<br>') || 'No se encontraron datos.';
+  if (summary.length) toast(`✅ ${summary.length} registros cargados`);
+}
+
+async function importarJornada(){
+  const texto=document.getElementById('imp-texto').value.trim();
+  const fecha=document.getElementById('imp-fecha').value;
+  const campo=document.getElementById('imp-campo').value;
+  if(!texto){toast('Describí el trabajo del día','var(--tierra)');return}
+  const btn=document.getElementById('btn-importar');
+  btn.disabled=true;btn.textContent='⏳ Procesando...';
+  document.getElementById('imp-status').textContent='La IA está interpretando la jornada...';
+  const result=document.getElementById('import-result');
+  result.style.display='block';result.innerHTML='Analizando...';
+  try{
+    const res=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,system:buildImportSystem(campo,fecha),messages:[{role:'user',content:texto}]})});
+    const json=await res.json();
+    let raw=json.content?.[0]?.text||'{}';
+    raw=raw.replace(/```json|```/g,'').trim();
+    const p=JSON.parse(raw);
+    await procesarDatosImportados(p,fecha,result);
+  }catch(e){result.innerHTML='❌ Error al procesar.';console.error(e)}
+  btn.disabled=false;btn.textContent='🤖 Interpretar y cargar con IA';
+  document.getElementById('imp-status').textContent='';
+}
+
+function preguntaRapida(txt){document.getElementById('chat-input').value=txt;enviarConsulta()}
+
+async function enviarConsulta(){
+  const input=document.getElementById('chat-input');
+  const pregunta=input.value.trim();
+  if(!pregunta)return;
+  input.value='';
+  const msgs=document.getElementById('chat-msgs');
+  msgs.innerHTML+=`<div class="msg msg-user">${pregunta}</div><div class="msg msg-ai" id="msg-loading">⏳ Consultando...</div>`;
+  msgs.scrollTop=msgs.scrollHeight;
+  const[animales,hotel,eventos,pesadas,trabajos]=await Promise.all([
+    sb('GET','animales','','?limit=50'),
+    sb('GET','hoteleria','','?activo=eq.true'),
+    sb('GET','eventos_ganaderos','','?order=fecha.desc&limit=30'),
+    sb('GET','pesadas','','?order=fecha.desc&limit=20'),
+    sb('GET','trabajos_agricolas','','?order=fecha.desc&limit=20')
+  ]);
+  const contexto=`GRUPO GIRAUDO — Pozo del Molle, Córdoba, Argentina.
+Campos: Don Alfredo/Azcona (257 has ganadería, alquilado), Doña Vica (210 has agricultura), Sant-Yago (280 has agricultura).
+Raza: Aberdeen Angus colorado x Limousin. Parición julio-septiembre. Destete 6 meses.
+Animales propios: ${JSON.stringify(animales?.slice(0,20)||[])}
+Hotelería activa: ${JSON.stringify(hotel||[])} (Santiagueños: 9 vacas + 10 terneros)
+Eventos: ${JSON.stringify(eventos?.slice(0,15)||[])}
+Pesadas: ${JSON.stringify(pesadas?.slice(0,10)||[])}
+Trabajos: ${JSON.stringify(trabajos?.slice(0,10)||[])}
+LIQUIDACIONES GRANOS 25/26: Trigo 198.189kg, Girasol 67.557kg, Maíz 237.116kg, Soja 224.107kg. Total 726.969kg.
+Ret. IVA granos: $12.412.730. IVA RG4310: $13.654.001. Fletes: $29.760.175. Comisiones: $6.382.843.
+VENTAS HACIENDA 2025: 413 cabezas. Total neto $511.724.920. Ret. Ganancias $26.773.716.
+Maquinaria: 47 equipos. Tractores: Case Puma 190/140, AGCO 6.125, Deutz AX80/50. Cosechadora: Case IH 2388.`;
+  try{
+    const res=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:'Sos el asistente inteligente del Grupo Giraudo, empresa agropecuaria de Córdoba, Argentina. Respondé en español, claro y directo. Usá los datos disponibles. Diferenciá hacienda propia de hotelería. Sé conciso pero completo.',messages:[{role:'user',content:`${contexto}\n\nConsulta: ${pregunta}`}]})});
+    const json=await res.json();
+    const respuesta=json.content?.[0]?.text||'No pude procesar.';
+    document.getElementById('msg-loading').outerHTML=`<div class="msg msg-ai">${respuesta.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>`;
+  }catch(e){document.getElementById('msg-loading').outerHTML=`<div class="msg msg-ai">❌ Error de conexión.</div>`}
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+async function generarBalance(){
+  const mes=document.getElementById('bal-mes').value;
+  const anio=document.getElementById('bal-anio').value;
+  const meses=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('balance-content').innerHTML='<div style="text-align:center;padding:40px;color:var(--texto-suave)">⏳ Generando balance con IA...</div>';
+  const[eventos,pesadas,movimientos,trabajos,hotel]=await Promise.all([
+    sb('GET','eventos_ganaderos','','?order=fecha.desc'),
+    sb('GET','pesadas','','?order=fecha.desc'),
+    sb('GET','movimientos','','?order=fecha.desc'),
+    sb('GET','trabajos_agricolas','','?order=fecha.desc'),
+    sb('GET','hoteleria','','?activo=eq.true')
+  ]);
+  const contexto=`Balance ${meses[mes]} ${anio} — Grupo Giraudo:\nEventos: ${JSON.stringify(eventos||[])}\nPesadas: ${JSON.stringify(pesadas||[])}\nMovimientos: ${JSON.stringify(movimientos||[])}\nTrabajos: ${JSON.stringify(trabajos||[])}\nHotelería: ${JSON.stringify(hotel||[])}`;
+  try{
+    const res=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,system:`Sos el asesor del Grupo Giraudo. Generá resumen ejecutivo de ${meses[mes]} ${anio} en HTML limpio con secciones: Resumen ejecutivo, Ganadería, Agricultura, Contabilidad, Alertas próximo mes. Usá <h3> para títulos, <p> para texto, <strong> para destacados. Color principal: bordo #5c0a1a.`,messages:[{role:'user',content:contexto}]})});
+    const json=await res.json();
+    const html=json.content?.[0]?.text||'No se pudo generar.';
+    document.getElementById('balance-content').innerHTML=`<div style="line-height:1.8;font-size:14px">${html}</div><div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--gris-borde);display:flex;gap:8px"><button class="btn btn-secondary" onclick="window.print()">🖨️ Imprimir</button><button class="btn btn-primary" onclick="exportarExcel()">📥 Exportar Excel</button></div>`;
+  }catch(e){document.getElementById('balance-content').innerHTML='<div class="empty-state"><div class="icon">❌</div><h3>Error de conexión</h3></div>'}
+}
+
+function exportarExcel(){
+  toast('📥 Función de exportar Excel disponible en la próxima actualización');
+}
+
+// ---- PRECIOS RELATIVOS ----
+let preciosActuales = {};
+
+const productosCat = {
+  granos: ['Soja','Maíz','Trigo','Girasol'],
+  hacienda: ['Ternero invernada','Ternera invernada','Novillo','Vaca preñada','Vaquillona invernada'],
+  insumos: ['Gasoil','Glifosato 48%','Semilla soja RR','Semilla maíz','Urea','Ivomec Gold']
+};
+
+function actualizarProductos() {
+  const cat = document.getElementById('pm-cat').value;
+  const sel = document.getElementById('pm-producto');
+  sel.innerHTML = productosCat[cat].map(p=>`<option>${p}</option>`).join('');
+  const unidades = {granos:'$/tn', hacienda:'$/kg', insumos:'$/lt'};
+  document.getElementById('pm-unidad').value = unidades[cat] || '$/unidad';
+}
+
+async function actualizarPreciosIA() {
+  const btn = document.querySelector('button[onclick="actualizarPreciosIA()"]');
+  btn.disabled = true;
+  btn.textContent = '⏳ Consultando precios...';
+  toast('🤖 Buscando precios de mercado...');
+
+  try {
+    const hoyStr = new Date().toLocaleDateString('es-AR');
+    const res = await fetch('/api/claude', {
+      method: 'POST',
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        system: `Sos un asistente agropecuario argentino. Buscá los precios actuales de mercado en Argentina para: soja, maíz, trigo, girasol (pizarra Rosario en $/tn), ternero invernada, novillo, vaca preñada (Rosgan/Liniers en $/kg o $/cabeza), gasoil ($/lt), glifosato 48% ($/lt), urea ($/tn). Devolvé SOLO JSON sin backticks:
+{"fecha":"${hoyStr}","precios":[{"categoria":"granos|hacienda|insumos","producto":"string","precio":0,"unidad":"$/tn|$/kg|$/lt|$/cab","fuente":"string"}]}`,
+        messages: [{ role: 'user', content: `Buscá los precios agropecuarios actuales en Argentina para el día de hoy ${hoyStr}. Granos pizarra Rosario, hacienda Rosgan, insumos mercado local.` }]
+      })
+    });
+
+    const json = await res.json();
+    const fullText = json.content?.filter(c => c.type === 'text').map(c => c.text).join('') || '{}';
+    let raw = fullText.replace(/```json|```/g, '').trim();
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('No JSON found');
+    const datos = JSON.parse(match[0]);
+
+    if (datos.precios?.length) {
+      for (const p of datos.precios) {
+        await guardarPrecioEnDB(p.categoria, p.producto, p.precio, p.unidad, p.fuente || 'IA web search', datos.fecha);
+        preciosActuales[p.producto] = p.precio;
+        actualizarTarjeta(p.producto, p.precio, p.unidad, datos.fecha);
+      }
+      calcularRelaciones();
+      document.getElementById('precios-ultima-act').textContent = `Última actualización: ${datos.fecha} — IA web search`;
+      await cargarHistorialPrecios();
+      toast('✅ Precios actualizados');
+    }
+  } catch(e) {
+    console.error(e);
+    toast('❌ Error al buscar precios — intentá de nuevo', 'var(--rojo)');
+  }
+  btn.disabled = false;
+  btn.textContent = '🤖 Actualizar con IA';
+}
+
+async function guardarPrecioEnDB(categoria, producto, precio, unidad, fuente, fecha) {
+  await sb('POST', 'jornadas', {
+    fecha: new Date().toISOString().split('T')[0],
+    descripcion: `PRECIO: ${producto}`,
+    datos_procesados: { tipo: 'precio', categoria, producto, precio, unidad, fuente, fecha_precio: fecha }
+  });
+}
+
+async function guardarPrecioManual() {
+  const cat = document.getElementById('pm-cat').value;
+  const producto = document.getElementById('pm-producto').value;
+  const precio = parseFloat(document.getElementById('pm-precio').value);
+  const unidad = document.getElementById('pm-unidad').value;
+  const fuente = document.getElementById('pm-fuente').value || 'Manual';
+  const fecha = document.getElementById('pm-fecha').value;
+  if (!precio) { toast('Ingresá el precio', 'var(--tierra)'); return; }
+
+  await guardarPrecioEnDB(cat, producto, precio, unidad, fuente, fecha);
+  preciosActuales[producto] = precio;
+  actualizarTarjeta(producto, precio, unidad, fecha);
+  calcularRelaciones();
+  await cargarHistorialPrecios();
+  toggleForm('form-precio-manual');
+  toast('✅ Precio guardado');
+}
+
+function actualizarTarjeta(producto, precio, unidad, fecha) {
+  document.querySelectorAll('.precio-card').forEach(card => {
+    if (card.dataset.producto === producto) {
+      card.querySelector('.pc-precio').textContent = '$' + Math.round(precio).toLocaleString();
+      card.querySelector('.pc-unidad').textContent = unidad;
+      card.querySelector('.pc-fecha').textContent = fecha || '—';
+    }
+  });
+}
+
+function calcularRelaciones() {
+  const p = preciosActuales;
+  const set = (id, val, desc) => {
+    const el = document.getElementById(id);
+    if (el && val && isFinite(val)) el.textContent = val.toFixed(1) + (desc ? ' ' + desc : '');
+  };
+
+  // Soja/Gasoil: cuántos litros de gasoil por tn de soja
+  if (p['Soja'] && p['Gasoil']) set('rel-soja-gasoil', (p['Soja'] / p['Gasoil']).toFixed(0), 'lt/tn');
+  // Ternero/Maíz: kg de maíz por kg de ternero (precios en misma unidad)
+  if (p['Ternero invernada'] && p['Maíz']) set('rel-ternero-maiz', (p['Ternero invernada'] / (p['Maíz']/1000)).toFixed(1), 'kg maíz/kg');
+  // Novillo/Soja
+  if (p['Novillo'] && p['Soja']) set('rel-novillo-soja', (p['Novillo'] / (p['Soja']/1000)).toFixed(1), 'kg soja/kg');
+  // Maíz/Gasoil
+  if (p['Maíz'] && p['Gasoil']) set('rel-maiz-gasoil', (p['Maíz'] / p['Gasoil']).toFixed(0), 'lt/tn');
+  // Soja/Urea
+  if (p['Soja'] && p['Urea']) set('rel-soja-urea', (p['Soja'] / p['Urea']).toFixed(2), 'tn urea/tn soja');
+  // Ternero/Soja
+  if (p['Ternero invernada'] && p['Soja']) set('rel-ternero-soja', (p['Ternero invernada'] / (p['Soja']/1000)).toFixed(1), 'kg soja/kg');
+}
+
+async function cargarHistorialPrecios() {
+  const rows = await sb('GET', 'jornadas', '', '?descripcion=like.PRECIO*&order=created_at.desc&limit=50');
+  const tbody = document.getElementById('tabla-precios');
+  if (!rows || !rows.length) return;
+  const precios = rows.filter(r => r.datos_procesados?.tipo === 'precio');
+  if (!precios.length) return;
+  const catColors = { granos: 'green', hacienda: 'bordo', insumos: 'tierra' };
+  tbody.innerHTML = precios.map(r => {
+    const d = r.datos_procesados;
+    return `<tr>
+      <td>${d.fecha_precio || r.fecha || '—'}</td>
+      <td><span class="badge badge-${catColors[d.categoria]||'gray'}">${d.categoria}</span></td>
+      <td><strong>${d.producto}</strong></td>
+      <td>$${Math.round(d.precio).toLocaleString()}</td>
+      <td>${d.unidad}</td>
+      <td style="font-size:12px;color:var(--texto-suave)">${d.fuente||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ---- BOLETAS ----
+let boletasData = [];
+
+async function procesarBoleta(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const preview = document.getElementById('bol-preview');
+  const status = document.getElementById('bol-status');
+  const result = document.getElementById('bol-result');
+  preview.style.display = 'block';
+  preview.textContent = `📄 Procesando: ${file.name}...`;
+  status.textContent = 'La IA está leyendo la boleta...';
+  result.style.display = 'none';
+
+  try {
+    // Convert to base64
+    const base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = () => rej(new Error('Error al leer'));
+      r.readAsDataURL(file);
+    });
+
+    const isPdf = file.type === 'application/pdf';
+    const mediaType = isPdf ? 'application/pdf' : file.type;
+
+    const messages = isPdf ? [{
+      role: 'user',
+      content: [
+        { type: 'document', source: { type: 'base64', media_type: mediaType, data: base64 } },
+        { type: 'text', text: 'Extraé todos los datos de esta boleta/factura y devolvé SOLO JSON sin backticks.' }
+      ]
+    }] : [{
+      role: 'user',
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+        { type: 'text', text: 'Extraé todos los datos de esta boleta/factura y devolvé SOLO JSON sin backticks.' }
+      ]
+    }];
+
+    const res = await fetch('/api/claude', {
+      method: 'POST',
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `Sos un asistente contable del Grupo Giraudo, Argentina. Analizá la boleta/factura y extraé los datos. 
+Identificá la firma receptora: si el destinatario tiene CUIT 20-16226904-7 o dice "Francisco J. Giraudo" (sin Juan) es "Francisco J. Giraudo". Si tiene CUIT 30-71599118-3 o dice "Giraudo Francisco J. y Giraudo Juan F. SH" es "Giraudo SH".
+Devolvé SOLO este JSON válido sin backticks ni texto adicional:
+{"firma":"Francisco J. Giraudo o Giraudo SH","fecha":"DD/MM/YYYY","vencimiento":"DD/MM/YYYY","numero_comprobante":"string","proveedor":"string","cuit_proveedor":"string","categoria":"Insumos agrícolas|Veterinaria|Combustible|Arrendamiento|Maquinaria / Repuestos|Mano de obra|Servicios|Semillas|Agroquímicos|Fertilizantes|Otro","descripcion":"string","subtotal":0,"iva":0,"total":0,"tipo_iva":"21%|10.5%|0%"}`,
+        messages
+      })
+    });
+
+    const json = await res.json();
+    let raw = json.content?.[0]?.text || '{}';
+    raw = raw.replace(/```json|```/g, '').trim();
+    const datos = JSON.parse(raw);
+
+    // Auto-fill form
+    if (datos.firma) document.getElementById('bol-firma').value = datos.firma;
+    if (datos.fecha) {
+      const parts = datos.fecha.split('/');
+      if (parts.length === 3) document.getElementById('bol-fecha').value = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+    }
+    if (datos.vencimiento) {
+      const parts = datos.vencimiento.split('/');
+      if (parts.length === 3) document.getElementById('bol-vto').value = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+    }
+    if (datos.numero_comprobante) document.getElementById('bol-num').value = datos.numero_comprobante;
+    if (datos.proveedor) document.getElementById('bol-prov').value = datos.proveedor;
+    if (datos.cuit_proveedor) document.getElementById('bol-cuit').value = datos.cuit_proveedor;
+    if (datos.categoria) document.getElementById('bol-cat').value = datos.categoria;
+    if (datos.descripcion) document.getElementById('bol-desc').value = datos.descripcion;
+    if (datos.subtotal) document.getElementById('bol-sub').value = datos.subtotal;
+    if (datos.iva) document.getElementById('bol-iva').value = datos.iva;
+    if (datos.total) document.getElementById('bol-total').value = datos.total;
+
+    preview.textContent = `✅ ${file.name} — leída correctamente`;
+    result.style.display = 'block';
+    result.innerHTML = `<strong>Datos extraídos:</strong><br>
+      🏢 Firma: <strong>${datos.firma||'—'}</strong><br>
+      📅 Fecha: ${datos.fecha||'—'} | Vto: ${datos.vencimiento||'—'}<br>
+      🏪 Proveedor: ${datos.proveedor||'—'} (${datos.cuit_proveedor||'—'})<br>
+      📋 ${datos.descripcion||'—'}<br>
+      💰 Subtotal: $${(datos.subtotal||0).toLocaleString()} | IVA ${datos.tipo_iva||''}: $${(datos.iva||0).toLocaleString()} | <strong>Total: $${(datos.total||0).toLocaleString()}</strong><br>
+      <span style="color:var(--texto-suave);font-size:12px">Revisá los datos y hacé click en "Guardar boleta"</span>`;
+    status.textContent = '';
+    toast('✅ Boleta leída — revisá y guardá');
+  } catch(e) {
+    preview.textContent = '❌ Error al procesar el archivo';
+    status.textContent = '';
+    console.error(e);
+  }
+}
+
+async function guardarBoleta() {
+  const firma = document.getElementById('bol-firma').value;
+  const fecha = document.getElementById('bol-fecha').value;
+  const total = parseFloat(document.getElementById('bol-total').value) || 0;
+  if (!fecha || !total) { toast('Completá al menos fecha y total', 'var(--tierra)'); return; }
+
+  const data = {
+    fecha,
+    tipo: 'Egreso',
+    categoria: document.getElementById('bol-cat').value,
+    proveedor_cliente: document.getElementById('bol-prov').value,
+    importe: total,
+    comprobante: document.getElementById('bol-num').value,
+    concepto: document.getElementById('bol-desc').value,
+    detalle: {
+      firma,
+      vencimiento: document.getElementById('bol-vto').value,
+      cuit_proveedor: document.getElementById('bol-cuit').value,
+      subtotal: parseFloat(document.getElementById('bol-sub').value) || 0,
+      iva: parseFloat(document.getElementById('bol-iva').value) || 0,
+      campo: document.getElementById('bol-campo').value,
+      tipo_comprobante: 'boleta'
+    }
+  };
+
+  const r = await sb('POST', 'movimientos', data);
+  if (r) {
+    toast('✅ Boleta registrada');
+    toggleForm('form-boleta');
+    document.getElementById('bol-result').style.display = 'none';
+    document.getElementById('bol-preview').style.display = 'none';
+    document.getElementById('bol-archivo').value = '';
+    cargarBoletas();
+  } else toast('❌ Error al guardar', 'var(--rojo)');
+}
+
+async function cargarBoletas() {
+  const rows = await sb('GET', 'movimientos', '', '?categoria=neq.Venta hacienda&tipo=eq.Egreso&order=fecha.desc');
+  const tbody = document.getElementById('tabla-boletas');
+  if (!rows || !rows.length) {
+    tbody.innerHTML = '<tr><td colspan="10"><div class="empty-state"><div class="icon">🧾</div><h3>Sin boletas cargadas</h3><p>Subí una foto o PDF de la boleta</p></div></td></tr>';
+    document.getElementById('total-firma-fj').textContent = '$0';
+    document.getElementById('total-firma-sh').textContent = '$0';
+    document.getElementById('cant-firma-fj').textContent = '0 boletas';
+    document.getElementById('cant-firma-sh').textContent = '0 boletas';
+    return;
+  }
+
+  let totalFJ = 0, totalSH = 0, cantFJ = 0, cantSH = 0;
+  rows.forEach(r => {
+    const firma = r.detalle?.firma || '';
+    if (firma === 'Francisco J. Giraudo') { totalFJ += r.importe || 0; cantFJ++; }
+    else if (firma === 'Giraudo SH') { totalSH += r.importe || 0; cantSH++; }
+  });
+
+  document.getElementById('total-firma-fj').textContent = '$' + Math.round(totalFJ).toLocaleString();
+  document.getElementById('total-firma-sh').textContent = '$' + Math.round(totalSH).toLocaleString();
+  document.getElementById('cant-firma-fj').textContent = cantFJ + ' boleta' + (cantFJ !== 1 ? 's' : '');
+  document.getElementById('cant-firma-sh').textContent = cantSH + ' boleta' + (cantSH !== 1 ? 's' : '');
+
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.fecha||'—'}</td>
+      <td><span class="badge badge-bordo" style="font-size:10px">${r.detalle?.firma||'—'}</span></td>
+      <td><strong>${r.proveedor_cliente||'—'}</strong></td>
+      <td style="font-size:11px">${r.comprobante||'—'}</td>
+      <td><span class="badge badge-gray">${r.categoria||'—'}</span></td>
+      <td>${r.detalle?.campo||'—'}</td>
+      <td>$${((r.detalle?.subtotal)||0).toLocaleString()}</td>
+      <td>$${((r.detalle?.iva)||0).toLocaleString()}</td>
+      <td><strong>$${(r.importe||0).toLocaleString()}</strong></td>
+      <td style="font-size:11px;color:var(--texto-suave)">${r.detalle?.vencimiento||'—'}</td>
+    </tr>`).join('');
+}
+
+function filtrarBoletas() {
+  const filtro = document.getElementById('bol-filtro-firma').value.toLowerCase();
+  document.querySelectorAll('#tabla-boletas tr').forEach(tr => {
+    if (!filtro) { tr.style.display = ''; return; }
+    tr.style.display = tr.textContent.toLowerCase().includes(filtro) ? '' : 'none';
+  });
+}
+
+// Seed hotelería inicial
+setTimeout(async()=>{
+  try{
+    const existing=await sb('GET','hoteleria','','?limit=1');
+    if(existing&&existing.length===0){
+      await sb('POST','hoteleria',{propietario:'Santiagueños',fecha_ingreso:'2026-05-06',categoria:'Vacas',cantidad:9,raza:'Santiagueña',peso_promedio:334,lote:'Corral',observaciones:'Glipondin 4 - 5cc. Hotelería.',activo:true});
+      await sb('POST','hoteleria',{propietario:'Santiagueños',fecha_ingreso:'2026-05-06',categoria:'Terneros/as',cantidad:10,raza:'Santiagueño',peso_promedio:141,lote:'Corral',observaciones:'Glipondin 4 1cc + Ivomec Gold 2cc. Hotelería.',activo:true});
+    }
+  }catch(e){}
+},1500);
+</script>
+</body>
+</html>
