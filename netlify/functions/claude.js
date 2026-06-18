@@ -1,18 +1,17 @@
-export default async (request) => {
-  if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS'
-      }
-    });
+exports.handler = async (event) => {
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+  };
+
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 204, headers: corsHeaders, body: '' };
   }
 
   try {
-    const body = await request.json();
-    
+    const body = JSON.parse(event.body);
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -24,23 +23,17 @@ export default async (request) => {
     });
 
     const text = await response.text();
-    
-    return new Response(text, {
-      status: response.status,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
-    });
+
+    return {
+      statusCode: response.status,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      body: text
+    };
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { 
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
-    });
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      body: JSON.stringify({ error: error.message })
+    };
   }
 };
-
-export const config = { path: '/api/claude' };
