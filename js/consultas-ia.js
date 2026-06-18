@@ -38,7 +38,7 @@ Liquidaciones hacienda: ${JSON.stringify(liqHac?.slice(0,10)||[])}`;
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1000,
         system: 'Sos el asistente inteligente del Grupo Giraudo, empresa agropecuaria de Córdoba, Argentina. Respondé en español, claro y directo. Usá los datos disponibles. Diferenciá hacienda propia de hotelería. Sé conciso pero completo.',
         messages: [{ role: 'user', content: `${contexto}\n\nConsulta: ${pregunta}` }]
