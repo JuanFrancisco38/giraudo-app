@@ -26,6 +26,7 @@ exports.handler = async (event) => {
     });
 
     const text = await response.text();
+    console.log('Anthropic status:', response.status, 'body:', text.slice(0, 500));
 
     return {
       statusCode: response.status,
