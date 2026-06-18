@@ -13,7 +13,8 @@ async function cargarDashboard() {
 
   const mesActual = new Date().getMonth() + 1;
   const anioActual = new Date().getFullYear();
-  const eventosMes = await sb('GET', 'eventos_ganaderos', '', `?fecha=gte.${anioActual}-${String(mesActual).padStart(2,'0')}-01&fecha=lte.${anioActual}-${String(mesActual).padStart(2,'0')}-31`);
+  const ultimoDia = new Date(anioActual, mesActual, 0).getDate();
+  const eventosMes = await sb('GET', 'eventos_ganaderos', '', `?fecha=gte.${anioActual}-${String(mesActual).padStart(2,'0')}-01&fecha=lte.${anioActual}-${String(mesActual).padStart(2,'0')}-${ultimoDia}`);
   document.getElementById('st-eventos').textContent = eventosMes?.length ?? '—';
 
   const liqGranos = await sb('GET', 'liquidaciones_granos', '', '?campania=eq.25/26');
