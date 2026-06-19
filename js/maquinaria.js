@@ -24,7 +24,7 @@ async function cargarMantenimiento() {
     const maquina = idx > -1 ? desc.slice(0, idx) : '—';
     const detalle = idx > -1 ? desc.slice(idx + 2) : desc;
     return `<tr>
-      <td>${m.fecha || '—'}</td>
+      <td>${fmtFecha(m.fecha)}</td>
       <td>${maquina}</td>
       <td>${m.horas_maquina || '—'}</td>
       <td>${detalle || '—'}</td>
@@ -46,7 +46,7 @@ async function guardarMantenimiento() {
     const tbody = document.getElementById('tabla-mant');
     const wasEmpty = tbody.innerHTML.includes('empty-state');
     const row = `<tr>
-      <td>${data.fecha}</td>
+      <td>${fmtFecha(data.fecha)}</td>
       <td>${document.getElementById('mant-maq').value}</td>
       <td>${data.horas_maquina || '—'}</td>
       <td>${document.getElementById('mant-desc').value}</td>

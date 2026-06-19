@@ -72,7 +72,7 @@ Devolvé SOLO este JSON válido sin backticks ni texto adicional:
     result.style.display = 'block';
     result.innerHTML = `<strong>Datos extraídos:</strong><br>
       🏢 Firma: <strong>${datos.firma || '—'}</strong><br>
-      📅 Fecha: ${datos.fecha || '—'} | Vto: ${datos.vencimiento || '—'}<br>
+      📅 Fecha: ${fmtFecha(datos.fecha)} | Vto: ${fmtFecha(datos.vencimiento)}<br>
       🏪 Proveedor: ${datos.proveedor || '—'} (${datos.cuit_proveedor || '—'})<br>
       📋 ${datos.descripcion || '—'}<br>
       💰 Subtotal: $${(datos.subtotal || 0).toLocaleString()} | IVA ${datos.tipo_iva || ''}: $${(datos.iva || 0).toLocaleString()} | <strong>Total: $${(datos.total || 0).toLocaleString()}</strong><br>
@@ -147,7 +147,7 @@ async function cargarBoletas() {
   tbody.innerHTML = rows.map(r => {
     const extra = r.observaciones ? JSON.parse(r.observaciones) : {};
     return `<tr>
-      <td>${r.fecha || '—'}</td>
+      <td>${fmtFecha(r.fecha)}</td>
       <td><span class="badge badge-bordo" style="font-size:10px">${extra.firma || '—'}</span></td>
       <td><strong>${r.proveedor || '—'}</strong></td>
       <td style="font-size:11px">${extra.numero_comprobante || '—'}</td>

@@ -47,7 +47,7 @@ async function actualizarPreciosIA() {
         actualizarTarjeta(p.producto, p.precio, p.unidad, datos.fecha);
       }
       calcularRelaciones();
-      document.getElementById('precios-ultima-act').textContent = `Última actualización: ${datos.fecha} — IA web search`;
+      document.getElementById('precios-ultima-act').textContent = `Última actualización: ${fmtFecha(datos.fecha)} — IA web search`;
       await cargarHistorialPrecios();
       toast('✅ Precios actualizados');
     }
@@ -91,7 +91,7 @@ function actualizarTarjeta(producto, precio, unidad, fecha) {
     if (card.dataset.producto === producto) {
       card.querySelector('.pc-precio').textContent = '$' + Math.round(precio).toLocaleString();
       card.querySelector('.pc-unidad').textContent = unidad;
-      card.querySelector('.pc-fecha').textContent = fecha || '—';
+      card.querySelector('.pc-fecha').textContent = fmtFecha(fecha);
     }
   });
 }
@@ -117,7 +117,7 @@ async function cargarHistorialPrecios() {
   const catColors = { granos:'green', hacienda:'bordo', insumos:'tierra' };
   tbody.innerHTML = rows.map(r => `
     <tr>
-      <td>${r.fecha || '—'}</td>
+      <td>${fmtFecha(r.fecha)}</td>
       <td><span class="badge badge-gray">${r.fuente || '—'}</span></td>
       <td><strong>${r.producto}</strong></td>
       <td>$${Math.round(r.precio).toLocaleString()}</td>

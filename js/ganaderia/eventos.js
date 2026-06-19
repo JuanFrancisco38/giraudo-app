@@ -26,7 +26,7 @@ async function cargarEventos() {
   }
   tbody.innerHTML = rows.map(e => `
     <tr>
-      <td>${e.fecha || '—'}</td>
+      <td>${fmtFecha(e.fecha)}</td>
       <td><span class="badge badge-bordo">${e.tipo}</span></td>
       <td>${e.campo || '—'}</td>
       <td>${e.lote || '—'}</td>

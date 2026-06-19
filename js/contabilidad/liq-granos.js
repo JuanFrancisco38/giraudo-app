@@ -28,7 +28,7 @@ async function cargarLiqGranos() {
   const cultColors = {soja:'green',maiz:'yellow',trigo:'tierra',girasol:'amarillo'};
   tbody.innerHTML = rows.map(l => `
     <tr>
-      <td>${l.fecha || '—'}</td>
+      <td>${fmtFecha(l.fecha)}</td>
       <td>${l.numero || '—'}</td>
       <td>${l.acopio || '—'}</td>
       <td><span class="badge badge-${cultColors[l.cultivo?.toLowerCase()] || 'gray'}">${l.cultivo || '—'}</span></td>

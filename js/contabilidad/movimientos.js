@@ -17,7 +17,7 @@ async function guardarMovimiento() {
     const color = data.tipo === 'Ingreso' ? 'green' : 'red';
     const wasEmpty = tbody.innerHTML.includes('empty-state');
     const row = `<tr>
-      <td>${data.fecha}</td>
+      <td>${fmtFecha(data.fecha)}</td>
       <td><span class="badge badge-${color}">${data.tipo}</span></td>
       <td>${data.categoria}</td>
       <td>${data.observaciones || '—'}</td>

@@ -27,7 +27,7 @@ async function cargarLiqHacienda() {
   }
   tbody.innerHTML = rows.map(l => `
     <tr>
-      <td>${l.fecha || '—'}</td>
+      <td>${fmtFecha(l.fecha)}</td>
       <td>${l.numero || '—'}</td>
       <td>${l.consignatario || '—'}</td>
       <td><span class="badge badge-bordo">${l.cabezas ? l.cabezas + ' ' : ''}${l.categoria || ''}</span></td>

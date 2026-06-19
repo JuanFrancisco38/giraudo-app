@@ -23,7 +23,7 @@ async function cargarDashboard() {
   const divEventos = document.getElementById('ultimos-eventos');
   if (eventosHoy && eventosHoy.length) {
     divEventos.innerHTML = eventosHoy.map(e =>
-      `<div class="alert alert-bordo">📋 ${e.titulo || e.tipo} — ${e.campo || ''} ${e.fecha || ''}</div>`
+      `<div class="alert alert-bordo">📋 ${e.titulo || e.tipo} — ${e.campo || ''} ${fmtFecha(e.fecha)}</div>`
     ).join('');
   }
 }

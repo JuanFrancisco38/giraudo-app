@@ -24,7 +24,7 @@ async function cargarPesadas() {
   }
   tbody.innerHTML = rows.map(p => `
     <tr>
-      <td>${p.fecha || '—'}</td>
+      <td>${fmtFecha(p.fecha)}</td>
       <td>${p.campo || '—'}</td>
       <td>${p.lote || '—'}</td>
       <td>${p.categoria || '—'}</td>

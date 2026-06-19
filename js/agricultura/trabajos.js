@@ -24,7 +24,7 @@ async function cargarTrabajos() {
   const colors = {Siembra:'green',Pulverización:'blue',Fertilización:'yellow',Cosecha:'tierra',Henificación:'bordo'};
   tbody.innerHTML = rows.map(t => `
     <tr>
-      <td>${t.fecha || '—'}</td>
+      <td>${fmtFecha(t.fecha)}</td>
       <td><span class="badge badge-${colors[t.tipo] || 'gray'}">${t.tipo}</span></td>
       <td>${t.campo || '—'}</td>
       <td>${t.lote || '—'}</td>

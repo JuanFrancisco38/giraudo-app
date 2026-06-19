@@ -5,6 +5,13 @@ const hoy = new Date();
 document.getElementById('fecha-top').textContent = hoy.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
 document.querySelectorAll('input[type="date"]').forEach(i=>{if(!i.value)i.value=hoy.toISOString().split('T')[0]});
 
+function fmtFecha(f) {
+  if (!f) return '—';
+  const m = String(f).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+  return f;
+}
+
 async function sb(method, table, data=null, query='') {
   const url = `${SUPABASE_URL}/rest/v1/${table}${query}`;
   const opts = {

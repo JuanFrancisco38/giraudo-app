@@ -28,7 +28,7 @@ async function cargarHoteleria() {
       <td>${h.raza || '—'}</td>
       <td>${h.cantidad || '—'}</td>
       <td>${h.peso_promedio ? h.peso_promedio + ' kg' : '—'}</td>
-      <td>${h.fecha_ingreso || '—'}</td>
+      <td>${fmtFecha(h.fecha_ingreso)}</td>
       <td><span class="badge badge-${h.activo ? 'green' : 'gray'}">${h.activo ? 'Activo' : 'Egresado'}</span></td>
     </tr>`).join('');
 }
