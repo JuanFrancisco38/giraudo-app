@@ -98,6 +98,16 @@ function showSection(id, el) {
   closeSidebar();
 }
 
+function proximamente(nombre, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('section-proximamente').classList.add('active');
+  document.getElementById('prox-nombre').textContent = nombre;
+  document.getElementById('topbar-title').textContent = nombre;
+  if (el) el.classList.add('active');
+  closeSidebar();
+}
+
 function switchTab(tabEl, targetId) {
   const section = tabEl.closest('.section');
   section.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));

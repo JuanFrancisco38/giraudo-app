@@ -151,35 +151,43 @@ tr:hover td{background:var(--gris)}
   </div>
   <div class="sidebar-section">Principal</div>
   <div class="nav-item active" onclick="showSection('dashboard',this)">📊 Dashboard</div>
-  <div class="nav-item" onclick="showSection('importar',this)">📥 Importar jornada</div>
   <div class="nav-item" onclick="showSection('ia',this)">🤖 Consultas IA</div>
 
-  <div class="sidebar-section">Ganadería</div>
-  <div class="nav-item" onclick="showSection('animales',this)">🐄 Animales</div>
-  <div class="nav-item" onclick="showSection('eventos',this)">💉 Eventos manga</div>
+  <div class="sidebar-section">Carga de trabajos</div>
+  <div class="nav-item" onclick="showSection('trabajos_agri',this)">🌾 Trabajos lotes</div>
+  <div class="nav-item" onclick="showSection('eventos',this)">💉 Trabajos manga</div>
+  <div class="nav-item" onclick="showSection('mantenimiento',this)">🔧 Mantenimiento maquinarias</div>
+  <div class="nav-item" onclick="showSection('importar',this)">📥 Importar jornada (IA)</div>
+
+  <div class="sidebar-section">Carga de documentos</div>
+  <div class="nav-item" onclick="showSection('boletas',this)">🧾 Facturas recibidas</div>
+  <div class="nav-item" onclick="proximamente('Facturas emitidas',this)">🧾 Facturas emitidas</div>
+  <div class="nav-item" onclick="proximamente('Notas de crédito',this)">📝 Notas crédito</div>
+  <div class="nav-item" onclick="proximamente('Notas de débito',this)">📝 Notas débito</div>
+  <div class="nav-item" onclick="showSection('liq_granos',this)">📄 Liquidaciones granos</div>
+  <div class="nav-item" onclick="showSection('certificaciones',this)">📋 Certificaciones de grano</div>
+  <div class="nav-item" onclick="showSection('liq_hacienda',this)">📄 Liquidación de hacienda</div>
+  <div class="nav-item" onclick="showSection('retenciones',this)">📑 Retenciones</div>
+  <div class="nav-item" onclick="showSection('movimientos',this)">💰 Movimientos</div>
+
+  <div class="sidebar-section">Ver / Analizar</div>
+  <div class="sidebar-subsection">Agricultura</div>
+  <div class="nav-item" onclick="showSection('trabajos_agri',this)">🌾 Trabajos lotes</div>
+  <div class="nav-item" onclick="showSection('lotes',this)">🗺️ Historial lotes</div>
+  <div class="nav-item" onclick="showSection('agro_dash',this)">📊 Análisis económicos</div>
+  <div class="sidebar-subsection">Ganadería</div>
+  <div class="nav-item" onclick="showSection('eventos',this)">💉 Trabajos manga</div>
+  <div class="nav-item" onclick="showSection('animales',this)">🐄 Stock</div>
+  <div class="nav-item" onclick="proximamente('Historial de madres',this)">👪 Historial madres</div>
   <div class="nav-item" onclick="showSection('pesadas',this)">⚖️ Pesadas</div>
   <div class="nav-item" onclick="showSection('hoteleria',this)">🏨 Hotelería</div>
   <div class="nav-item" onclick="showSection('alimentacion',this)">🌽 Alimentación</div>
-  <div class="nav-item" onclick="showSection('liq_hacienda',this)">📄 Liquid. hacienda</div>
-
-  <div class="sidebar-section">Agricultura</div>
-  <div class="nav-item" onclick="showSection('agro_dash',this)">📊 Resumen agrícola</div>
-  <div class="nav-item" onclick="showSection('trabajos_agri',this)">🌾 Trabajos de campo</div>
-  <div class="nav-item" onclick="showSection('lotes',this)">🗺️ Lotes / Historia</div>
-  <div class="nav-item" onclick="showSection('liq_granos',this)">📄 Liquid. granos</div>
-  <div class="nav-item" onclick="showSection('certificaciones',this)">📋 Certificaciones</div>
-
-  <div class="sidebar-section">Maquinaria</div>
+  <div class="sidebar-subsection">Maquinaria</div>
   <div class="nav-item" onclick="showSection('maquinaria',this)">🚜 Inventario</div>
-  <div class="nav-item" onclick="showSection('mantenimiento',this)">🔧 Mantenimiento</div>
-
-  <div class="sidebar-section">Mercado</div>
+  <div class="nav-item" onclick="showSection('mantenimiento',this)">🔧 Mantenimientos</div>
+  <div class="nav-item" onclick="proximamente('Trabajos por maquinaria',this)">🛠️ Trabajos maquinaria</div>
+  <div class="sidebar-subsection">General</div>
   <div class="nav-item" onclick="showSection('precios',this)">📈 Precios relativos</div>
-
-  <div class="sidebar-section">Contabilidad</div>
-  <div class="nav-item" onclick="showSection('boletas',this)">🧾 Boletas recibidas</div>
-  <div class="nav-item" onclick="showSection('movimientos',this)">💰 Movimientos</div>
-  <div class="nav-item" onclick="showSection('retenciones',this)">📑 Retenciones</div>
   <div class="nav-item" onclick="showSection('balance',this)">📊 Balance mensual</div>
 
   <div class="sidebar-footer">
@@ -245,6 +253,17 @@ tr:hover td{background:var(--gris)}
             <div class="alert alert-info">🌾 Campaña 25/26: 726.969 kg de granos vendidos</div>
             <div class="alert alert-warning">📋 Central Ganadera: liquidación pendiente de cargar</div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROXIMAMENTE -->
+    <div id="section-proximamente" class="section">
+      <div class="card">
+        <div class="card-body" style="text-align:center;padding:50px 20px">
+          <div style="font-size:48px;margin-bottom:12px">🚧</div>
+          <h3 id="prox-nombre" style="margin-bottom:8px">Próximamente</h3>
+          <p style="color:var(--texto-suave)">Esta sección está en construcción. La vamos a habilitar pronto.</p>
         </div>
       </div>
     </div>
