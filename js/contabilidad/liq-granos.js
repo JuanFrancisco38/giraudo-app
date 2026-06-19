@@ -72,7 +72,7 @@ async function cargarLiqGranos() {
   const tbody = document.getElementById('tabla-liqgr');
   if (!tbody) return;
   if (!rows || !rows.length) {
-    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="icon">📄</div><h3>Sin liquidaciones</h3></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="icon">📄</div><h3>Sin liquidaciones</h3></div></td></tr>';
     return;
   }
   const cultColors = {soja:'green',maiz:'yellow',trigo:'tierra',girasol:'amarillo'};
@@ -86,5 +86,14 @@ async function cargarLiqGranos() {
       <td>${l.ret_iva ? '$' + Math.round(l.ret_iva).toLocaleString() : '—'}</td>
       <td>${l.flete ? '$' + Math.round(l.flete).toLocaleString() : '—'}</td>
       <td><strong>${l.total_neto ? '$' + Math.round(l.total_neto).toLocaleString() : '—'}</strong></td>
+      <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarLiqGrano('${l.id}')">🗑️</button></td>
     </tr>`).join('');
+}
+
+async function borrarLiqGrano(id) {
+  if (!confirm('¿Borrar esta liquidación? Esta acción no se puede deshacer.')) return;
+  await sb('DELETE', 'liquidaciones_granos', '', `?id=eq.${id}`);
+  toast('🗑️ Liquidación borrada');
+  cargarLiqGranos();
+  cargarResumenGranos();
 }

@@ -63,7 +63,7 @@ async function cargarCertificaciones() {
   const tbody = document.getElementById('tabla-cert');
   if (!tbody) return;
   if (!rows || !rows.length) {
-    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="icon">📋</div><h3>Sin certificaciones</h3></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="icon">📋</div><h3>Sin certificaciones</h3></div></td></tr>';
     return;
   }
   const cultColors = {soja:'green',maiz:'yellow',trigo:'tierra',girasol:'amarillo'};
@@ -78,6 +78,15 @@ async function cargarCertificaciones() {
       <td>${c.merma ? Math.round(c.merma).toLocaleString() + ' kg' : '—'}</td>
       <td><strong>${c.kg_neto ? Math.round(c.kg_neto).toLocaleString() + ' kg' : '—'}</strong></td>
       <td>${c.depositario || '—'}</td>
+      <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarCertificacion('${row.id}')">🗑️</button></td>
     </tr>`;
   }).join('');
+}
+
+async function borrarCertificacion(id) {
+  if (!confirm('¿Borrar esta certificación? Esta acción no se puede deshacer.')) return;
+  await sb('DELETE', 'certificaciones', '', `?id=eq.${id}`);
+  toast('🗑️ Certificación borrada');
+  cargarCertificaciones();
+  if (typeof cargarResumenGranos === 'function') cargarResumenGranos();
 }
