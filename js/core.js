@@ -41,6 +41,7 @@ function showSection(id, el) {
   if (id === 'boletas') cargarBoletas();
   if (id === 'precios') cargarHistorialPrecios();
   if (id === 'trabajos_agri') cargarTrabajos();
+  if (id === 'mantenimiento') cargarMantenimiento();
   if (id === 'dashboard') cargarDashboard();
   document.getElementById('topbar-title').textContent = titles[id] || id;
   closeSidebar();

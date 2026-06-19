@@ -10,6 +10,29 @@ async function guardarMaquina() {
   else toast('❌ Error', 'var(--rojo)');
 }
 
+async function cargarMantenimiento() {
+  const tbody = document.getElementById('tabla-mant');
+  if (!tbody) return;
+  const datos = await sb('GET', 'mantenimiento', '', '?order=fecha.desc');
+  if (!datos || !datos.length) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="icon">🔧</div><h3>Sin registros</h3></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = datos.map(m => {
+    const desc = m.descripcion || '';
+    const idx = desc.indexOf(': ');
+    const maquina = idx > -1 ? desc.slice(0, idx) : '—';
+    const detalle = idx > -1 ? desc.slice(idx + 2) : desc;
+    return `<tr>
+      <td>${m.fecha || '—'}</td>
+      <td>${maquina}</td>
+      <td>${m.horas_maquina || '—'}</td>
+      <td>${detalle || '—'}</td>
+      <td>${m.costo ? '$' + Math.round(m.costo).toLocaleString() : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
 async function guardarMantenimiento() {
   const data = {
     fecha: document.getElementById('mant-fecha').value,
