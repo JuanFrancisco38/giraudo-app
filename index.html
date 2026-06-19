@@ -161,7 +161,7 @@ tr:hover td{background:var(--gris)}
 
   <div class="sidebar-section">Carga de documentos</div>
   <div class="nav-item" onclick="showSection('boletas',this)">🧾 Facturas recibidas</div>
-  <div class="nav-item" onclick="proximamente('Facturas emitidas',this)">🧾 Facturas emitidas</div>
+  <div class="nav-item" onclick="showSection('facturas_emitidas',this)">🧾 Facturas emitidas</div>
   <div class="nav-item" onclick="proximamente('Notas de crédito',this)">📝 Notas crédito</div>
   <div class="nav-item" onclick="proximamente('Notas de débito',this)">📝 Notas débito</div>
   <div class="nav-item" onclick="showSection('liq_granos',this)">📄 Liquidaciones granos</div>
@@ -1045,6 +1045,83 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
       </div>
     </div>
 
+    <!-- FACTURAS EMITIDAS -->
+    <div id="section-facturas_emitidas" class="section">
+      <div class="card">
+        <div class="card-header">
+          <h3>🧾 Facturas emitidas — Carga con IA</h3>
+          <button class="btn btn-primary" onclick="toggleForm('form-femit')">+ Cargar factura</button>
+        </div>
+
+        <div id="form-femit" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+          <div style="margin-bottom:14px;padding:12px;background:#faf8f5;border:1px dashed var(--gris-borde);border-radius:8px">
+            <label style="font-weight:600;font-size:13px">📄 Cargar desde PDF o imagen — la IA completa los campos</label>
+            <input type="file" id="fe-archivo" accept="application/pdf,image/*" onchange="procesarFacturaEmitida(this)" style="display:block;margin-top:8px">
+            <div id="fe-doc-status" style="font-size:12px;color:var(--texto-suave);margin-top:6px"></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group"><label>Firma emisora</label>
+              <select id="fe-firma">
+                <option value="Giraudo SH">Giraudo SH (30-71599118-3)</option>
+                <option value="Francisco J. Giraudo">Francisco J. Giraudo (20-16226904-7)</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Fecha</label><input type="date" id="fe-fecha"></div>
+            <div class="form-group"><label>N° comprobante</label><input type="text" id="fe-num" placeholder="Ej: A-0001-00001234"></div>
+            <div class="form-group full"><label>Cliente</label><input type="text" id="fe-cliente" placeholder="Ej: Turaglio Cereales S.R.L."></div>
+            <div class="form-group"><label>CUIT cliente</label><input type="text" id="fe-cuit" placeholder="Ej: 30-12345678-9"></div>
+            <div class="form-group"><label>Concepto</label>
+              <select id="fe-cat">
+                <option>Venta de granos</option>
+                <option>Venta de hacienda</option>
+                <option>Servicios</option>
+                <option>Arrendamiento</option>
+                <option>Otro</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Campo</label>
+              <select id="fe-campo">
+                <option>Don Alfredo (Azcona)</option>
+                <option>Doña Vica</option>
+                <option>Sant-Yago</option>
+                <option>General (todos)</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Subtotal $</label><input type="number" id="fe-sub"></div>
+            <div class="form-group"><label>IVA $</label><input type="number" id="fe-iva"></div>
+            <div class="form-group full"><label>Total $</label><input type="number" id="fe-total" style="font-weight:600"></div>
+            <div class="form-group full"><label>Descripción</label><textarea id="fe-desc" placeholder="Ej: Venta de soja 100.000 kg..."></textarea></div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="guardarFacturaEmitida()">Guardar factura</button>
+            <button class="btn btn-secondary" onclick="toggleForm('form-femit')">Cancelar</button>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px;border-bottom:1px solid var(--gris-borde)">
+          <div style="background:var(--bordo-claro);border-radius:8px;padding:12px;border:1px solid var(--bordo-suave)">
+            <div style="font-size:12px;color:var(--bordo);font-weight:600;margin-bottom:4px">Total facturado</div>
+            <div style="font-size:20px;font-weight:700;color:var(--bordo);margin-top:6px" id="fe-total-facturado">$0</div>
+            <div style="font-size:11px;color:var(--texto-suave)" id="fe-cant">0 facturas</div>
+          </div>
+          <div style="background:var(--bordo-claro);border-radius:8px;padding:12px;border:1px solid var(--bordo-suave)">
+            <div style="font-size:12px;color:var(--bordo);font-weight:600;margin-bottom:4px">IVA débito fiscal</div>
+            <div style="font-size:20px;font-weight:700;color:var(--bordo);margin-top:6px" id="fe-total-iva">$0</div>
+            <div style="font-size:11px;color:var(--texto-suave)">IVA de las ventas</div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Fecha</th><th>Firma</th><th>Cliente</th><th>N° Comp.</th><th>Concepto</th><th>Subtotal</th><th>IVA</th><th>Total</th><th></th></tr></thead>
+            <tbody id="tabla-femit">
+              <tr><td colspan="9"><div class="empty-state"><div class="icon">🧾</div><h3>Sin facturas emitidas</h3><p>Subí un PDF o foto de la factura</p></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- MOVIMIENTOS -->
     <div id="section-movimientos" class="section">
       <div class="card">
@@ -1142,6 +1219,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 <script src="js/contabilidad/resumen-granos.js"></script>
 <script src="js/contabilidad/movimientos.js"></script>
 <script src="js/contabilidad/boletas.js"></script>
+<script src="js/contabilidad/facturas-emitidas.js"></script>
 <script src="js/contabilidad/balance.js"></script>
 <script src="js/mercado/precios.js"></script>
 <script src="js/importar.js"></script>

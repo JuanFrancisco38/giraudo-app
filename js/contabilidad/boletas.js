@@ -120,7 +120,10 @@ async function guardarBoleta() {
 }
 
 async function cargarBoletas() {
-  const rows = await sb('GET', 'boletas', '', '?order=fecha.desc');
+  const todas = await sb('GET', 'boletas', '', '?order=fecha.desc');
+  const rows = (todas || []).filter(r => {
+    try { return JSON.parse(r.observaciones || '{}').tipo_factura !== 'emitida'; } catch(e) { return true; }
+  });
   const tbody = document.getElementById('tabla-boletas');
   if (!rows || !rows.length) {
     tbody.innerHTML = '<tr><td colspan="10"><div class="empty-state"><div class="icon">🧾</div><h3>Sin boletas cargadas</h3><p>Subí una foto o PDF de la boleta</p></div></td></tr>';

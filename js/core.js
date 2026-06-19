@@ -83,7 +83,7 @@ function showSection(id, el) {
     lotes:'Lotes / Historia', liq_granos:'Liquidaciones granos',
     certificaciones:'Certificaciones', maquinaria:'Maquinaria',
     mantenimiento:'Mantenimiento', precios:'Precios relativos',
-    boletas:'Boletas recibidas', movimientos:'Movimientos',
+    boletas:'Facturas recibidas', facturas_emitidas:'Facturas emitidas', movimientos:'Movimientos',
     retenciones:'Retenciones', balance:'Balance mensual'
   };
   if (id === 'boletas') cargarBoletas();
@@ -92,6 +92,7 @@ function showSection(id, el) {
   if (id === 'agro_dash') cargarAgroDashboard();
   if (id === 'liq_granos') { cargarLiqGranos(); cargarResumenGranos(); }
   if (id === 'certificaciones') cargarCertificaciones();
+  if (id === 'facturas_emitidas') cargarFacturasEmitidas();
   if (id === 'mantenimiento') cargarMantenimiento();
   if (id === 'dashboard') cargarDashboard();
   document.getElementById('topbar-title').textContent = titles[id] || id;
