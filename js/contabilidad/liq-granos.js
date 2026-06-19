@@ -62,6 +62,15 @@ async function guardarLiqGrano() {
     total_neto: parseFloat(document.getElementById('lg-neto').value) || null,
     campania: '25/26'
   };
+  if (data.numero) {
+    const existentes = await sb('GET', 'liquidaciones_granos', '', `?numero=eq.${encodeURIComponent(data.numero)}`);
+    if (existentes && existentes.length) {
+      if (!confirm(`⚠️ Ya existe una liquidación con el C.O.E. "${data.numero}". ¿Querés guardarla igual?`)) {
+        toast('Guardado cancelado — posible duplicado', 'var(--tierra)');
+        return;
+      }
+    }
+  }
   const r = await sb('POST', 'liquidaciones_granos', data);
   if (r) { toast('✅ Liquidación registrada'); toggleForm('form-liqgr'); cargarLiqGranos(); cargarResumenGranos(); }
   else toast('❌ Error', 'var(--rojo)');

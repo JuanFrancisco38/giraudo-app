@@ -47,6 +47,14 @@ async function guardarCertificacion() {
     tipo: 'deposito',
     descripcion: JSON.stringify(extra)
   };
+  if (extra.coe) {
+    const todas = await sb('GET', 'certificaciones', '', '?tipo=eq.deposito');
+    const dup = (todas || []).some(c => parseCert(c).coe === extra.coe);
+    if (dup && !confirm(`⚠️ Ya existe una certificación con el C.O.E. "${extra.coe}". ¿Querés guardarla igual?`)) {
+      toast('Guardado cancelado — posible duplicado', 'var(--tierra)');
+      return;
+    }
+  }
   const r = await sb('POST', 'certificaciones', data);
   if (r) { toast('✅ Certificación registrada'); toggleForm('form-cert'); cargarCertificaciones(); }
   else toast('❌ Error', 'var(--rojo)');
