@@ -556,6 +556,11 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
       <div class="card">
         <div class="card-header"><h3>Liquidaciones de granos</h3><button class="btn btn-primary" onclick="toggleForm('form-liqgr')">+ Registrar</button></div>
         <div id="form-liqgr" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+          <div style="margin-bottom:14px;padding:12px;background:#faf8f5;border:1px dashed var(--gris-borde);border-radius:8px">
+            <label style="font-weight:600;font-size:13px">📄 Cargar desde PDF o imagen — la IA completa los campos</label>
+            <input type="file" id="lg-archivo" accept="application/pdf,image/*" onchange="procesarLiqGranoDoc(this)" style="display:block;margin-top:8px">
+            <div id="lg-doc-status" style="font-size:12px;color:var(--texto-suave);margin-top:6px"></div>
+          </div>
           <div class="form-grid">
             <div class="form-group"><label>Fecha</label><input type="date" id="lg-fecha"></div>
             <div class="form-group"><label>C.O.E.</label><input type="text" id="lg-coe"></div>
@@ -584,6 +589,11 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
       <div class="card">
         <div class="card-header"><h3>📋 Certificaciones de depósito — Campaña 25/26</h3><button class="btn btn-primary" onclick="toggleForm('form-cert')">+ Registrar</button></div>
         <div id="form-cert" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+          <div style="margin-bottom:14px;padding:12px;background:#faf8f5;border:1px dashed var(--gris-borde);border-radius:8px">
+            <label style="font-weight:600;font-size:13px">📄 Cargar desde PDF o imagen — la IA completa los campos</label>
+            <input type="file" id="cert-archivo" accept="application/pdf,image/*" onchange="procesarCertDoc(this)" style="display:block;margin-top:8px">
+            <div id="cert-doc-status" style="font-size:12px;color:var(--texto-suave);margin-top:6px"></div>
+          </div>
           <div class="form-grid">
             <div class="form-group"><label>Fecha</label><input type="date" id="cert-fecha"></div>
             <div class="form-group"><label>C.O.E.</label><input type="text" id="cert-coe"></div>

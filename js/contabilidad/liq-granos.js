@@ -1,3 +1,38 @@
+async function procesarLiqGranoDoc(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const status = document.getElementById('lg-doc-status');
+  status.textContent = `📄 Leyendo ${file.name}...`;
+  try {
+    const datos = await extraerDocIA(file,
+      `Sos un asistente contable agropecuario argentino. Analizá esta liquidación/factura de venta de granos y extraé los datos. Devolvé SOLO este JSON válido sin backticks ni texto adicional:
+{"fecha":"DD/MM/YYYY","coe":"string (COE o número de liquidación)","acopiador":"string","grano":"Soja|Maíz|Trigo|Girasol|Sorgo","kg":0,"precio":0,"subtotal":0,"ret_iva":0,"ret_iva_rg4310":0,"ret_ganancias":0,"flete":0,"comision":0,"neto":0}
+Los montos en números sin símbolos ni puntos de miles. Si un dato no está, poné 0 o "".`,
+      'Extraé los datos de esta liquidación de granos.');
+
+    if (datos.fecha) document.getElementById('lg-fecha').value = parseFechaIA(datos.fecha);
+    if (datos.coe) document.getElementById('lg-coe').value = datos.coe;
+    if (datos.acopiador) document.getElementById('lg-acop').value = datos.acopiador;
+    if (datos.grano) document.getElementById('lg-grano').value = datos.grano;
+    if (datos.kg) document.getElementById('lg-kg').value = datos.kg;
+    if (datos.precio) document.getElementById('lg-precio').value = datos.precio;
+    if (datos.subtotal) document.getElementById('lg-sub').value = datos.subtotal;
+    if (datos.ret_iva) document.getElementById('lg-retiva').value = datos.ret_iva;
+    if (datos.ret_iva_rg4310) document.getElementById('lg-rg4310').value = datos.ret_iva_rg4310;
+    if (datos.ret_ganancias) document.getElementById('lg-retgan').value = datos.ret_ganancias;
+    if (datos.flete) document.getElementById('lg-flete').value = datos.flete;
+    if (datos.comision) document.getElementById('lg-com').value = datos.comision;
+    if (datos.neto) document.getElementById('lg-neto').value = datos.neto;
+
+    status.textContent = `✅ ${file.name} leída — revisá los campos y guardá`;
+    toast('✅ Documento leído — revisá y guardá');
+  } catch(e) {
+    console.error(e);
+    status.textContent = '❌ No se pudo leer el documento';
+    toast('❌ Error al leer el documento', 'var(--rojo)');
+  }
+}
+
 async function guardarLiqGrano() {
   const data = {
     fecha: document.getElementById('lg-fecha').value,

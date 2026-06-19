@@ -1,6 +1,36 @@
 // Los datos del grano se guardan como JSON dentro de 'descripcion'
 // para no requerir columnas nuevas en la tabla certificaciones.
 
+async function procesarCertDoc(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const status = document.getElementById('cert-doc-status');
+  status.textContent = `📄 Leyendo ${file.name}...`;
+  try {
+    const datos = await extraerDocIA(file,
+      `Sos un asistente agropecuario argentino. Analizá este certificado de depósito de granos (C.O.E.) y extraé los datos. Devolvé SOLO este JSON válido sin backticks ni texto adicional:
+{"fecha":"DD/MM/YYYY","coe":"string","grano":"Soja|Maíz|Trigo|Girasol|Sorgo","depositario":"string (acopio/cerealera donde está depositado)","ctgs":0,"kg_bruto":0,"merma":0,"kg_neto":0}
+Los montos en números sin símbolos ni puntos de miles. Si un dato no está, poné 0 o "".`,
+      'Extraé los datos de este certificado de depósito de granos.');
+
+    if (datos.fecha) document.getElementById('cert-fecha').value = parseFechaIA(datos.fecha);
+    if (datos.coe) document.getElementById('cert-coe').value = datos.coe;
+    if (datos.grano) document.getElementById('cert-grano').value = datos.grano;
+    if (datos.depositario) document.getElementById('cert-dep').value = datos.depositario;
+    if (datos.ctgs) document.getElementById('cert-ctgs').value = datos.ctgs;
+    if (datos.kg_bruto) document.getElementById('cert-bruto').value = datos.kg_bruto;
+    if (datos.merma) document.getElementById('cert-merma').value = datos.merma;
+    if (datos.kg_neto) document.getElementById('cert-neto').value = datos.kg_neto;
+
+    status.textContent = `✅ ${file.name} leída — revisá los campos y guardá`;
+    toast('✅ Documento leído — revisá y guardá');
+  } catch(e) {
+    console.error(e);
+    status.textContent = '❌ No se pudo leer el documento';
+    toast('❌ Error al leer el documento', 'var(--rojo)');
+  }
+}
+
 async function guardarCertificacion() {
   const extra = {
     coe: document.getElementById('cert-coe').value,

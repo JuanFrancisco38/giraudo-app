@@ -5,6 +5,39 @@ const hoy = new Date();
 document.getElementById('fecha-top').textContent = hoy.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
 document.querySelectorAll('input[type="date"]').forEach(i=>{if(!i.value)i.value=hoy.toISOString().split('T')[0]});
 
+async function extraerDocIA(file, system, instruccion) {
+  const base64 = await new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('Error al leer'));
+    r.readAsDataURL(file);
+  });
+  const isPdf = file.type === 'application/pdf';
+  const block = isPdf
+    ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
+    : { type: 'image', source: { type: 'base64', media_type: file.type, data: base64 } };
+  const res = await fetch('/api/claude', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1200,
+      system,
+      messages: [{ role: 'user', content: [block, { type: 'text', text: instruccion }] }]
+    })
+  });
+  const json = await res.json();
+  let raw = json.content?.[0]?.text || '{}';
+  raw = raw.replace(/```json|```/g, '').trim();
+  const m = raw.match(/\{[\s\S]*\}/);
+  return JSON.parse(m ? m[0] : raw);
+}
+
+function parseFechaIA(str) {
+  const p = (str || '').split('/');
+  return p.length === 3 ? `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}` : '';
+}
+
 function fmtFecha(f) {
   if (!f) return '—';
   const m = String(f).match(/^(\d{4})-(\d{2})-(\d{2})/);
