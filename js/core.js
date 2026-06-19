@@ -25,6 +25,7 @@ async function extraerDocIA(file, system, instruccion) {
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
       max_tokens: 1200,
+      temperature: 0,
       system,
       messages: [{ role: 'user', content: [block, { type: 'text', text: instruccion }] }]
     })

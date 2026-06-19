@@ -5,10 +5,22 @@ async function procesarLiqGranoDoc(input) {
   status.textContent = `📄 Leyendo ${file.name}...`;
   try {
     const datos = await extraerDocIA(file,
-      `Sos un asistente contable agropecuario argentino. Analizá esta liquidación/factura de venta de granos y extraé los datos. Devolvé SOLO este JSON válido sin backticks ni texto adicional:
-{"fecha":"DD/MM/YYYY","coe":"string (COE o número de liquidación)","acopiador":"string","grano":"Soja|Maíz|Trigo|Girasol|Sorgo","kg":0,"precio":0,"subtotal":0,"ret_iva":0,"ret_iva_rg4310":0,"ret_ganancias":0,"flete":0,"comision":0,"neto":0}
-Los montos en números sin símbolos ni puntos de miles. Si un dato no está, poné 0 o "".`,
-      'Extraé los datos de esta liquidación de granos.');
+      `Sos un asistente contable agropecuario argentino experto en liquidaciones de granos (formato C1116, liquidaciones de acopios como Turaglio, CEC, etc.). Leé TODO el documento con atención y extraé cada dato. Devolvé SOLO este JSON válido sin backticks ni texto adicional:
+{"fecha":"DD/MM/YYYY","coe":"string (COE, C.O.E. o número de liquidación)","acopiador":"string (nombre del acopio/comprador)","grano":"Soja|Maíz|Trigo|Girasol|Sorgo","kg":0,"precio":0,"subtotal":0,"ret_iva":0,"ret_iva_rg4310":0,"ret_ganancias":0,"flete":0,"comision":0,"neto":0}
+
+Guía de campos (pueden aparecer con otros nombres):
+- kg: kilogramos netos / peso neto.
+- precio: precio unitario $/kg o $/tn (si es por tonelada, dividí por 1000).
+- subtotal: importe bruto / importe de la operación antes de deducciones.
+- ret_iva: retención de IVA (IVA retenido).
+- ret_iva_rg4310: retención IVA RG 4310/2018 (puede decir "RG 4310" o "percepción IVA").
+- ret_ganancias: retención de impuesto a las ganancias.
+- flete: gastos de flete / acarreo / flete a puerto.
+- comision: comisión / gastos de comercialización / gastos de venta.
+- neto: neto a cobrar / total a liquidar / importe neto.
+
+IMPORTANTE: revisá la sección de deducciones/gastos línea por línea. Si un valor realmente no figura, poné 0. Montos como número sin símbolos ni puntos de miles.`,
+      'Extraé TODOS los datos de esta liquidación de granos, incluyendo cada retención, flete y comisión.');
 
     if (datos.fecha) document.getElementById('lg-fecha').value = parseFechaIA(datos.fecha);
     if (datos.coe) document.getElementById('lg-coe').value = datos.coe;
