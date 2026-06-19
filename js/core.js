@@ -50,6 +50,8 @@ function showSection(id, el) {
   if (id === 'precios') cargarHistorialPrecios();
   if (id === 'trabajos_agri') cargarTrabajos();
   if (id === 'agro_dash') cargarAgroDashboard();
+  if (id === 'liq_granos') { cargarLiqGranos(); cargarResumenGranos(); }
+  if (id === 'certificaciones') cargarCertificaciones();
   if (id === 'mantenimiento') cargarMantenimiento();
   if (id === 'dashboard') cargarDashboard();
   document.getElementById('topbar-title').textContent = titles[id] || id;

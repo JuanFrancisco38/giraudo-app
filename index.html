@@ -532,17 +532,25 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 
     <!-- LIQUIDACIONES GRANOS -->
     <div id="section-liq_granos" class="section">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header">
+          <h3>📊 Resumen por grano — Campaña 25/26</h3>
+          <button class="btn btn-secondary" id="btn-dolar" onclick="actualizarDolarIA()">🤖 Actualizar dólar</button>
+        </div>
+        <div style="padding:6px 16px;font-size:12px;color:var(--texto-suave)" id="dolar-info">Cotización dólar: — (tocá "Actualizar dólar" para convertir a USD)</div>
+        <div class="table-wrap"><table><thead><tr><th>Grano</th><th>Kg vendidos</th><th>Stock disponible</th><th>Ubicación</th><th>Monto $</th><th>Monto USD</th></tr></thead>
+        <tbody id="tabla-resumen-granos"><tr><td colspan="6"><div class="empty-state"><div class="icon">📊</div><h3>Sin datos</h3></div></td></tr></tbody></table></div>
+      </div>
+
       <div class="resumen-box">
-        <h4>📊 Resumen liquidaciones granos — Campaña 25/26</h4>
+        <h4>💰 Totales generales — Campaña 25/26</h4>
         <div class="resumen-grid">
-          <div class="resumen-item"><div class="ri-label">Trigo vendido</div><div class="ri-value">198.189 kg</div></div>
-          <div class="resumen-item"><div class="ri-label">Girasol vendido</div><div class="ri-value">67.557 kg</div></div>
-          <div class="resumen-item"><div class="ri-label">Maíz vendido</div><div class="ri-value">237.116 kg</div></div>
-          <div class="resumen-item"><div class="ri-label">Soja vendida</div><div class="ri-value">224.107 kg</div></div>
-          <div class="resumen-item"><div class="ri-label">Ret. IVA acumulada</div><div class="ri-value">$12.412.730</div></div>
-          <div class="resumen-item"><div class="ri-label">IVA RG 4310/2018</div><div class="ri-value">$13.654.001</div></div>
-          <div class="resumen-item"><div class="ri-label">Comisiones</div><div class="ri-value">$6.382.843</div></div>
-          <div class="resumen-item"><div class="ri-label">Fletes a puerto</div><div class="ri-value">$29.760.175</div></div>
+          <div class="resumen-item"><div class="ri-label">Ret. IVA acumulada</div><div class="ri-value" id="rg-retiva">—</div></div>
+          <div class="resumen-item"><div class="ri-label">Ret. Ganancias</div><div class="ri-value" id="rg-retgan">—</div></div>
+          <div class="resumen-item"><div class="ri-label">IVA RG 4310/2018</div><div class="ri-value" id="rg-rg4310">—</div></div>
+          <div class="resumen-item"><div class="ri-label">Comisiones</div><div class="ri-value" id="rg-comision">—</div></div>
+          <div class="resumen-item"><div class="ri-label">Fletes</div><div class="ri-value" id="rg-flete">—</div></div>
+          <div class="resumen-item"><div class="ri-label">Neto a cobrar</div><div class="ri-value" id="rg-neto">—</div></div>
         </div>
       </div>
       <div class="card">
@@ -561,38 +569,35 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             <div class="form-group"><label>IVA RG 4310 $</label><input type="number" id="lg-rg4310"></div>
             <div class="form-group"><label>Flete $</label><input type="number" id="lg-flete"></div>
             <div class="form-group"><label>Comisión $</label><input type="number" id="lg-com"></div>
+            <div class="form-group"><label>Ret. Ganancias $</label><input type="number" id="lg-retgan"></div>
             <div class="form-group"><label>Neto a cobrar $</label><input type="number" id="lg-neto"></div>
           </div>
           <div class="form-actions"><button class="btn btn-primary" onclick="guardarLiqGrano()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-liqgr')">Cancelar</button></div>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Grano</th><th>Kg</th><th>$/kg</th><th>Ret. IVA</th><th>RG 4310</th><th>Flete</th><th>Neto</th></tr></thead>
-        <tbody id="tabla-liqgr">
-          <tr><td>04/02/2026</td><td><span class="badge badge-green">Venta</span></td><td>Trigo</td><td>60.000</td><td>$254,30</td><td>$762.900</td><td>$839.190</td><td>$2.178.000</td><td><strong>$12.701.618</strong></td></tr>
-          <tr><td>10/02/2026</td><td><span class="badge badge-green">Venta</span></td><td>Trigo</td><td>30.000</td><td>$261,00</td><td>$391.500</td><td>$430.650</td><td>$1.089.000</td><td><strong>$6.546.825</strong></td></tr>
-          <tr><td>26/02/2026</td><td><span class="badge badge-green">Venta</span></td><td>Trigo</td><td>108.189</td><td>$250,00</td><td>$1.352.363</td><td>$1.487.599</td><td>$3.927.261</td><td><strong>$22.449.247</strong></td></tr>
-          <tr><td>12/03/2026</td><td><span class="badge badge-green">Venta</span></td><td>Girasol</td><td>60.000</td><td>$520,22</td><td>$1.560.660</td><td>$1.716.726</td><td>$2.758.800</td><td><strong>$26.900.017</strong></td></tr>
-          <tr><td>12/03/2026</td><td><span class="badge badge-green">Venta</span></td><td>Girasol</td><td>7.557</td><td>$534,28</td><td>$201.878</td><td>$222.065</td><td>$274.319</td><td><strong>$3.562.169</strong></td></tr>
-          <tr><td>07/04/2026</td><td><span class="badge badge-green">Venta</span></td><td>Maíz</td><td>237.116</td><td>$256,00</td><td>$3.035.085</td><td>$3.338.593</td><td>$10.041.863</td><td><strong>$49.154.498</strong></td></tr>
-          <tr><td>07/04/2026</td><td><span class="badge badge-blue">Canje</span></td><td>Maíz</td><td>36.878</td><td>$256,00</td><td>—</td><td>—</td><td>$1.561.783</td><td><strong>$8.693.261</strong></td></tr>
-          <tr><td>29/04/2026</td><td><span class="badge badge-green">Venta</span></td><td>Soja</td><td>68.096</td><td>$435,00</td><td>$1.481.088</td><td>$1.629.197</td><td>$2.883.866</td><td><strong>$26.003.307</strong></td></tr>
-          <tr><td>14/05/2026</td><td><span class="badge badge-blue">Canje</span></td><td>Soja</td><td>31.180</td><td>$447,09</td><td>—</td><td>—</td><td>—</td><td><strong>$15.028.878</strong></td></tr>
-          <tr><td>20/05/2026</td><td><span class="badge badge-green">Venta</span></td><td>Soja</td><td>156.011</td><td>$465,00</td><td>$3.627.256</td><td>$3.989.981</td><td>$6.607.066</td><td><strong>$64.139.009</strong></td></tr>
-          <tr><td>16/04/2026</td><td><span class="badge badge-yellow">Ajuste</span></td><td>Girasol</td><td>—</td><td>$520,22</td><td>$77.861</td><td>$85.647</td><td>—</td><td><strong>$2.423.204</strong></td></tr>
-          <tr><td>16/04/2026</td><td><span class="badge badge-yellow">Ajuste</span></td><td>Girasol</td><td>—</td><td>$534,28</td><td>$7.066</td><td>$7.772</td><td>—</td><td><strong>$250.026</strong></td></tr>
-          <tr><td>16/04/2026</td><td><span class="badge badge-yellow">Ajuste</span></td><td>Girasol</td><td>—</td><td>$534,28</td><td>$1.901</td><td>$2.092</td><td>—</td><td><strong>$62.025</strong></td></tr>
-        </tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>C.O.E.</th><th>Acopiador</th><th>Grano</th><th>Kg</th><th>Ret. IVA</th><th>Flete</th><th>Neto</th></tr></thead>
+        <tbody id="tabla-liqgr"><tr><td colspan="8"><div class="empty-state"><div class="icon">📄</div><h3>Sin liquidaciones</h3></div></td></tr></tbody></table></div>
       </div>
     </div>
 
     <!-- CERTIFICACIONES -->
     <div id="section-certificaciones" class="section">
       <div class="card">
-        <div class="card-header"><h3>📋 Certificaciones de depósito — Campaña 25/26</h3></div>
+        <div class="card-header"><h3>📋 Certificaciones de depósito — Campaña 25/26</h3><button class="btn btn-primary" onclick="toggleForm('form-cert')">+ Registrar</button></div>
+        <div id="form-cert" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+          <div class="form-grid">
+            <div class="form-group"><label>Fecha</label><input type="date" id="cert-fecha"></div>
+            <div class="form-group"><label>C.O.E.</label><input type="text" id="cert-coe"></div>
+            <div class="form-group"><label>Grano</label><select id="cert-grano"><option>Soja</option><option>Maíz</option><option>Trigo</option><option>Girasol</option><option>Sorgo</option></select></div>
+            <div class="form-group"><label>Depositario / Ubicación</label><input type="text" id="cert-dep" placeholder="Ej: Turaglio, campo Sant-Yago..."></div>
+            <div class="form-group"><label>CTGs</label><input type="number" id="cert-ctgs"></div>
+            <div class="form-group"><label>Kg bruto</label><input type="number" id="cert-bruto"></div>
+            <div class="form-group"><label>Merma (kg)</label><input type="number" id="cert-merma"></div>
+            <div class="form-group"><label>Kg neto</label><input type="number" id="cert-neto"></div>
+          </div>
+          <div class="form-actions"><button class="btn btn-primary" onclick="guardarCertificacion()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-cert')">Cancelar</button></div>
+        </div>
         <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>C.O.E.</th><th>Grano</th><th>CTGs</th><th>Kg bruto</th><th>Merma</th><th>Kg neto</th><th>Depositario</th></tr></thead>
-        <tbody>
-          <tr><td>24/03/2026</td><td>332022269672</td><td><span class="badge badge-yellow">Maíz</span></td><td>3</td><td>79.480 kg</td><td>4.317 kg</td><td><strong>75.163 kg</strong></td><td>Turaglio</td></tr>
-          <tr><td>11/05/2026</td><td>332022702461</td><td><span class="badge badge-green">Soja</span></td><td>8</td><td>224.680 kg</td><td>573 kg</td><td><strong>224.107 kg</strong></td><td>Turaglio</td></tr>
-        </tbody></table></div>
+        <tbody id="tabla-cert"><tr><td colspan="8"><div class="empty-state"><div class="icon">📋</div><h3>Sin certificaciones</h3></div></td></tr></tbody></table></div>
       </div>
     </div>
 
@@ -1101,9 +1106,11 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 <script src="js/ganaderia/alimentacion.js"></script>
 <script src="js/agricultura/trabajos.js"></script>
 <script src="js/agricultura/agro-dashboard.js"></script>
+<script src="js/agricultura/certificaciones.js"></script>
 <script src="js/maquinaria.js"></script>
 <script src="js/contabilidad/liq-hacienda.js"></script>
 <script src="js/contabilidad/liq-granos.js"></script>
+<script src="js/contabilidad/resumen-granos.js"></script>
 <script src="js/contabilidad/movimientos.js"></script>
 <script src="js/contabilidad/boletas.js"></script>
 <script src="js/contabilidad/balance.js"></script>
