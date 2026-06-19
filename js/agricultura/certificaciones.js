@@ -1,7 +1,8 @@
+// Los datos del grano se guardan como JSON dentro de 'descripcion'
+// para no requerir columnas nuevas en la tabla certificaciones.
+
 async function guardarCertificacion() {
-  const data = {
-    fecha: document.getElementById('cert-fecha').value,
-    tipo: 'deposito',
+  const extra = {
     coe: document.getElementById('cert-coe').value,
     grano: document.getElementById('cert-grano').value,
     depositario: document.getElementById('cert-dep').value,
@@ -11,13 +12,24 @@ async function guardarCertificacion() {
     kg_neto: parseFloat(document.getElementById('cert-neto').value) || null,
     campania: '25/26'
   };
+  const data = {
+    fecha: document.getElementById('cert-fecha').value,
+    tipo: 'deposito',
+    descripcion: JSON.stringify(extra)
+  };
   const r = await sb('POST', 'certificaciones', data);
   if (r) { toast('✅ Certificación registrada'); toggleForm('form-cert'); cargarCertificaciones(); }
   else toast('❌ Error', 'var(--rojo)');
 }
 
+function parseCert(c) {
+  let extra = {};
+  try { extra = c.descripcion ? JSON.parse(c.descripcion) : {}; } catch(e) {}
+  return { fecha: c.fecha, ...extra };
+}
+
 async function cargarCertificaciones() {
-  const rows = await sb('GET', 'certificaciones', '', '?order=fecha.desc');
+  const rows = await sb('GET', 'certificaciones', '', '?tipo=eq.deposito&order=fecha.desc');
   const tbody = document.getElementById('tabla-cert');
   if (!tbody) return;
   if (!rows || !rows.length) {
@@ -25,8 +37,9 @@ async function cargarCertificaciones() {
     return;
   }
   const cultColors = {soja:'green',maiz:'yellow',trigo:'tierra',girasol:'amarillo'};
-  tbody.innerHTML = rows.map(c => `
-    <tr>
+  tbody.innerHTML = rows.map(row => {
+    const c = parseCert(row);
+    return `<tr>
       <td>${fmtFecha(c.fecha)}</td>
       <td>${c.coe || '—'}</td>
       <td><span class="badge badge-${cultColors[c.grano?.toLowerCase()] || 'gray'}">${c.grano || '—'}</span></td>
@@ -35,5 +48,6 @@ async function cargarCertificaciones() {
       <td>${c.merma ? Math.round(c.merma).toLocaleString() + ' kg' : '—'}</td>
       <td><strong>${c.kg_neto ? Math.round(c.kg_neto).toLocaleString() + ' kg' : '—'}</strong></td>
       <td>${c.depositario || '—'}</td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }

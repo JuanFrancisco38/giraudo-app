@@ -6,10 +6,10 @@ function getDolar() {
 async function cargarResumenGranos() {
   const [liqs, certs] = await Promise.all([
     sb('GET', 'liquidaciones_granos', '', '?campania=eq.25/26'),
-    sb('GET', 'certificaciones', '', '?campania=eq.25/26')
+    sb('GET', 'certificaciones', '', '?tipo=eq.deposito')
   ]);
   const ventas = liqs || [];
-  const depositos = certs || [];
+  const depositos = (certs || []).map(parseCert).filter(c => c.campania === '25/26');
 
   const norm = g => (g || 'Sin especificar').trim();
 
