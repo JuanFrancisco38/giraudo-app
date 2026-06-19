@@ -163,6 +163,7 @@ tr:hover td{background:var(--gris)}
   <div class="nav-item" onclick="showSection('liq_hacienda',this)">📄 Liquid. hacienda</div>
 
   <div class="sidebar-section">Agricultura</div>
+  <div class="nav-item" onclick="showSection('agro_dash',this)">📊 Resumen agrícola</div>
   <div class="nav-item" onclick="showSection('trabajos_agri',this)">🌾 Trabajos de campo</div>
   <div class="nav-item" onclick="showSection('lotes',this)">🗺️ Lotes / Historia</div>
   <div class="nav-item" onclick="showSection('liq_granos',this)">📄 Liquid. granos</div>
@@ -592,6 +593,38 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
           <tr><td>24/03/2026</td><td>332022269672</td><td><span class="badge badge-yellow">Maíz</span></td><td>3</td><td>79.480 kg</td><td>4.317 kg</td><td><strong>75.163 kg</strong></td><td>Turaglio</td></tr>
           <tr><td>11/05/2026</td><td>332022702461</td><td><span class="badge badge-green">Soja</span></td><td>8</td><td>224.680 kg</td><td>573 kg</td><td><strong>224.107 kg</strong></td><td>Turaglio</td></tr>
         </tbody></table></div>
+      </div>
+    </div>
+
+    <!-- RESUMEN AGRICOLA -->
+    <div id="section-agro_dash" class="section">
+      <div class="stats-row">
+        <div class="stat-card"><div class="label">Trabajos registrados</div><div class="value" id="ag-trabajos" style="color:var(--verde)">—</div><div class="sub">total histórico</div></div>
+        <div class="stat-card"><div class="label">Hectáreas trabajadas</div><div class="value" id="ag-has" style="color:var(--bordo)">—</div><div class="sub">suma de has</div></div>
+        <div class="stat-card"><div class="label">Liq. granos 25/26</div><div class="value" id="ag-liqgranos" style="color:var(--tierra)">—</div><div class="sub">liquidaciones</div></div>
+        <div class="stat-card"><div class="label">Kg granos liquidados</div><div class="value" id="ag-kg" style="color:var(--verde);font-size:20px">—</div><div class="sub">campaña 25/26</div></div>
+        <div class="stat-card"><div class="label">Total neto granos</div><div class="value" id="ag-neto" style="color:var(--bordo);font-size:18px">—</div><div class="sub">campaña 25/26</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="card">
+          <div class="card-header"><h3>🌱 Trabajos por tipo</h3></div>
+          <div class="card-body" id="ag-portipo">
+            <div class="empty-state"><div class="icon">🌾</div><h3>Sin datos</h3></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>🌾 Granos por cultivo — 25/26</h3></div>
+          <div class="card-body" id="ag-porcultivo">
+            <div class="empty-state"><div class="icon">📊</div><h3>Sin datos</h3></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="card-header"><h3>🕑 Últimos trabajos</h3></div>
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Campo</th><th>Lote</th><th>Has</th><th>Cultivo</th></tr></thead>
+        <tbody id="ag-ultimos"><tr><td colspan="6"><div class="empty-state"><div class="icon">🌾</div><h3>Sin trabajos</h3></div></td></tr></tbody></table></div>
       </div>
     </div>
 
@@ -1067,6 +1100,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 <script src="js/ganaderia/hoteleria.js"></script>
 <script src="js/ganaderia/alimentacion.js"></script>
 <script src="js/agricultura/trabajos.js"></script>
+<script src="js/agricultura/agro-dashboard.js"></script>
 <script src="js/maquinaria.js"></script>
 <script src="js/contabilidad/liq-hacienda.js"></script>
 <script src="js/contabilidad/liq-granos.js"></script>

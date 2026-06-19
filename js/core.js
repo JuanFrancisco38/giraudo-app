@@ -39,6 +39,7 @@ function showSection(id, el) {
     animales:'Animales', eventos:'Eventos manga', pesadas:'Pesadas',
     hoteleria:'Hotelería', alimentacion:'Alimentación',
     liq_hacienda:'Liquidaciones hacienda', trabajos_agri:'Trabajos de campo',
+    agro_dash:'Resumen agrícola',
     lotes:'Lotes / Historia', liq_granos:'Liquidaciones granos',
     certificaciones:'Certificaciones', maquinaria:'Maquinaria',
     mantenimiento:'Mantenimiento', precios:'Precios relativos',
@@ -48,6 +49,7 @@ function showSection(id, el) {
   if (id === 'boletas') cargarBoletas();
   if (id === 'precios') cargarHistorialPrecios();
   if (id === 'trabajos_agri') cargarTrabajos();
+  if (id === 'agro_dash') cargarAgroDashboard();
   if (id === 'mantenimiento') cargarMantenimiento();
   if (id === 'dashboard') cargarDashboard();
   document.getElementById('topbar-title').textContent = titles[id] || id;
