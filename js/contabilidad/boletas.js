@@ -111,6 +111,17 @@ async function guardarBoleta() {
     })
   };
 
+  const numero = document.getElementById('bol-num').value;
+  if (numero) {
+    const todas = await sb('GET', 'boletas', '', '?order=fecha.desc');
+    const dup = (todas || []).some(b => {
+      try { const e = JSON.parse(b.observaciones || '{}'); return (!e.tipo_factura || e.tipo_factura === 'recibida') && e.numero_comprobante === numero; } catch(err) { return false; }
+    });
+    if (dup && !confirm(`⚠️ Ya existe una factura recibida con el N° "${numero}". ¿Querés guardarla igual?`)) {
+      toast('Guardado cancelado — posible duplicado', 'var(--tierra)');
+      return;
+    }
+  }
   const r = await sb('POST', 'boletas', data);
   if (r) {
     toast('✅ Boleta registrada');
@@ -129,7 +140,7 @@ async function cargarBoletas() {
   });
   const tbody = document.getElementById('tabla-boletas');
   if (!rows || !rows.length) {
-    tbody.innerHTML = '<tr><td colspan="10"><div class="empty-state"><div class="icon">🧾</div><h3>Sin boletas cargadas</h3><p>Subí una foto o PDF de la boleta</p></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11"><div class="empty-state"><div class="icon">🧾</div><h3>Sin boletas cargadas</h3><p>Subí una foto o PDF de la boleta</p></div></td></tr>';
     document.getElementById('total-firma-fj').textContent = '$0';
     document.getElementById('total-firma-sh').textContent = '$0';
     document.getElementById('cant-firma-fj').textContent = '0 boletas';
@@ -170,8 +181,16 @@ async function cargarBoletas() {
       <td>${fmtMonto(extra.iva, mon)}</td>
       <td><strong>${fmtMonto(r.monto, mon)}</strong></td>
       <td style="font-size:11px;color:var(--texto-suave)">${extra.vencimiento || '—'}</td>
+      <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarBoleta('${r.id}')">🗑️</button></td>
     </tr>`;
   }).join('');
+}
+
+async function borrarBoleta(id) {
+  if (!confirm('¿Borrar esta factura recibida?')) return;
+  await sb('DELETE', 'boletas', '', `?id=eq.${id}`);
+  toast('🗑️ Factura borrada');
+  cargarBoletas();
 }
 
 function filtrarBoletas() {

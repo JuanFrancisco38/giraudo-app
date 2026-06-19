@@ -55,6 +55,16 @@ async function guardarFacturaEmitida() {
     })
   };
 
+  if (numero) {
+    const todas = await sb('GET', 'boletas', '', '?order=fecha.desc');
+    const dup = (todas || []).some(b => {
+      try { const e = JSON.parse(b.observaciones || '{}'); return e.tipo_factura === 'emitida' && e.numero_comprobante === numero; } catch(err) { return false; }
+    });
+    if (dup && !confirm(`⚠️ Ya existe una factura emitida con el N° "${numero}". ¿Querés guardarla igual?`)) {
+      toast('Guardado cancelado — posible duplicado', 'var(--tierra)');
+      return;
+    }
+  }
   const r = await sb('POST', 'boletas', data);
   if (r) {
     toast('✅ Factura emitida registrada');

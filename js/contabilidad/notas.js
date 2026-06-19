@@ -61,6 +61,17 @@ async function guardarNota(tipo) {
     })
   };
 
+  const numero = g('num').value;
+  if (numero) {
+    const todas = await sb('GET', 'boletas', '', '?order=fecha.desc');
+    const dup = (todas || []).some(b => {
+      try { const e = JSON.parse(b.observaciones || '{}'); return e.tipo_factura === tipo && e.numero_comprobante === numero; } catch(err) { return false; }
+    });
+    if (dup && !confirm(`⚠️ Ya existe una ${cfg.label} con el N° "${numero}". ¿Querés guardarla igual?`)) {
+      toast('Guardado cancelado — posible duplicado', 'var(--tierra)');
+      return;
+    }
+  }
   const r = await sb('POST', 'boletas', data);
   if (r) {
     toast(`✅ ${cfg.label.charAt(0).toUpperCase() + cfg.label.slice(1)} registrada`);
