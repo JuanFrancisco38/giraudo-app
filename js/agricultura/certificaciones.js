@@ -82,9 +82,9 @@ async function cargarCertificaciones() {
       <td>${c.coe || '—'}</td>
       <td><span class="badge badge-${cultColors[c.grano?.toLowerCase()] || 'gray'}">${c.grano || '—'}</span></td>
       <td>${c.ctgs || '—'}</td>
-      <td>${c.kg_bruto ? Math.round(c.kg_bruto).toLocaleString() + ' kg' : '—'}</td>
-      <td>${c.merma ? Math.round(c.merma).toLocaleString() + ' kg' : '—'}</td>
-      <td><strong>${c.kg_neto ? Math.round(c.kg_neto).toLocaleString() + ' kg' : '—'}</strong></td>
+      <td>${c.kg_bruto ? fmtKg(c.kg_bruto) : '—'}</td>
+      <td>${c.merma ? fmtKg(c.merma) : '—'}</td>
+      <td><strong>${c.kg_neto ? fmtKg(c.kg_neto) : '—'}</strong></td>
       <td>${c.depositario || '—'}</td>
       <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarCertificacion('${row.id}')">🗑️</button></td>
     </tr>`;

@@ -28,7 +28,7 @@ async function cargarMantenimiento() {
       <td>${maquina}</td>
       <td>${m.horas_maquina || '—'}</td>
       <td>${detalle || '—'}</td>
-      <td>${m.costo ? '$' + Math.round(m.costo).toLocaleString() : '—'}</td>
+      <td>${m.costo ? fmtMonto(m.costo, 'ARS') : '—'}</td>
     </tr>`;
   }).join('');
 }
@@ -50,7 +50,7 @@ async function guardarMantenimiento() {
       <td>${document.getElementById('mant-maq').value}</td>
       <td>${data.horas_maquina || '—'}</td>
       <td>${document.getElementById('mant-desc').value}</td>
-      <td>${data.costo ? '$' + Math.round(data.costo).toLocaleString() : '—'}</td>
+      <td>${data.costo ? fmtMonto(data.costo, 'ARS') : '—'}</td>
     </tr>`;
     tbody.innerHTML = wasEmpty ? row : row + tbody.innerHTML;
     toggleForm('form-mant');

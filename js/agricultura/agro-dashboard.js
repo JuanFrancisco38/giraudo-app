@@ -13,10 +13,10 @@ async function cargarAgroDashboard() {
   const totalNeto = liqs.reduce((s, l) => s + (parseFloat(l.total_neto) || 0), 0);
 
   document.getElementById('ag-trabajos').textContent = trabs.length || '—';
-  document.getElementById('ag-has').textContent = totalHas ? Math.round(totalHas).toLocaleString() : '—';
+  document.getElementById('ag-has').textContent = totalHas ? fmtNum(totalHas) : '—';
   document.getElementById('ag-liqgranos').textContent = liqs.length || '—';
-  document.getElementById('ag-kg').textContent = totalKg ? Math.round(totalKg).toLocaleString() : '—';
-  document.getElementById('ag-neto').textContent = totalNeto ? '$' + Math.round(totalNeto).toLocaleString() : '—';
+  document.getElementById('ag-kg').textContent = totalKg ? fmtKg(totalKg) : '—';
+  document.getElementById('ag-neto').textContent = totalNeto ? fmtMonto(totalNeto, 'ARS') : '—';
 
   // Trabajos por tipo
   const porTipo = {};
@@ -56,8 +56,8 @@ async function cargarAgroDashboard() {
       <tbody>${cultivos.map(([c, d]) => `
         <tr>
           <td style="padding:6px 0"><strong>${c}</strong></td>
-          <td style="text-align:right">${Math.round(d.kg).toLocaleString()}</td>
-          <td style="text-align:right">$${Math.round(d.neto).toLocaleString()}</td>
+          <td style="text-align:right">${fmtKg(d.kg)}</td>
+          <td style="text-align:right">${fmtMonto(d.neto, 'ARS')}</td>
         </tr>`).join('')}</tbody></table>`;
   } else {
     cultEl.innerHTML = '<div class="empty-state"><div class="icon">📊</div><h3>Sin datos</h3></div>';

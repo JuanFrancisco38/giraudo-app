@@ -49,15 +49,15 @@ async function cargarResumenGranos() {
       const stock = d.kgDepositado - d.kgVendido;
       const ubics = Object.entries(d.ubicaciones)
         .filter(([, kg]) => kg > 0)
-        .map(([u, kg]) => `${u}: ${Math.round(kg).toLocaleString()} kg`)
+        .map(([u, kg]) => `${u}: ${fmtKg(kg)}`)
         .join('<br>') || '—';
-      const usd = dolar ? 'USD ' + Math.round(d.monto / dolar).toLocaleString() : '—';
+      const usd = dolar ? fmtMonto(d.monto / dolar, 'USD') : '—';
       return `<tr>
         <td><span class="badge badge-${cultColors[nombre.toLowerCase()] || 'gray'}">${nombre}</span></td>
-        <td>${Math.round(d.kgVendido).toLocaleString()} kg</td>
-        <td><strong>${Math.round(stock).toLocaleString()} kg</strong></td>
+        <td>${fmtKg(d.kgVendido)}</td>
+        <td><strong>${fmtKg(stock)}</strong></td>
         <td style="font-size:12px">${ubics}</td>
-        <td>$${Math.round(d.monto).toLocaleString()}</td>
+        <td>${fmtMonto(d.monto, 'ARS')}</td>
         <td>${usd}</td>
       </tr>`;
     }).join('');
@@ -65,7 +65,7 @@ async function cargarResumenGranos() {
 
   // Totales generales
   const sum = campo => ventas.reduce((s, l) => s + (parseFloat(l[campo]) || 0), 0);
-  const fmt = n => n ? '$' + Math.round(n).toLocaleString() : '—';
+  const fmt = n => n ? fmtMonto(n, 'ARS') : '—';
   document.getElementById('rg-retiva').textContent = fmt(sum('ret_iva'));
   document.getElementById('rg-retgan').textContent = fmt(sum('ret_ganancias'));
   document.getElementById('rg-rg4310').textContent = fmt(sum('ret_iva_rg4310'));
@@ -74,7 +74,7 @@ async function cargarResumenGranos() {
   document.getElementById('rg-neto').textContent = fmt(sum('total_neto'));
 
   const info = document.getElementById('dolar-info');
-  if (dolar) info.textContent = `Cotización dólar: $${dolar.toLocaleString()} (${localStorage.getItem('dolar_fecha') || ''})`;
+  if (dolar) info.textContent = `Cotización dólar: ${fmtMonto(dolar, 'ARS')} (${localStorage.getItem('dolar_fecha') || ''})`;
 }
 
 async function actualizarDolarIA() {

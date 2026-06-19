@@ -77,7 +77,7 @@ Detectá la moneda: si los importes están en dólares (U$D, USD, US$) poné "US
       📅 Fecha: ${fmtFecha(datos.fecha)} | Vto: ${fmtFecha(datos.vencimiento)}<br>
       🏪 Proveedor: ${datos.proveedor || '—'} (${datos.cuit_proveedor || '—'})<br>
       📋 ${datos.descripcion || '—'}<br>
-      💰 Subtotal: $${(datos.subtotal || 0).toLocaleString()} | IVA ${datos.tipo_iva || ''}: $${(datos.iva || 0).toLocaleString()} | <strong>Total: $${(datos.total || 0).toLocaleString()}</strong><br>
+      💰 Subtotal: ${fmtMonto(datos.subtotal, datos.moneda)} | IVA ${datos.tipo_iva || ''}: ${fmtMonto(datos.iva, datos.moneda)} | <strong>Total: ${fmtMonto(datos.total, datos.moneda)}</strong><br>
       <span style="color:var(--texto-suave);font-size:12px">Revisá los datos y hacé click en "Guardar boleta"</span>`;
     status.textContent = '';
     toast('✅ Boleta leída — revisá y guardá');
@@ -141,8 +141,8 @@ async function cargarBoletas() {
   const tbody = document.getElementById('tabla-boletas');
   if (!rows || !rows.length) {
     tbody.innerHTML = '<tr><td colspan="11"><div class="empty-state"><div class="icon">🧾</div><h3>Sin boletas cargadas</h3><p>Subí una foto o PDF de la boleta</p></div></td></tr>';
-    document.getElementById('total-firma-fj').textContent = '$0';
-    document.getElementById('total-firma-sh').textContent = '$0';
+    document.getElementById('total-firma-fj').textContent = fmtMonto(0, 'ARS');
+    document.getElementById('total-firma-sh').textContent = fmtMonto(0, 'ARS');
     document.getElementById('cant-firma-fj').textContent = '0 boletas';
     document.getElementById('cant-firma-sh').textContent = '0 boletas';
     return;

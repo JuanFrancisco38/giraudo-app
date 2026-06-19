@@ -85,8 +85,8 @@ async function cargarFacturasEmitidas() {
 
   if (!emitidas.length) {
     tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="icon">🧾</div><h3>Sin facturas emitidas</h3><p>Subí un PDF o foto de la factura</p></div></td></tr>';
-    document.getElementById('fe-total-facturado').textContent = '$0';
-    document.getElementById('fe-total-iva').textContent = '$0';
+    document.getElementById('fe-total-facturado').textContent = fmtMonto(0, 'ARS');
+    document.getElementById('fe-total-iva').textContent = fmtMonto(0, 'ARS');
     document.getElementById('fe-cant').textContent = '0 facturas';
     return;
   }

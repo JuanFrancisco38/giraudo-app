@@ -93,7 +93,7 @@ async function cargarNotas(tipo) {
 
   if (!notas.length) {
     tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="icon">📝</div><h3>Sin ${cfg.label}s</h3></div></td></tr>`;
-    document.getElementById(`${cfg.pref}-total-sum`).textContent = '$0';
+    document.getElementById(`${cfg.pref}-total-sum`).textContent = fmtMonto(0, 'ARS');
     document.getElementById(`${cfg.pref}-cant`).textContent = '0 notas';
     return;
   }

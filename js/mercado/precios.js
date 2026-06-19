@@ -89,7 +89,7 @@ async function guardarPrecioManual() {
 function actualizarTarjeta(producto, precio, unidad, fecha) {
   document.querySelectorAll('.precio-card').forEach(card => {
     if (card.dataset.producto === producto) {
-      card.querySelector('.pc-precio').textContent = '$' + Math.round(precio).toLocaleString();
+      card.querySelector('.pc-precio').textContent = fmtMonto(precio, 'ARS');
       card.querySelector('.pc-unidad').textContent = unidad;
       card.querySelector('.pc-fecha').textContent = fmtFecha(fecha);
     }
@@ -120,7 +120,7 @@ async function cargarHistorialPrecios() {
       <td>${fmtFecha(r.fecha)}</td>
       <td><span class="badge badge-gray">${r.fuente || '—'}</span></td>
       <td><strong>${r.producto}</strong></td>
-      <td>$${Math.round(r.precio).toLocaleString()}</td>
+      <td>${fmtMonto(r.precio, 'ARS')}</td>
       <td>${r.unidad}</td>
       <td style="font-size:12px;color:var(--texto-suave)">${r.fuente || '—'}</td>
     </tr>`).join('');

@@ -22,7 +22,7 @@ async function guardarMovimiento() {
       <td>${data.categoria}</td>
       <td>${data.observaciones || '—'}</td>
       <td>${data.medio_pago || '—'}</td>
-      <td style="font-weight:600;color:var(--${color === 'green' ? 'verde' : 'rojo'})">${data.tipo === 'Ingreso' ? '+' : '−'}$${(data.monto || 0).toLocaleString()}</td>
+      <td style="font-weight:600;color:var(--${color === 'green' ? 'verde' : 'rojo'})">${data.tipo === 'Ingreso' ? '+' : '−'}${fmtMonto(data.monto, 'ARS')}</td>
     </tr>`;
     tbody.innerHTML = wasEmpty ? row : row + tbody.innerHTML;
   } else toast('❌ Error', 'var(--rojo)');

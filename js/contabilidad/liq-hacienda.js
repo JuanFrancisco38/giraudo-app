@@ -32,8 +32,8 @@ async function cargarLiqHacienda() {
       <td>${l.consignatario || '—'}</td>
       <td><span class="badge badge-bordo">${l.cabezas ? l.cabezas + ' ' : ''}${l.categoria || ''}</span></td>
       <td>${l.cabezas || '—'}</td>
-      <td>${l.subtotal ? '$' + Math.round(l.subtotal).toLocaleString() : '—'}</td>
-      <td>${l.ret_ganancias ? '$' + Math.round(l.ret_ganancias).toLocaleString() : '—'}</td>
-      <td><strong>${l.total_neto ? '$' + Math.round(l.total_neto).toLocaleString() : '—'}</strong></td>
+      <td>${l.subtotal ? fmtMonto(l.subtotal, 'ARS') : '—'}</td>
+      <td>${l.ret_ganancias ? fmtMonto(l.ret_ganancias, 'ARS') : '—'}</td>
+      <td><strong>${l.total_neto ? fmtMonto(l.total_neto, 'ARS') : '—'}</strong></td>
     </tr>`).join('');
 }

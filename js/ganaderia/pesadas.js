@@ -30,7 +30,7 @@ async function cargarPesadas() {
       <td>${p.categoria || '—'}</td>
       <td>${p.cantidad_animales || '—'}</td>
       <td><strong>${p.peso_promedio ? p.peso_promedio + ' kg' : '—'}</strong></td>
-      <td>${p.peso_total ? p.peso_total.toLocaleString() + ' kg' : '—'}</td>
+      <td>${p.peso_total ? fmtKg(p.peso_total) : '—'}</td>
       <td><span class="badge badge-gray">—</span></td>
     </tr>`).join('');
 }

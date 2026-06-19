@@ -91,10 +91,10 @@ async function cargarLiqGranos() {
       <td>${l.numero || '—'}</td>
       <td>${l.acopio || '—'}</td>
       <td><span class="badge badge-${cultColors[l.cultivo?.toLowerCase()] || 'gray'}">${l.cultivo || '—'}</span></td>
-      <td>${l.kg ? Math.round(l.kg).toLocaleString() + ' kg' : '—'}</td>
-      <td>${l.ret_iva ? '$' + Math.round(l.ret_iva).toLocaleString() : '—'}</td>
-      <td>${l.flete ? '$' + Math.round(l.flete).toLocaleString() : '—'}</td>
-      <td><strong>${l.total_neto ? '$' + Math.round(l.total_neto).toLocaleString() : '—'}</strong></td>
+      <td>${l.kg ? fmtKg(l.kg) : '—'}</td>
+      <td>${l.ret_iva ? fmtMonto(l.ret_iva, 'ARS') : '—'}</td>
+      <td>${l.flete ? fmtMonto(l.flete, 'ARS') : '—'}</td>
+      <td><strong>${l.total_neto ? fmtMonto(l.total_neto, 'ARS') : '—'}</strong></td>
       <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarLiqGrano('${l.id}')">🗑️</button></td>
     </tr>`).join('');
 }

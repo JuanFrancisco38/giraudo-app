@@ -41,7 +41,14 @@ async function extraerDocIA(file, system, instruccion) {
 }
 
 function simboloMoneda(m) { return m === 'USD' ? 'U$D' : '$'; }
-function fmtMonto(monto, moneda) { return simboloMoneda(moneda) + ' ' + Math.round(monto || 0).toLocaleString(); }
+function fmtNum(n, dec) {
+  const opts = (dec != null) ? { minimumFractionDigits: dec, maximumFractionDigits: dec } : { maximumFractionDigits: 0 };
+  return (Number(n) || 0).toLocaleString('es-AR', opts);
+}
+function fmtMonto(monto, moneda) {
+  return simboloMoneda(moneda) + ' ' + (Number(monto) || 0).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+function fmtKg(n) { return fmtNum(n) + ' kg'; }
 
 function parseFechaIA(str) {
   const p = (str || '').split('/');
