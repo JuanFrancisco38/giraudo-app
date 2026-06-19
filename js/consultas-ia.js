@@ -12,14 +12,16 @@ async function enviarConsulta() {
   msgs.innerHTML += `<div class="msg msg-user">${pregunta}</div><div class="msg msg-ai" id="msg-loading">⏳ Consultando...</div>`;
   msgs.scrollTop = msgs.scrollHeight;
 
-  const [animales, hotel, eventos, pesadas, trabajos, liqGranos, liqHac] = await Promise.all([
+  const [animales, hotel, eventos, pesadas, trabajos, liqGranos, liqHac, maquinaria, mantenimiento] = await Promise.all([
     sb('GET','animales','','?limit=50'),
     sb('GET','hoteleria','','?activo=eq.true'),
     sb('GET','eventos_ganaderos','','?order=fecha.desc&limit=30'),
     sb('GET','pesadas','','?order=fecha.desc&limit=20'),
     sb('GET','trabajos_agricolas','','?order=fecha.desc&limit=20'),
     sb('GET','liquidaciones_granos','','?campania=eq.25/26'),
-    sb('GET','liquidaciones_hacienda','','?order=fecha.desc&limit=20')
+    sb('GET','liquidaciones_hacienda','','?order=fecha.desc&limit=20'),
+    sb('GET','maquinaria','','?order=nombre.asc'),
+    sb('GET','mantenimiento','','?order=fecha.desc&limit=20')
   ]);
 
   const contexto = `GRUPO GIRAUDO — Pozo del Molle, Córdoba, Argentina.
@@ -31,7 +33,9 @@ Eventos: ${JSON.stringify(eventos?.slice(0,15)||[])}
 Pesadas: ${JSON.stringify(pesadas?.slice(0,10)||[])}
 Trabajos: ${JSON.stringify(trabajos?.slice(0,10)||[])}
 Liquidaciones granos 25/26: ${JSON.stringify(liqGranos||[])}
-Liquidaciones hacienda: ${JSON.stringify(liqHac?.slice(0,10)||[])}`;
+Liquidaciones hacienda: ${JSON.stringify(liqHac?.slice(0,10)||[])}
+Maquinaria (inventario): ${JSON.stringify(maquinaria||[])}
+Mantenimientos de maquinaria: ${JSON.stringify(mantenimiento||[])}`;
 
   try {
     const res = await fetch('/api/claude', {
