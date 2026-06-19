@@ -6,8 +6,8 @@ async function procesarFacturaEmitida(input) {
   try {
     const datos = await extraerDocIA(file,
       `Sos un asistente contable agropecuario argentino. Analizá esta factura EMITIDA (de venta) del Grupo Giraudo y extraé los datos. La firma emisora es Giraudo SH (CUIT 30-71599118-3) o Francisco J. Giraudo (CUIT 20-16226904-7). Devolvé SOLO este JSON válido sin backticks ni texto adicional:
-{"firma":"Giraudo SH|Francisco J. Giraudo","fecha":"DD/MM/YYYY","numero":"string (N° comprobante)","cliente":"string (a quién se le factura)","cuit_cliente":"string","concepto":"Venta de granos|Venta de hacienda|Servicios|Arrendamiento|Otro","descripcion":"string","subtotal":0,"iva":0,"total":0}
-Los montos en números sin símbolos ni puntos de miles. Si un dato no está, poné 0 o "".`,
+{"firma":"Giraudo SH|Francisco J. Giraudo","fecha":"DD/MM/YYYY","numero":"string (N° comprobante)","cliente":"string (a quién se le factura)","cuit_cliente":"string","concepto":"Venta de granos|Venta de hacienda|Servicios|Arrendamiento|Otro","descripcion":"string","moneda":"ARS|USD","subtotal":0,"iva":0,"total":0}
+Detectá la moneda: si los importes están en dólares (U$D, USD, US$) poné "USD", si están en pesos poné "ARS". Los montos en números sin símbolos ni puntos de miles. Si un dato no está, poné 0 o "".`,
       'Extraé los datos de esta factura emitida.');
 
     if (datos.firma) document.getElementById('fe-firma').value = datos.firma;
@@ -16,6 +16,7 @@ Los montos en números sin símbolos ni puntos de miles. Si un dato no está, po
     if (datos.cliente) document.getElementById('fe-cliente').value = datos.cliente;
     if (datos.cuit_cliente) document.getElementById('fe-cuit').value = datos.cuit_cliente;
     if (datos.concepto) document.getElementById('fe-cat').value = datos.concepto;
+    if (datos.moneda) document.getElementById('fe-moneda').value = datos.moneda;
     if (datos.descripcion) document.getElementById('fe-desc').value = datos.descripcion;
     if (datos.subtotal) document.getElementById('fe-sub').value = datos.subtotal;
     if (datos.iva) document.getElementById('fe-iva').value = datos.iva;
@@ -48,6 +49,7 @@ async function guardarFacturaEmitida() {
       firma: document.getElementById('fe-firma').value,
       cuit_cliente: document.getElementById('fe-cuit').value,
       numero_comprobante: numero,
+      moneda: document.getElementById('fe-moneda').value,
       subtotal: parseFloat(document.getElementById('fe-sub').value) || 0,
       iva: parseFloat(document.getElementById('fe-iva').value) || 0
     })
@@ -79,27 +81,35 @@ async function cargarFacturasEmitidas() {
     return;
   }
 
-  let totalFact = 0, totalIva = 0;
+  const tot = { ARS: { fact: 0, iva: 0 }, USD: { fact: 0, iva: 0 } };
   emitidas.forEach(r => {
     const e = JSON.parse(r.observaciones || '{}');
-    totalFact += r.monto || 0;
-    totalIva += e.iva || 0;
+    const m = e.moneda === 'USD' ? 'USD' : 'ARS';
+    tot[m].fact += r.monto || 0;
+    tot[m].iva += e.iva || 0;
   });
-  document.getElementById('fe-total-facturado').textContent = '$' + Math.round(totalFact).toLocaleString();
-  document.getElementById('fe-total-iva').textContent = '$' + Math.round(totalIva).toLocaleString();
+  const linea = campo => {
+    const partes = [];
+    if (tot.ARS[campo]) partes.push(fmtMonto(tot.ARS[campo], 'ARS'));
+    if (tot.USD[campo]) partes.push(fmtMonto(tot.USD[campo], 'USD'));
+    return partes.length ? partes.join(' · ') : '$ 0';
+  };
+  document.getElementById('fe-total-facturado').textContent = linea('fact');
+  document.getElementById('fe-total-iva').textContent = linea('iva');
   document.getElementById('fe-cant').textContent = emitidas.length + ' factura' + (emitidas.length !== 1 ? 's' : '');
 
   tbody.innerHTML = emitidas.map(r => {
     const e = JSON.parse(r.observaciones || '{}');
+    const mon = e.moneda || 'ARS';
     return `<tr>
       <td>${fmtFecha(r.fecha)}</td>
       <td><span class="badge badge-bordo" style="font-size:10px">${e.firma || '—'}</span></td>
       <td><strong>${r.proveedor || '—'}</strong></td>
       <td style="font-size:11px">${e.numero_comprobante || '—'}</td>
       <td><span class="badge badge-gray">${r.categoria || '—'}</span></td>
-      <td>$${(e.subtotal || 0).toLocaleString()}</td>
-      <td>$${(e.iva || 0).toLocaleString()}</td>
-      <td><strong>$${(r.monto || 0).toLocaleString()}</strong></td>
+      <td>${fmtMonto(e.subtotal, mon)}</td>
+      <td>${fmtMonto(e.iva, mon)}</td>
+      <td><strong>${fmtMonto(r.monto, mon)}</strong></td>
       <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarFacturaEmitida('${r.id}')">🗑️</button></td>
     </tr>`;
   }).join('');

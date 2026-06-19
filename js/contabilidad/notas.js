@@ -12,8 +12,8 @@ async function procesarNotaDoc(input, tipo) {
   try {
     const datos = await extraerDocIA(file,
       `Sos un asistente contable agropecuario argentino. Analizá esta ${cfg.label.toUpperCase()} recibida y extraé los datos. Devolvé SOLO este JSON válido sin backticks ni texto adicional:
-{"fecha":"DD/MM/YYYY","numero":"string (N° comprobante)","proveedor":"string","cuit_proveedor":"string","factura_asociada":"string (N° de factura que ajusta)","descripcion":"string (motivo)","subtotal":0,"iva":0,"total":0}
-Los montos en números positivos sin símbolos ni puntos de miles. Si un dato no está, poné 0 o "".`,
+{"fecha":"DD/MM/YYYY","numero":"string (N° comprobante)","proveedor":"string","cuit_proveedor":"string","factura_asociada":"string (N° de factura que ajusta)","descripcion":"string (motivo)","moneda":"ARS|USD","subtotal":0,"iva":0,"total":0}
+Detectá la moneda: si los importes están en dólares (U$D, USD, US$) poné "USD", si están en pesos poné "ARS". Los montos en números positivos sin símbolos ni puntos de miles. Si un dato no está, poné 0 o "".`,
       `Extraé los datos de esta ${cfg.label}.`);
 
     const g = id => document.getElementById(`${cfg.pref}-${id}`);
@@ -22,6 +22,7 @@ Los montos en números positivos sin símbolos ni puntos de miles. Si un dato no
     if (datos.proveedor) g('prov').value = datos.proveedor;
     if (datos.cuit_proveedor) g('cuit').value = datos.cuit_proveedor;
     if (datos.factura_asociada) g('fact').value = datos.factura_asociada;
+    if (datos.moneda) g('moneda').value = datos.moneda;
     if (datos.descripcion) g('desc').value = datos.descripcion;
     if (datos.subtotal) g('sub').value = datos.subtotal;
     if (datos.iva) g('iva').value = datos.iva;
@@ -54,6 +55,7 @@ async function guardarNota(tipo) {
       cuit_proveedor: g('cuit').value,
       numero_comprobante: g('num').value,
       factura_asociada: g('fact').value,
+      moneda: g('moneda').value,
       subtotal: parseFloat(g('sub').value) || 0,
       iva: parseFloat(g('iva').value) || 0
     })
@@ -85,22 +87,29 @@ async function cargarNotas(tipo) {
     return;
   }
 
-  let suma = 0;
-  notas.forEach(r => { suma += r.monto || 0; });
-  document.getElementById(`${cfg.pref}-total-sum`).textContent = '$' + Math.round(suma).toLocaleString();
+  const tot = { ARS: 0, USD: 0 };
+  notas.forEach(r => {
+    const m = (JSON.parse(r.observaciones || '{}').moneda === 'USD') ? 'USD' : 'ARS';
+    tot[m] += r.monto || 0;
+  });
+  const partes = [];
+  if (tot.ARS) partes.push(fmtMonto(tot.ARS, 'ARS'));
+  if (tot.USD) partes.push(fmtMonto(tot.USD, 'USD'));
+  document.getElementById(`${cfg.pref}-total-sum`).textContent = partes.length ? partes.join(' · ') : '$ 0';
   document.getElementById(`${cfg.pref}-cant`).textContent = notas.length + ' nota' + (notas.length !== 1 ? 's' : '');
 
   tbody.innerHTML = notas.map(r => {
     const e = JSON.parse(r.observaciones || '{}');
+    const mon = e.moneda || 'ARS';
     return `<tr>
       <td>${fmtFecha(r.fecha)}</td>
       <td><strong>${r.proveedor || '—'}</strong></td>
       <td style="font-size:11px">${e.numero_comprobante || '—'}</td>
       <td style="font-size:11px">${e.factura_asociada || '—'}</td>
       <td>${r.concepto || '—'}</td>
-      <td>$${(e.subtotal || 0).toLocaleString()}</td>
-      <td>$${(e.iva || 0).toLocaleString()}</td>
-      <td><strong>$${Math.round(r.monto || 0).toLocaleString()}</strong></td>
+      <td>${fmtMonto(e.subtotal, mon)}</td>
+      <td>${fmtMonto(e.iva, mon)}</td>
+      <td><strong>${fmtMonto(r.monto, mon)}</strong></td>
       <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarNota('${r.id}','${tipo}')">🗑️</button></td>
     </tr>`;
   }).join('');

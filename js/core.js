@@ -40,6 +40,9 @@ async function extraerDocIA(file, system, instruccion) {
   return JSON.parse(m[0]);
 }
 
+function simboloMoneda(m) { return m === 'USD' ? 'U$D' : '$'; }
+function fmtMonto(monto, moneda) { return simboloMoneda(moneda) + ' ' + Math.round(monto || 0).toLocaleString(); }
+
 function parseFechaIA(str) {
   const p = (str || '').split('/');
   return p.length === 3 ? `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}` : '';

@@ -41,7 +41,8 @@ async function procesarBoleta(input) {
         system: `Sos un asistente contable del Grupo Giraudo, Argentina. Analizá la boleta/factura y extraé los datos.
 Identificá la firma receptora: si el destinatario tiene CUIT 20-16226904-7 o dice "Francisco J. Giraudo" (sin Juan) es "Francisco J. Giraudo". Si tiene CUIT 30-71599118-3 o dice "Giraudo Francisco J. y Giraudo Juan F. SH" es "Giraudo SH".
 Devolvé SOLO este JSON válido sin backticks ni texto adicional:
-{"firma":"Francisco J. Giraudo o Giraudo SH","fecha":"DD/MM/YYYY","vencimiento":"DD/MM/YYYY","numero_comprobante":"string","proveedor":"string","cuit_proveedor":"string","categoria":"Insumos agrícolas|Veterinaria|Combustible|Arrendamiento|Maquinaria / Repuestos|Mano de obra|Servicios|Semillas|Agroquímicos|Fertilizantes|Otro","descripcion":"string","subtotal":0,"iva":0,"total":0,"tipo_iva":"21%|10.5%|0%"}`,
+{"firma":"Francisco J. Giraudo o Giraudo SH","fecha":"DD/MM/YYYY","vencimiento":"DD/MM/YYYY","numero_comprobante":"string","proveedor":"string","cuit_proveedor":"string","categoria":"Insumos agrícolas|Veterinaria|Combustible|Arrendamiento|Maquinaria / Repuestos|Mano de obra|Servicios|Semillas|Agroquímicos|Fertilizantes|Otro","descripcion":"string","moneda":"ARS|USD","subtotal":0,"iva":0,"total":0,"tipo_iva":"21%|10.5%|0%"}
+Detectá la moneda: si los importes están en dólares (U$D, USD, US$) poné "USD", si están en pesos poné "ARS".`,
         messages
       })
     });
@@ -63,6 +64,7 @@ Devolvé SOLO este JSON válido sin backticks ni texto adicional:
     if (datos.proveedor) document.getElementById('bol-prov').value = datos.proveedor;
     if (datos.cuit_proveedor) document.getElementById('bol-cuit').value = datos.cuit_proveedor;
     if (datos.categoria) document.getElementById('bol-cat').value = datos.categoria;
+    if (datos.moneda) document.getElementById('bol-moneda').value = datos.moneda;
     if (datos.descripcion) document.getElementById('bol-desc').value = datos.descripcion;
     if (datos.subtotal) document.getElementById('bol-sub').value = datos.subtotal;
     if (datos.iva)     document.getElementById('bol-iva').value = datos.iva;
@@ -103,6 +105,7 @@ async function guardarBoleta() {
       vencimiento: document.getElementById('bol-vto').value,
       cuit_proveedor: document.getElementById('bol-cuit').value,
       numero_comprobante: document.getElementById('bol-num').value,
+      moneda: document.getElementById('bol-moneda').value,
       subtotal: parseFloat(document.getElementById('bol-sub').value) || 0,
       iva: parseFloat(document.getElementById('bol-iva').value) || 0
     })
@@ -134,21 +137,28 @@ async function cargarBoletas() {
     return;
   }
 
-  let totalFJ = 0, totalSH = 0, cantFJ = 0, cantSH = 0;
+  const acc = { FJ: { ARS: 0, USD: 0, cant: 0 }, SH: { ARS: 0, USD: 0, cant: 0 } };
   rows.forEach(r => {
     const extra = r.observaciones ? JSON.parse(r.observaciones) : {};
     const firma = extra.firma || '';
-    if (firma === 'Francisco J. Giraudo') { totalFJ += r.monto || 0; cantFJ++; }
-    else if (firma === 'Giraudo SH') { totalSH += r.monto || 0; cantSH++; }
+    const m = extra.moneda === 'USD' ? 'USD' : 'ARS';
+    const k = firma === 'Francisco J. Giraudo' ? 'FJ' : (firma === 'Giraudo SH' ? 'SH' : null);
+    if (k) { acc[k][m] += r.monto || 0; acc[k].cant++; }
   });
-
-  document.getElementById('total-firma-fj').textContent = '$' + Math.round(totalFJ).toLocaleString();
-  document.getElementById('total-firma-sh').textContent = '$' + Math.round(totalSH).toLocaleString();
-  document.getElementById('cant-firma-fj').textContent = cantFJ + ' boleta' + (cantFJ !== 1 ? 's' : '');
-  document.getElementById('cant-firma-sh').textContent = cantSH + ' boleta' + (cantSH !== 1 ? 's' : '');
+  const linea = k => {
+    const partes = [];
+    if (acc[k].ARS) partes.push(fmtMonto(acc[k].ARS, 'ARS'));
+    if (acc[k].USD) partes.push(fmtMonto(acc[k].USD, 'USD'));
+    return partes.length ? partes.join(' · ') : '$ 0';
+  };
+  document.getElementById('total-firma-fj').textContent = linea('FJ');
+  document.getElementById('total-firma-sh').textContent = linea('SH');
+  document.getElementById('cant-firma-fj').textContent = acc.FJ.cant + ' boleta' + (acc.FJ.cant !== 1 ? 's' : '');
+  document.getElementById('cant-firma-sh').textContent = acc.SH.cant + ' boleta' + (acc.SH.cant !== 1 ? 's' : '');
 
   tbody.innerHTML = rows.map(r => {
     const extra = r.observaciones ? JSON.parse(r.observaciones) : {};
+    const mon = extra.moneda || 'ARS';
     return `<tr>
       <td>${fmtFecha(r.fecha)}</td>
       <td><span class="badge badge-bordo" style="font-size:10px">${extra.firma || '—'}</span></td>
@@ -156,9 +166,9 @@ async function cargarBoletas() {
       <td style="font-size:11px">${extra.numero_comprobante || '—'}</td>
       <td><span class="badge badge-gray">${r.categoria || '—'}</span></td>
       <td>${r.campo || '—'}</td>
-      <td>$${((extra.subtotal) || 0).toLocaleString()}</td>
-      <td>$${((extra.iva) || 0).toLocaleString()}</td>
-      <td><strong>$${(r.monto || 0).toLocaleString()}</strong></td>
+      <td>${fmtMonto(extra.subtotal, mon)}</td>
+      <td>${fmtMonto(extra.iva, mon)}</td>
+      <td><strong>${fmtMonto(r.monto, mon)}</strong></td>
       <td style="font-size:11px;color:var(--texto-suave)">${extra.vencimiento || '—'}</td>
     </tr>`;
   }).join('');
