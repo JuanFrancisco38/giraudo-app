@@ -162,8 +162,8 @@ tr:hover td{background:var(--gris)}
   <div class="sidebar-section">Carga de documentos</div>
   <div class="nav-item" onclick="showSection('boletas',this)">🧾 Facturas recibidas</div>
   <div class="nav-item" onclick="showSection('facturas_emitidas',this)">🧾 Facturas emitidas</div>
-  <div class="nav-item" onclick="proximamente('Notas de crédito',this)">📝 Notas crédito</div>
-  <div class="nav-item" onclick="proximamente('Notas de débito',this)">📝 Notas débito</div>
+  <div class="nav-item" onclick="showSection('notas_credito',this)">📝 Notas crédito</div>
+  <div class="nav-item" onclick="showSection('notas_debito',this)">📝 Notas débito</div>
   <div class="nav-item" onclick="showSection('liq_granos',this)">📄 Liquidaciones granos</div>
   <div class="nav-item" onclick="showSection('certificaciones',this)">📋 Certificaciones de grano</div>
   <div class="nav-item" onclick="showSection('liq_hacienda',this)">📄 Liquidación de hacienda</div>
@@ -1122,6 +1122,92 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
       </div>
     </div>
 
+    <!-- NOTAS DE CREDITO -->
+    <div id="section-notas_credito" class="section">
+      <div class="card">
+        <div class="card-header">
+          <h3>📝 Notas de crédito recibidas</h3>
+          <button class="btn btn-primary" onclick="toggleForm('form-nc')">+ Cargar nota</button>
+        </div>
+        <div id="form-nc" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+          <div style="margin-bottom:14px;padding:12px;background:#faf8f5;border:1px dashed var(--gris-borde);border-radius:8px">
+            <label style="font-weight:600;font-size:13px">📄 Cargar desde PDF o imagen — la IA completa los campos</label>
+            <input type="file" id="nc-archivo" accept="application/pdf,image/*" onchange="procesarNotaDoc(this,'nota_credito')" style="display:block;margin-top:8px">
+            <div id="nc-doc-status" style="font-size:12px;color:var(--texto-suave);margin-top:6px"></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group"><label>Fecha</label><input type="date" id="nc-fecha"></div>
+            <div class="form-group"><label>N° comprobante</label><input type="text" id="nc-num"></div>
+            <div class="form-group full"><label>Proveedor</label><input type="text" id="nc-prov"></div>
+            <div class="form-group"><label>CUIT proveedor</label><input type="text" id="nc-cuit"></div>
+            <div class="form-group"><label>Factura asociada</label><input type="text" id="nc-fact" placeholder="N° de factura que ajusta"></div>
+            <div class="form-group"><label>Subtotal $</label><input type="number" id="nc-sub"></div>
+            <div class="form-group"><label>IVA $</label><input type="number" id="nc-iva"></div>
+            <div class="form-group"><label>Total $</label><input type="number" id="nc-total" style="font-weight:600"></div>
+            <div class="form-group full"><label>Descripción / Motivo</label><textarea id="nc-desc"></textarea></div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="guardarNota('nota_credito')">Guardar nota</button>
+            <button class="btn btn-secondary" onclick="toggleForm('form-nc')">Cancelar</button>
+          </div>
+        </div>
+        <div style="padding:16px;border-bottom:1px solid var(--gris-borde)">
+          <div style="background:var(--bordo-claro);border-radius:8px;padding:12px;border:1px solid var(--bordo-suave);display:inline-block">
+            <div style="font-size:12px;color:var(--bordo);font-weight:600">Total notas de crédito</div>
+            <div style="font-size:20px;font-weight:700;color:var(--bordo);margin-top:6px" id="nc-total-sum">$0</div>
+            <div style="font-size:11px;color:var(--texto-suave)" id="nc-cant">0 notas</div>
+          </div>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Fecha</th><th>Proveedor</th><th>N° Comp.</th><th>Factura asoc.</th><th>Motivo</th><th>Subtotal</th><th>IVA</th><th>Total</th><th></th></tr></thead>
+          <tbody id="tabla-nc"><tr><td colspan="9"><div class="empty-state"><div class="icon">📝</div><h3>Sin notas de crédito</h3></div></td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- NOTAS DE DEBITO -->
+    <div id="section-notas_debito" class="section">
+      <div class="card">
+        <div class="card-header">
+          <h3>📝 Notas de débito recibidas</h3>
+          <button class="btn btn-primary" onclick="toggleForm('form-nd')">+ Cargar nota</button>
+        </div>
+        <div id="form-nd" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+          <div style="margin-bottom:14px;padding:12px;background:#faf8f5;border:1px dashed var(--gris-borde);border-radius:8px">
+            <label style="font-weight:600;font-size:13px">📄 Cargar desde PDF o imagen — la IA completa los campos</label>
+            <input type="file" id="nd-archivo" accept="application/pdf,image/*" onchange="procesarNotaDoc(this,'nota_debito')" style="display:block;margin-top:8px">
+            <div id="nd-doc-status" style="font-size:12px;color:var(--texto-suave);margin-top:6px"></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group"><label>Fecha</label><input type="date" id="nd-fecha"></div>
+            <div class="form-group"><label>N° comprobante</label><input type="text" id="nd-num"></div>
+            <div class="form-group full"><label>Proveedor</label><input type="text" id="nd-prov"></div>
+            <div class="form-group"><label>CUIT proveedor</label><input type="text" id="nd-cuit"></div>
+            <div class="form-group"><label>Factura asociada</label><input type="text" id="nd-fact" placeholder="N° de factura que ajusta"></div>
+            <div class="form-group"><label>Subtotal $</label><input type="number" id="nd-sub"></div>
+            <div class="form-group"><label>IVA $</label><input type="number" id="nd-iva"></div>
+            <div class="form-group"><label>Total $</label><input type="number" id="nd-total" style="font-weight:600"></div>
+            <div class="form-group full"><label>Descripción / Motivo</label><textarea id="nd-desc"></textarea></div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="guardarNota('nota_debito')">Guardar nota</button>
+            <button class="btn btn-secondary" onclick="toggleForm('form-nd')">Cancelar</button>
+          </div>
+        </div>
+        <div style="padding:16px;border-bottom:1px solid var(--gris-borde)">
+          <div style="background:var(--bordo-claro);border-radius:8px;padding:12px;border:1px solid var(--bordo-suave);display:inline-block">
+            <div style="font-size:12px;color:var(--bordo);font-weight:600">Total notas de débito</div>
+            <div style="font-size:20px;font-weight:700;color:var(--bordo);margin-top:6px" id="nd-total-sum">$0</div>
+            <div style="font-size:11px;color:var(--texto-suave)" id="nd-cant">0 notas</div>
+          </div>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Fecha</th><th>Proveedor</th><th>N° Comp.</th><th>Factura asoc.</th><th>Motivo</th><th>Subtotal</th><th>IVA</th><th>Total</th><th></th></tr></thead>
+          <tbody id="tabla-nd"><tr><td colspan="9"><div class="empty-state"><div class="icon">📝</div><h3>Sin notas de débito</h3></div></td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+
     <!-- MOVIMIENTOS -->
     <div id="section-movimientos" class="section">
       <div class="card">
@@ -1220,6 +1306,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 <script src="js/contabilidad/movimientos.js"></script>
 <script src="js/contabilidad/boletas.js"></script>
 <script src="js/contabilidad/facturas-emitidas.js"></script>
+<script src="js/contabilidad/notas.js"></script>
 <script src="js/contabilidad/balance.js"></script>
 <script src="js/mercado/precios.js"></script>
 <script src="js/importar.js"></script>

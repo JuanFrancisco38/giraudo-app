@@ -122,7 +122,7 @@ async function guardarBoleta() {
 async function cargarBoletas() {
   const todas = await sb('GET', 'boletas', '', '?order=fecha.desc');
   const rows = (todas || []).filter(r => {
-    try { return JSON.parse(r.observaciones || '{}').tipo_factura !== 'emitida'; } catch(e) { return true; }
+    try { const t = JSON.parse(r.observaciones || '{}').tipo_factura; return !t || t === 'recibida'; } catch(e) { return true; }
   });
   const tbody = document.getElementById('tabla-boletas');
   if (!rows || !rows.length) {
