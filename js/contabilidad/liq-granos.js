@@ -28,7 +28,7 @@ Los montos en números sin símbolos ni puntos de miles. Si un dato no está, po
     toast('✅ Documento leído — revisá y guardá');
   } catch(e) {
     console.error(e);
-    status.textContent = '❌ No se pudo leer el documento';
+    status.textContent = '❌ ' + e.message;
     toast('❌ Error al leer el documento', 'var(--rojo)');
   }
 }

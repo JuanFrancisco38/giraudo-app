@@ -6,6 +6,9 @@ document.getElementById('fecha-top').textContent = hoy.toLocaleDateString('es-AR
 document.querySelectorAll('input[type="date"]').forEach(i=>{if(!i.value)i.value=hoy.toISOString().split('T')[0]});
 
 async function extraerDocIA(file, system, instruccion) {
+  if (file.size > 3.5 * 1024 * 1024) {
+    throw new Error('El archivo pesa ' + (file.size / 1048576).toFixed(1) + ' MB. Probá con uno de menos de 3.5 MB (comprimí el PDF o sacale una foto más liviana).');
+  }
   const base64 = await new Promise((res, rej) => {
     const r = new FileReader();
     r.onload = () => res(r.result.split(',')[1]);
@@ -27,10 +30,13 @@ async function extraerDocIA(file, system, instruccion) {
     })
   });
   const json = await res.json();
-  let raw = json.content?.[0]?.text || '{}';
+  if (json.error) throw new Error(json.error.message || JSON.stringify(json.error));
+  if (!json.content) throw new Error('El modelo no devolvió contenido (status ' + res.status + ')');
+  let raw = json.content?.filter(c => c.type === 'text').map(c => c.text).join('') || '{}';
   raw = raw.replace(/```json|```/g, '').trim();
   const m = raw.match(/\{[\s\S]*\}/);
-  return JSON.parse(m ? m[0] : raw);
+  if (!m) throw new Error('No se encontró JSON en la respuesta');
+  return JSON.parse(m[0]);
 }
 
 function parseFechaIA(str) {
