@@ -74,7 +74,7 @@ async function cargarResumenGranos() {
   document.getElementById('rg-neto').textContent = fmt(sum('total_neto'));
 
   const info = document.getElementById('dolar-info');
-  if (dolar) info.textContent = `Cotización dólar: ${fmtMonto(dolar, 'ARS')} (${localStorage.getItem('dolar_fecha') || ''})`;
+  if (dolar) info.textContent = `${localStorage.getItem('dolar_fuente') || 'Dólar'}: ${fmtMonto(dolar, 'ARS')} (${localStorage.getItem('dolar_fecha') || ''})`;
 }
 
 async function actualizarDolarIA() {
@@ -89,8 +89,8 @@ async function actualizarDolarIA() {
         model: 'claude-sonnet-4-6',
         max_tokens: 800,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        system: `Sos un asistente financiero argentino. Buscá la cotización actual del dólar oficial / mayorista (BNA venta) en Argentina. Devolvé SOLO JSON sin backticks: {"dolar":0,"fecha":"${hoyStr}","fuente":"string"}`,
-        messages: [{ role: 'user', content: `¿Cuál es la cotización del dólar oficial en Argentina hoy ${hoyStr}?` }]
+        system: `Sos un asistente financiero argentino. Buscá la cotización del DÓLAR DIVISA del Banco de la Nación Argentina (BNA), específicamente el tipo de cambio DIVISA VENDEDOR (no el billete). La fuente oficial es el sitio del Banco Nación (bna.com.ar) o portales que publiquen la cotización "Divisa" del BNA. Devolvé SOLO JSON sin backticks: {"dolar":0,"fecha":"${hoyStr}","fuente":"string"}. En "dolar" poné el valor vendedor de la divisa BNA y en "fuente" aclará "BNA Divisa (vendedor)".`,
+        messages: [{ role: 'user', content: `¿Cuál es la cotización del dólar DIVISA vendedor del Banco Nación (BNA) hoy ${hoyStr}?` }]
       })
     });
     const json = await res.json();
@@ -101,7 +101,8 @@ async function actualizarDolarIA() {
     if (datos.dolar > 0) {
       localStorage.setItem('dolar_cotiz', datos.dolar);
       localStorage.setItem('dolar_fecha', datos.fecha || hoyStr);
-      toast(`✅ Dólar actualizado: $${datos.dolar}`);
+      localStorage.setItem('dolar_fuente', datos.fuente || 'BNA Divisa (vendedor)');
+      toast(`✅ Dólar BNA Divisa: ${fmtMonto(datos.dolar, 'ARS')}`);
       cargarResumenGranos();
     } else throw new Error('Sin valor');
   } catch(e) {
