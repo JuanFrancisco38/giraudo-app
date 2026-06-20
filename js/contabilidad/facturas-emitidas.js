@@ -275,20 +275,16 @@ function renderFacturasEmitidas() {
   });
   const cont = document.getElementById('fe-resumen-concepto');
   if (cont) {
-    const filas = Object.entries(porConcepto).sort((a, b) => b[1].total - a[1].total).map(([c, v]) => {
+    const cards = Object.entries(porConcepto).sort((a, b) => b[1].total - a[1].total).map(([c, v]) => {
       const pct = tot.fact ? Math.round(v.total / tot.fact * 100) : 0;
-      return `<tr>
-        <td><span class="badge badge-gray">${c}</span></td>
-        <td style="text-align:right">${v.cant}</td>
-        <td style="text-align:right"><strong>${fmtMonto(v.total, 'ARS')}</strong></td>
-        <td style="text-align:right;color:var(--texto-suave)">${pct}%</td>
-      </tr>`;
+      return `<div style="background:var(--bordo-claro);border-radius:8px;padding:14px;border:1px solid var(--bordo-suave)">
+        <div style="font-size:13px;color:var(--bordo);font-weight:600;margin-bottom:6px">${c}</div>
+        <div style="font-size:19px;font-weight:700;color:var(--bordo)">${fmtMonto(v.total, 'ARS')}</div>
+        <div style="font-size:12px;color:var(--texto-suave);margin-top:4px">${v.cant} ítem${v.cant !== 1 ? 's' : ''} · ${pct}% del total</div>
+      </div>`;
     }).join('');
-    cont.innerHTML = `<table style="width:100%;font-size:13px">
-      <thead><tr><th style="text-align:left">Concepto</th><th style="text-align:right">Ítems</th><th style="text-align:right">Total</th><th style="text-align:right">%</th></tr></thead>
-      <tbody>${filas}</tbody>
-      <tfoot><tr style="border-top:2px solid var(--gris-borde)"><td><strong>Total</strong></td><td style="text-align:right"><strong>${emitidas.length}</strong></td><td style="text-align:right"><strong>${fmtMonto(tot.fact, 'ARS')}</strong></td><td></td></tr></tfoot>
-    </table>`;
+    cont.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">${cards}</div>
+      <div style="margin-top:12px;font-size:13px;color:var(--texto-suave)">Total facturado: <strong style="color:var(--bordo)">${fmtMonto(tot.fact, 'ARS')}</strong> · ${emitidas.length} ítem${emitidas.length !== 1 ? 's' : ''}</div>`;
   }
 
   tbody.innerHTML = emitidas.map(r => {
