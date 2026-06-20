@@ -969,30 +969,64 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             <div>
               <p style="font-size:13px;color:var(--texto-suave);margin-bottom:12px">✏️ <strong>Opción 2:</strong> Cargá manualmente los datos de la boleta.</p>
               <div class="form-grid">
-                <div class="form-group"><label>Firma receptora</label>
+                <div class="form-group"><label>Fecha</label><input type="date" id="bol-fecha"></div>
+                <div class="form-group"><label>N° Factura</label><input type="text" id="bol-num" placeholder="Ej: A-0001-00001234"></div>
+                <div class="form-group"><label>Firma</label>
                   <select id="bol-firma">
-                    <option value="Giraudo SH">Giraudo SH (30-71599118-3)</option>
-                    <option value="Francisco J. Giraudo">Francisco J. Giraudo (20-16226904-7)</option>
+                    <option value="Giraudo SH">SH (Giraudo SH)</option>
+                    <option value="Francisco J. Giraudo">FJG (Unipersonal)</option>
                   </select>
                 </div>
-                <div class="form-group"><label>Fecha</label><input type="date" id="bol-fecha"></div>
-                <div class="form-group"><label>Vencimiento</label><input type="date" id="bol-vto"></div>
-                <div class="form-group"><label>N° comprobante</label><input type="text" id="bol-num" placeholder="Ej: A-0001-00001234"></div>
-                <div class="form-group full"><label>Proveedor</label><input type="text" id="bol-prov" placeholder="Ej: Veterinaria San Martín"></div>
-                <div class="form-group"><label>CUIT proveedor</label><input type="text" id="bol-cuit" placeholder="Ej: 20-12345678-9"></div>
-                <div class="form-group"><label>Categoría</label>
+                <div class="form-group"><label>Razón social</label><input type="text" id="bol-prov" placeholder="Ej: Agroinsumos del Centro S.A."></div>
+                <div class="form-group"><label>CUIT proveedor</label><input type="text" id="bol-cuit" placeholder="Ej: 30-12345678-9"></div>
+                <div class="form-group"><label>Rubro</label>
                   <select id="bol-cat">
-                    <option>Insumos agrícolas</option>
-                    <option>Veterinaria</option>
-                    <option>Combustible</option>
-                    <option>Arrendamiento</option>
-                    <option>Maquinaria / Repuestos</option>
-                    <option>Mano de obra</option>
-                    <option>Servicios</option>
-                    <option>Semillas</option>
                     <option>Agroquímicos</option>
-                    <option>Fertilizantes</option>
-                    <option>Otro</option>
+                    <option>Semillas</option>
+                    <option>Arrendamientos</option>
+                    <option>Combustibles y Lubricantes</option>
+                    <option>Repuestos</option>
+                    <option>Insumos Varios</option>
+                    <option>Servicios Profesionales</option>
+                    <option>Servicios Rurales</option>
+                    <option>Servicios Energéticos</option>
+                    <option>Ponedoras</option>
+                    <option>Insumos Veterinarios</option>
+                    <option>Inmuebles</option>
+                    <option>Reparaciones</option>
+                  </select>
+                </div>
+                <div class="form-group full"><label>Descripción A — Concepto / producto (con concentración)</label><textarea id="bol-desc" placeholder="Ej: Glifosato 75% / Semilla soja DM 4612..."></textarea></div>
+                <div class="form-group"><label>Descripción B — Cantidad</label><input type="number" step="any" id="bol-cant" placeholder="Ej: 200"></div>
+                <div class="form-group"><label>Unidad</label>
+                  <select id="bol-unidad">
+                    <option value="">—</option>
+                    <option>kg</option>
+                    <option>lts</option>
+                    <option>tt</option>
+                    <option>unidad</option>
+                  </select>
+                </div>
+                <div class="form-group"><label>Descripción C — Costo unitario</label><input type="number" step="any" id="bol-costou" placeholder="Ej: 8.50"></div>
+                <div class="form-group"><label>Moneda costo unit.</label><select id="bol-moneda-cu"><option value="ARS">Pesos ($)</option><option value="USD">Dólares (U$D)</option></select></div>
+                <div class="form-group full"><label>Descripción D — Destino (cultivo / lote / actividad)</label><input type="text" id="bol-destino" placeholder="Lo completás vos — destino del ítem"></div>
+                <div class="form-group"><label>Vencimiento</label><input type="date" id="bol-vto"></div>
+                <div class="form-group"><label>Tipo de cambio (si figura)</label><input type="number" step="any" id="bol-tc" placeholder="Ej: 1050"></div>
+                <div class="form-group"><label>Subtotal (en pesos)</label><input type="number" step="any" id="bol-sub"></div>
+                <div class="form-group"><label>% IVA</label>
+                  <select id="bol-pctiva" onchange="calcularIvaBoleta()">
+                    <option value="21">21%</option>
+                    <option value="10.5">10,5%</option>
+                    <option value="0">Exento</option>
+                  </select>
+                </div>
+                <div class="form-group"><label>IVA</label><input type="number" step="any" id="bol-iva"></div>
+                <div class="form-group"><label>Total</label><input type="number" step="any" id="bol-total" style="font-weight:600"></div>
+                <div class="form-group"><label>Campaña</label><input type="text" id="bol-campania" placeholder="Lo completás vos — Ej: 2025/26" list="campanias-list"></div>
+                <div class="form-group"><label>Estado de pago</label>
+                  <select id="bol-pago">
+                    <option value="Impaga">Impaga</option>
+                    <option value="Paga">Paga</option>
                   </select>
                 </div>
                 <div class="form-group"><label>Campo</label>
@@ -1003,11 +1037,9 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
                     <option>General (todos)</option>
                   </select>
                 </div>
-                <div class="form-group"><label>Moneda</label><select id="bol-moneda"><option value="ARS">Pesos ($)</option><option value="USD">Dólares (U$D)</option></select></div>
-                <div class="form-group"><label>Subtotal</label><input type="number" id="bol-sub"></div>
-                <div class="form-group"><label>IVA</label><input type="number" id="bol-iva"></div>
-                <div class="form-group full"><label>Total</label><input type="number" id="bol-total" style="font-weight:600"></div>
-                <div class="form-group full"><label>Descripción / Artículos</label><textarea id="bol-desc" placeholder="Ej: Ivomec Gold 500ml x 10 unidades..."></textarea></div>
+                <datalist id="campanias-list">
+                  <option>2024/25</option><option>2025/26</option><option>2026/27</option>
+                </datalist>
               </div>
             </div>
           </div>
@@ -1037,9 +1069,9 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Fecha</th><th>Firma</th><th>Proveedor</th><th>N° Comp.</th><th>Categoría</th><th>Campo</th><th>Subtotal</th><th>IVA</th><th>Total</th><th>Vto.</th><th></th></tr></thead>
+            <thead><tr><th>Fecha</th><th>N° Factura</th><th>Firma</th><th>Razón social</th><th>Rubro</th><th>Descripción A</th><th>Cant.</th><th>C. unit.</th><th>Destino</th><th>Vto.</th><th>T.C.</th><th>Subtotal</th><th>% IVA</th><th>IVA</th><th>Total</th><th>Campaña</th><th>Pago</th><th></th></tr></thead>
             <tbody id="tabla-boletas">
-              <tr><td colspan="11"><div class="empty-state"><div class="icon">🧾</div><h3>Sin boletas cargadas</h3><p>Subí una foto o PDF de la boleta para cargarla automáticamente</p></div></td></tr>
+              <tr><td colspan="18"><div class="empty-state"><div class="icon">🧾</div><h3>Sin boletas cargadas</h3><p>Subí una foto o PDF de la boleta para cargarla automáticamente</p></div></td></tr>
             </tbody>
           </table>
         </div>
