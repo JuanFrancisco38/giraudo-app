@@ -1046,6 +1046,20 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
           </div>
         </div>
 
+        <!-- Resumen pagado / adeudado -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px 16px;border-bottom:1px solid var(--gris-borde)">
+          <div style="background:var(--verde-claro);border-radius:8px;padding:12px;border:1px solid var(--verde)">
+            <div style="font-size:12px;color:var(--verde);font-weight:600;margin-bottom:4px">✅ Pagado</div>
+            <div style="font-size:18px;font-weight:700;color:var(--verde);margin-top:6px" id="bol-total-pagado">$0</div>
+            <div style="font-size:11px;color:var(--texto-suave)" id="bol-cant-pagado">0 ítems</div>
+          </div>
+          <div style="background:var(--tierra-claro);border-radius:8px;padding:12px;border:1px solid var(--tierra)">
+            <div style="font-size:12px;color:var(--tierra);font-weight:600;margin-bottom:4px">⏳ Adeudado</div>
+            <div style="font-size:18px;font-weight:700;color:var(--tierra);margin-top:6px" id="bol-total-adeudado">$0</div>
+            <div style="font-size:11px;color:var(--texto-suave)" id="bol-cant-adeudado">0 ítems</div>
+          </div>
+        </div>
+
         <div class="table-wrap">
           <table>
             <thead><tr><th>Fecha</th><th>N° Factura</th><th>Firma</th><th>Razón social</th><th>Rubro</th><th>Descripción A</th><th>Cant.</th><th>C. unit.</th><th>Destino</th><th>Vto.</th><th>T.C.</th><th>Subtotal</th><th>% IVA</th><th>IVA</th><th>Total</th><th>Campaña</th><th>Pago</th><th></th></tr></thead>
@@ -1116,15 +1130,25 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
           <div id="fe-result" style="background:var(--bordo-claro);border-radius:8px;padding:12px;margin-top:12px;font-size:13px;display:none;line-height:1.8"></div>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px;border-bottom:1px solid var(--gris-borde)">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px;border-bottom:1px solid var(--gris-borde)">
           <div style="background:var(--bordo-claro);border-radius:8px;padding:12px;border:1px solid var(--bordo-suave)">
             <div style="font-size:12px;color:var(--bordo);font-weight:600;margin-bottom:4px">Total facturado</div>
-            <div style="font-size:20px;font-weight:700;color:var(--bordo);margin-top:6px" id="fe-total-facturado">$0</div>
-            <div style="font-size:11px;color:var(--texto-suave)" id="fe-cant">0 facturas</div>
+            <div style="font-size:18px;font-weight:700;color:var(--bordo);margin-top:6px" id="fe-total-facturado">$0</div>
+            <div style="font-size:11px;color:var(--texto-suave)" id="fe-cant">0 ítems</div>
+          </div>
+          <div style="background:var(--verde-claro);border-radius:8px;padding:12px;border:1px solid var(--verde)">
+            <div style="font-size:12px;color:var(--verde);font-weight:600;margin-bottom:4px">✅ Cobrado</div>
+            <div style="font-size:18px;font-weight:700;color:var(--verde);margin-top:6px" id="fe-total-cobrado">$0</div>
+            <div style="font-size:11px;color:var(--texto-suave)" id="fe-cant-cobrado">0 ítems</div>
+          </div>
+          <div style="background:var(--tierra-claro);border-radius:8px;padding:12px;border:1px solid var(--tierra)">
+            <div style="font-size:12px;color:var(--tierra);font-weight:600;margin-bottom:4px">⏳ Pendiente</div>
+            <div style="font-size:18px;font-weight:700;color:var(--tierra);margin-top:6px" id="fe-total-pendiente">$0</div>
+            <div style="font-size:11px;color:var(--texto-suave)" id="fe-cant-pendiente">0 ítems</div>
           </div>
           <div style="background:var(--bordo-claro);border-radius:8px;padding:12px;border:1px solid var(--bordo-suave)">
             <div style="font-size:12px;color:var(--bordo);font-weight:600;margin-bottom:4px">IVA débito fiscal</div>
-            <div style="font-size:20px;font-weight:700;color:var(--bordo);margin-top:6px" id="fe-total-iva">$0</div>
+            <div style="font-size:18px;font-weight:700;color:var(--bordo);margin-top:6px" id="fe-total-iva">$0</div>
             <div style="font-size:11px;color:var(--texto-suave)">IVA de las ventas</div>
           </div>
         </div>

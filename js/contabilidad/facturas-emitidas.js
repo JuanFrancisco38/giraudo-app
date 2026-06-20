@@ -210,21 +210,26 @@ async function cargarFacturasEmitidas() {
 
   if (!emitidas.length) {
     tbody.innerHTML = '<tr><td colspan="18"><div class="empty-state"><div class="icon">🧾</div><h3>Sin facturas emitidas</h3><p>Subí un PDF o foto de la factura</p></div></td></tr>';
-    document.getElementById('fe-total-facturado').textContent = fmtMonto(0, 'ARS');
-    document.getElementById('fe-total-iva').textContent = fmtMonto(0, 'ARS');
-    document.getElementById('fe-cant').textContent = '0 ítems';
+    ['fe-total-facturado','fe-total-cobrado','fe-total-pendiente','fe-total-iva'].forEach(id => document.getElementById(id).textContent = fmtMonto(0, 'ARS'));
+    ['fe-cant','fe-cant-cobrado','fe-cant-pendiente'].forEach(id => document.getElementById(id).textContent = '0 ítems');
     return;
   }
 
-  const tot = { fact: 0, iva: 0 };
+  const tot = { fact: 0, iva: 0, cobrado: 0, cobradoCant: 0, pendiente: 0, pendienteCant: 0 };
   emitidas.forEach(r => {
     const e = JSON.parse(r.observaciones || '{}');
     tot.fact += r.monto || 0;
     tot.iva += e.iva || 0;
+    if (e.cobro === 'Cobrada') { tot.cobrado += r.monto || 0; tot.cobradoCant++; }
+    else { tot.pendiente += r.monto || 0; tot.pendienteCant++; }
   });
   document.getElementById('fe-total-facturado').textContent = fmtMonto(tot.fact, 'ARS');
   document.getElementById('fe-total-iva').textContent = fmtMonto(tot.iva, 'ARS');
+  document.getElementById('fe-total-cobrado').textContent = fmtMonto(tot.cobrado, 'ARS');
+  document.getElementById('fe-total-pendiente').textContent = fmtMonto(tot.pendiente, 'ARS');
   document.getElementById('fe-cant').textContent = emitidas.length + ' ítem' + (emitidas.length !== 1 ? 's' : '');
+  document.getElementById('fe-cant-cobrado').textContent = tot.cobradoCant + ' ítem' + (tot.cobradoCant !== 1 ? 's' : '');
+  document.getElementById('fe-cant-pendiente').textContent = tot.pendienteCant + ' ítem' + (tot.pendienteCant !== 1 ? 's' : '');
 
   tbody.innerHTML = emitidas.map(r => {
     const e = JSON.parse(r.observaciones || '{}');
@@ -283,7 +288,25 @@ async function toggleCobroFemit(id, btn) {
       btn.classList.toggle('badge-green', nuevo === 'Cobrada');
       btn.classList.toggle('badge-tierra', nuevo === 'Pendiente');
     }
+    actualizarResumenCobroFemit();
   } else toast('❌ No se pudo cambiar', 'var(--rojo)');
+}
+
+async function actualizarResumenCobroFemit() {
+  const rows = await sb('GET', 'boletas', '', '?order=fecha.desc');
+  const emitidas = (rows || []).filter(r => {
+    try { return JSON.parse(r.observaciones || '{}').tipo_factura === 'emitida'; } catch(e) { return false; }
+  });
+  const t = { cobrado: 0, cobradoCant: 0, pendiente: 0, pendienteCant: 0 };
+  emitidas.forEach(r => {
+    const e = JSON.parse(r.observaciones || '{}');
+    if (e.cobro === 'Cobrada') { t.cobrado += r.monto || 0; t.cobradoCant++; }
+    else { t.pendiente += r.monto || 0; t.pendienteCant++; }
+  });
+  document.getElementById('fe-total-cobrado').textContent = fmtMonto(t.cobrado, 'ARS');
+  document.getElementById('fe-cant-cobrado').textContent = t.cobradoCant + ' ítem' + (t.cobradoCant !== 1 ? 's' : '');
+  document.getElementById('fe-total-pendiente').textContent = fmtMonto(t.pendiente, 'ARS');
+  document.getElementById('fe-cant-pendiente').textContent = t.pendienteCant + ' ítem' + (t.pendienteCant !== 1 ? 's' : '');
 }
 
 async function borrarFacturaEmitida(id) {
