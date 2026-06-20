@@ -1,4 +1,4 @@
-const RUBROS_BOLETA = ['Agroquímicos','Semillas','Arrendamientos','Combustibles y Lubricantes','Repuestos','Insumos Varios','Servicios Profesionales','Servicios Rurales','Servicios Energéticos','Ponedoras','Insumos Veterinarios','Inmuebles','Reparaciones'];
+const RUBROS_BOLETA = ['Agroquímicos','Semillas','Fertilizantes','Arrendamientos Rurales','Combustibles y Lubricantes','Fletes','Gastos de Comercialización','Insumos Varios','Inversiones Inmobiliarias','Inversiones Mobiliarias','Reparaciones','Repuestos','Seguros','Servicios Profesionales','Servicios Rurales','Servicios Varios','Ponedoras','Servicios de Acondicionamiento de Granos','Insumos Balanceado','Insumos Veterinarios','Servicios Energéticos'];
 
 let bolItemSeq = 0;
 let bolArchivoActual = null;
