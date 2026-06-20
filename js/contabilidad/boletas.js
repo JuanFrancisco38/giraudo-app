@@ -232,6 +232,8 @@ async function cargarBoletas() {
     document.getElementById('cant-firma-sh').textContent = '0 boletas';
     ['bol-total-pagado','bol-total-adeudado'].forEach(id => document.getElementById(id).textContent = fmtMonto(0, 'ARS'));
     ['bol-cant-pagado','bol-cant-adeudado'].forEach(id => document.getElementById(id).textContent = '0 ítems');
+    const cr = document.getElementById('bol-resumen-rubro');
+    if (cr) cr.innerHTML = '<p style="font-size:13px;color:var(--texto-suave)">Sin datos.</p>';
     return;
   }
 
@@ -250,6 +252,32 @@ async function cargarBoletas() {
   document.getElementById('bol-cant-pagado').textContent = pago.pagadoCant + ' ítem' + (pago.pagadoCant !== 1 ? 's' : '');
   document.getElementById('bol-total-adeudado').textContent = fmtMonto(pago.adeudado, 'ARS');
   document.getElementById('bol-cant-adeudado').textContent = pago.adeudadoCant + ' ítem' + (pago.adeudadoCant !== 1 ? 's' : '');
+
+  const porRubro = {};
+  rows.forEach(r => {
+    const rub = r.categoria || 'Sin rubro';
+    if (!porRubro[rub]) porRubro[rub] = { total: 0, cant: 0 };
+    porRubro[rub].total += r.monto || 0;
+    porRubro[rub].cant++;
+  });
+  const totalGeneral = Object.values(porRubro).reduce((a, v) => a + v.total, 0);
+  const cont = document.getElementById('bol-resumen-rubro');
+  if (cont) {
+    const filas = Object.entries(porRubro).sort((a, b) => b[1].total - a[1].total).map(([rub, v]) => {
+      const pct = totalGeneral ? Math.round(v.total / totalGeneral * 100) : 0;
+      return `<tr>
+        <td><span class="badge badge-gray">${rub}</span></td>
+        <td style="text-align:right">${v.cant}</td>
+        <td style="text-align:right"><strong>${fmtMonto(v.total, 'ARS')}</strong></td>
+        <td style="text-align:right;color:var(--texto-suave)">${pct}%</td>
+      </tr>`;
+    }).join('');
+    cont.innerHTML = `<table style="width:100%;font-size:13px">
+      <thead><tr><th style="text-align:left">Rubro</th><th style="text-align:right">Ítems</th><th style="text-align:right">Total</th><th style="text-align:right">%</th></tr></thead>
+      <tbody>${filas}</tbody>
+      <tfoot><tr style="border-top:2px solid var(--gris-borde)"><td><strong>Total</strong></td><td style="text-align:right"><strong>${rows.length}</strong></td><td style="text-align:right"><strong>${fmtMonto(totalGeneral, 'ARS')}</strong></td><td></td></tr></tfoot>
+    </table>`;
+  }
   const linea = k => {
     const partes = [];
     if (acc[k].ARS) partes.push(fmtMonto(acc[k].ARS, 'ARS'));
