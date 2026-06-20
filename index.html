@@ -957,11 +957,14 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
       <div class="card">
         <div class="card-header">
           <h3>🧾 Boletas recibidas — Carga con IA</h3>
-          <div style="display:flex;gap:8px">
-            <select id="bol-filtro-firma" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="filtrarBoletas()">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <select id="bol-filtro-firma" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="renderBoletas()">
               <option value="">Todas las firmas</option>
               <option value="Francisco J. Giraudo">Francisco J. Giraudo</option>
               <option value="Giraudo SH">Giraudo SH</option>
+            </select>
+            <select id="bol-filtro-campania" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="renderBoletas()">
+              <option value="">Todas las campañas</option>
             </select>
             <button class="btn btn-primary" onclick="abrirFormBoleta()">+ Cargar boleta</button>
           </div>

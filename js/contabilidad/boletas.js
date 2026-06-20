@@ -218,14 +218,37 @@ async function guardarBoleta() {
   } else toast('❌ Error al guardar', 'var(--rojo)');
 }
 
+let boletasTodas = [];
+
 async function cargarBoletas() {
   const todas = await sb('GET', 'boletas', '', '?order=fecha.desc');
-  const rows = (todas || []).filter(r => {
+  boletasTodas = (todas || []).filter(r => {
     try { const t = JSON.parse(r.observaciones || '{}').tipo_factura; return !t || t === 'recibida'; } catch(e) { return true; }
+  });
+
+  // Poblar filtro de campañas conservando la selección actual
+  const selCamp = document.getElementById('bol-filtro-campania');
+  if (selCamp) {
+    const actual = selCamp.value;
+    const camps = [...new Set(boletasTodas.map(r => { try { return JSON.parse(r.observaciones || '{}').campania; } catch(e) { return ''; } }).filter(c => c))].sort();
+    selCamp.innerHTML = '<option value="">Todas las campañas</option>' + camps.map(c => `<option${c === actual ? ' selected' : ''}>${c}</option>`).join('');
+  }
+  renderBoletas();
+}
+
+function renderBoletas() {
+  const fFirma = document.getElementById('bol-filtro-firma')?.value || '';
+  const fCamp = document.getElementById('bol-filtro-campania')?.value || '';
+  const rows = boletasTodas.filter(r => {
+    let e = {}; try { e = JSON.parse(r.observaciones || '{}'); } catch(err) {}
+    if (fFirma && e.firma !== fFirma) return false;
+    if (fCamp && (e.campania || '') !== fCamp) return false;
+    return true;
   });
   const tbody = document.getElementById('tabla-boletas');
   if (!rows || !rows.length) {
-    tbody.innerHTML = '<tr><td colspan="18"><div class="empty-state"><div class="icon">🧾</div><h3>Sin boletas cargadas</h3><p>Subí una foto o PDF de la boleta</p></div></td></tr>';
+    const hayFiltro = (document.getElementById('bol-filtro-firma')?.value || '') || (document.getElementById('bol-filtro-campania')?.value || '');
+    tbody.innerHTML = `<tr><td colspan="18"><div class="empty-state"><div class="icon">🧾</div><h3>${hayFiltro ? 'Sin resultados para el filtro' : 'Sin boletas cargadas'}</h3><p>${hayFiltro ? 'Probá con otra firma o campaña' : 'Subí una foto o PDF de la boleta'}</p></div></td></tr>`;
     document.getElementById('total-firma-fj').textContent = fmtMonto(0, 'ARS');
     document.getElementById('total-firma-sh').textContent = fmtMonto(0, 'ARS');
     document.getElementById('cant-firma-fj').textContent = '0 boletas';
@@ -330,7 +353,11 @@ async function patchObsBoleta(id, cambios) {
 
 async function editarDestinoBoleta(id, valor) {
   const ok = await patchObsBoleta(id, { destino: valor });
-  if (ok) toast('✅ Destino guardado'); else toast('❌ No se pudo guardar', 'var(--rojo)');
+  if (ok) {
+    const row = boletasTodas.find(b => b.id === id);
+    if (row) { const obs = JSON.parse(row.observaciones || '{}'); obs.destino = valor; row.observaciones = JSON.stringify(obs); }
+    toast('✅ Destino guardado');
+  } else toast('❌ No se pudo guardar', 'var(--rojo)');
 }
 
 async function togglePagoBoleta(id, btn) {
@@ -346,25 +373,11 @@ async function togglePagoBoleta(id, btn) {
       btn.classList.toggle('badge-green', nuevo === 'Paga');
       btn.classList.toggle('badge-tierra', nuevo === 'Impaga');
     }
-    actualizarResumenPagoBoletas();
+    // Actualizar en memoria y refrescar tarjetas/resumen respetando filtros
+    const row = boletasTodas.find(b => b.id === id);
+    if (row) { const obs = JSON.parse(row.observaciones || '{}'); obs.pago = nuevo; row.observaciones = JSON.stringify(obs); }
+    renderBoletas();
   } else toast('❌ No se pudo cambiar', 'var(--rojo)');
-}
-
-async function actualizarResumenPagoBoletas() {
-  const todas = await sb('GET', 'boletas', '', '?order=fecha.desc');
-  const rows = (todas || []).filter(r => {
-    try { const t = JSON.parse(r.observaciones || '{}').tipo_factura; return !t || t === 'recibida'; } catch(e) { return true; }
-  });
-  const p = { pagado: 0, pagadoCant: 0, adeudado: 0, adeudadoCant: 0 };
-  rows.forEach(r => {
-    const e = r.observaciones ? JSON.parse(r.observaciones) : {};
-    if (e.pago === 'Paga') { p.pagado += r.monto || 0; p.pagadoCant++; }
-    else { p.adeudado += r.monto || 0; p.adeudadoCant++; }
-  });
-  document.getElementById('bol-total-pagado').textContent = fmtMonto(p.pagado, 'ARS');
-  document.getElementById('bol-cant-pagado').textContent = p.pagadoCant + ' ítem' + (p.pagadoCant !== 1 ? 's' : '');
-  document.getElementById('bol-total-adeudado').textContent = fmtMonto(p.adeudado, 'ARS');
-  document.getElementById('bol-cant-adeudado').textContent = p.adeudadoCant + ' ítem' + (p.adeudadoCant !== 1 ? 's' : '');
 }
 
 async function borrarBoleta(id) {
