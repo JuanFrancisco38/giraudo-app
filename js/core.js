@@ -70,13 +70,15 @@ async function sb(method, table, data=null, query='') {
       'Content-Type': 'application/json',
       'apikey': SUPABASE_KEY,
       'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Prefer': method === 'POST' ? 'return=representation' : ''
+      'Prefer': (method === 'POST' || method === 'PATCH') ? 'return=representation' : ''
     }
   };
   if (data) opts.body = JSON.stringify(data);
   const r = await fetch(url, opts);
   if (!r.ok) { console.error(await r.text()); return null; }
-  return method === 'DELETE' ? null : r.json();
+  if (method === 'DELETE') return null;
+  const text = await r.text();
+  return text ? JSON.parse(text) : [];
 }
 
 function showSection(id, el) {
