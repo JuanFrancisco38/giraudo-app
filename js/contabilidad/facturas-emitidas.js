@@ -314,7 +314,7 @@ function renderFacturasEmitidas() {
       <td style="font-size:11px">${pctIva}</td>
       <td>${fmtMonto(e.iva, 'ARS')}</td>
       <td><strong>${fmtMonto(r.monto, 'ARS')}</strong></td>
-      <td style="font-size:11px">${e.campania || '—'}</td>
+      <td><input type="text" value="${(e.campania||'').replace(/"/g,'&quot;')}" placeholder="—" list="campanias-list" onchange="editarCampaniaFemit('${r.id}', this.value)" style="width:80px;font-size:12px;padding:3px 5px;border:1px solid var(--gris-borde);border-radius:4px"></td>
       <td>${cobroBadge}</td>
       <td style="white-space:nowrap">${r.archivo_url ? `<a class="btn btn-secondary" style="padding:4px 8px;font-size:12px;text-decoration:none" href="${r.archivo_url}" target="_blank" rel="noopener" title="Ver documento">👁️</a> ` : ''}<button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarFacturaEmitida('${r.id}')">🗑️</button></td>
     </tr>`;
@@ -336,6 +336,22 @@ async function editarDestinoFemit(id, valor) {
     const row = femitTodas.find(b => b.id === id);
     if (row) { const obs = JSON.parse(row.observaciones || '{}'); obs.destino = valor; row.observaciones = JSON.stringify(obs); }
     toast('✅ Destino guardado');
+  } else toast('❌ No se pudo guardar', 'var(--rojo)');
+}
+
+async function editarCampaniaFemit(id, valor) {
+  const ok = await patchObsFemit(id, { campania: valor });
+  if (ok) {
+    const row = femitTodas.find(b => b.id === id);
+    if (row) { const obs = JSON.parse(row.observaciones || '{}'); obs.campania = valor; row.observaciones = JSON.stringify(obs); }
+    const selCamp = document.getElementById('fe-filtro-campania');
+    if (selCamp) {
+      const actual = selCamp.value;
+      const camps = [...new Set(femitTodas.map(b => { try { return JSON.parse(b.observaciones || '{}').campania; } catch(e) { return ''; } }).filter(c => c))].sort();
+      selCamp.innerHTML = '<option value="">Todas las campañas</option>' + camps.map(c => `<option${c === actual ? ' selected' : ''}>${c}</option>`).join('');
+    }
+    toast('✅ Campaña guardada');
+    renderFacturasEmitidas();
   } else toast('❌ No se pudo guardar', 'var(--rojo)');
 }
 
