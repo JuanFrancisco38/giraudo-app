@@ -1,9 +1,12 @@
 // Los datos del grano se guardan como JSON dentro de 'descripcion'
 // para no requerir columnas nuevas en la tabla certificaciones.
 
+let certArchivoActual = null;
+
 async function procesarCertDoc(input) {
   const file = input.files[0];
   if (!file) return;
+  certArchivoActual = file;
   const status = document.getElementById('cert-doc-status');
   status.textContent = `📄 Leyendo ${file.name}...`;
   try {
@@ -55,9 +58,20 @@ async function guardarCertificacion() {
       return;
     }
   }
+  if (certArchivoActual) {
+    toast('⏳ Subiendo documento...');
+    const url = await subirArchivo(certArchivoActual);
+    if (url) { extra.archivo_url = url; data.descripcion = JSON.stringify(extra); }
+    else toast('⚠️ No se pudo subir el documento (se guarda igual)', 'var(--tierra)');
+  }
   const r = await sb('POST', 'certificaciones', data);
-  if (r) { toast('✅ Certificación registrada'); toggleForm('form-cert'); cargarCertificaciones(); }
-  else toast('❌ Error', 'var(--rojo)');
+  if (r) {
+    toast('✅ Certificación registrada');
+    toggleForm('form-cert');
+    document.getElementById('cert-archivo').value = '';
+    certArchivoActual = null;
+    cargarCertificaciones();
+  } else toast('❌ Error', 'var(--rojo)');
 }
 
 function parseCert(c) {
@@ -86,7 +100,7 @@ async function cargarCertificaciones() {
       <td>${c.merma ? fmtKg(c.merma) : '—'}</td>
       <td><strong>${c.kg_neto ? fmtKg(c.kg_neto) : '—'}</strong></td>
       <td>${c.depositario || '—'}</td>
-      <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarCertificacion('${row.id}')">🗑️</button></td>
+      <td style="white-space:nowrap">${c.archivo_url ? `<a class="btn btn-secondary" style="padding:4px 8px;font-size:12px;text-decoration:none" href="${c.archivo_url}" target="_blank" rel="noopener" title="Ver documento">👁️</a> ` : ''}<button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarCertificacion('${row.id}')">🗑️</button></td>
     </tr>`;
   }).join('');
 }

@@ -1,6 +1,9 @@
+let lgArchivoActual = null;
+
 async function procesarLiqGranoDoc(input) {
   const file = input.files[0];
   if (!file) return;
+  lgArchivoActual = file;
   const status = document.getElementById('lg-doc-status');
   status.textContent = `📄 Leyendo ${file.name}...`;
   try {
@@ -71,9 +74,20 @@ async function guardarLiqGrano() {
       }
     }
   }
+  if (lgArchivoActual) {
+    toast('⏳ Subiendo documento...');
+    const url = await subirArchivo(lgArchivoActual);
+    if (url) data.archivo_url = url;
+    else toast('⚠️ No se pudo subir el documento (se guarda igual)', 'var(--tierra)');
+  }
   const r = await sb('POST', 'liquidaciones_granos', data);
-  if (r) { toast('✅ Liquidación registrada'); toggleForm('form-liqgr'); cargarLiqGranos(); cargarResumenGranos(); }
-  else toast('❌ Error', 'var(--rojo)');
+  if (r) {
+    toast('✅ Liquidación registrada');
+    toggleForm('form-liqgr');
+    document.getElementById('lg-archivo').value = '';
+    lgArchivoActual = null;
+    cargarLiqGranos(); cargarResumenGranos();
+  } else toast('❌ Error', 'var(--rojo)');
 }
 
 async function cargarLiqGranos() {
@@ -95,7 +109,7 @@ async function cargarLiqGranos() {
       <td>${l.ret_iva ? fmtMonto(l.ret_iva, 'ARS') : '—'}</td>
       <td>${l.flete ? fmtMonto(l.flete, 'ARS') : '—'}</td>
       <td><strong>${l.total_neto ? fmtMonto(l.total_neto, 'ARS') : '—'}</strong></td>
-      <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarLiqGrano('${l.id}')">🗑️</button></td>
+      <td style="white-space:nowrap">${l.archivo_url ? `<a class="btn btn-secondary" style="padding:4px 8px;font-size:12px;text-decoration:none" href="${l.archivo_url}" target="_blank" rel="noopener" title="Ver documento">👁️</a> ` : ''}<button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarLiqGrano('${l.id}')">🗑️</button></td>
     </tr>`).join('');
 }
 
