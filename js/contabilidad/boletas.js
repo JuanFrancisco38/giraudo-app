@@ -247,8 +247,8 @@ async function cargarBoletas() {
     const firmaCorta = e.firma === 'Francisco J. Giraudo' ? 'FJG' : (e.firma === 'Giraudo SH' ? 'SH' : (e.firma || '—'));
     const pctIva = (e.pct_iva === 0 || e.pct_iva === '0') ? 'Exento' : (fmtNum(e.pct_iva, (Number(e.pct_iva) % 1) ? 1 : 0) + '%');
     const pagoBadge = e.pago === 'Paga'
-      ? '<span class="badge badge-green">Paga</span>'
-      : '<span class="badge badge-tierra">Impaga</span>';
+      ? `<button class="badge badge-green" style="border:none;cursor:pointer" onclick="togglePagoBoleta('${r.id}')">Paga</button>`
+      : `<button class="badge badge-tierra" style="border:none;cursor:pointer" onclick="togglePagoBoleta('${r.id}')">Impaga</button>`;
     const cant = e.cantidad ? `${fmtNum(e.cantidad)} ${e.unidad || ''}`.trim() : '—';
     return `<tr>
       <td>${fmtFecha(r.fecha)}</td>
@@ -259,7 +259,7 @@ async function cargarBoletas() {
       <td style="font-size:12px">${r.concepto || '—'}</td>
       <td style="font-size:12px">${cant}</td>
       <td style="font-size:12px">${e.costo_unitario ? fmtMonto(e.costo_unitario, mc) : '—'}</td>
-      <td style="font-size:12px">${e.destino || '—'}</td>
+      <td><input type="text" value="${(e.destino||'').replace(/"/g,'&quot;')}" placeholder="—" onchange="editarDestinoBoleta('${r.id}', this.value)" style="width:120px;font-size:12px;padding:3px 5px;border:1px solid var(--gris-borde);border-radius:4px"></td>
       <td style="font-size:11px;color:var(--texto-suave)">${fmtFecha(e.vencimiento)}</td>
       <td style="font-size:11px">${e.tipo_cambio ? fmtNum(e.tipo_cambio, 2) : '—'}</td>
       <td>${fmtMonto(e.subtotal, 'ARS')}</td>
@@ -271,6 +271,29 @@ async function cargarBoletas() {
       <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarBoleta('${r.id}')">🗑️</button></td>
     </tr>`;
   }).join('');
+}
+
+async function patchObsBoleta(id, cambios) {
+  const r = await sb('GET', 'boletas', null, `?id=eq.${id}&select=observaciones`);
+  if (!r || !r[0]) return false;
+  const e = JSON.parse(r[0].observaciones || '{}');
+  Object.assign(e, cambios);
+  const res = await sb('PATCH', 'boletas', { observaciones: JSON.stringify(e) }, `?id=eq.${id}`);
+  return res !== null;
+}
+
+async function editarDestinoBoleta(id, valor) {
+  const ok = await patchObsBoleta(id, { destino: valor });
+  if (ok) toast('✅ Destino guardado'); else toast('❌ No se pudo guardar', 'var(--rojo)');
+}
+
+async function togglePagoBoleta(id) {
+  const r = await sb('GET', 'boletas', null, `?id=eq.${id}&select=observaciones`);
+  if (!r || !r[0]) return;
+  const e = JSON.parse(r[0].observaciones || '{}');
+  const nuevo = e.pago === 'Paga' ? 'Impaga' : 'Paga';
+  const ok = await patchObsBoleta(id, { pago: nuevo });
+  if (ok) { toast(`✅ Marcada como ${nuevo}`); cargarBoletas(); } else toast('❌ No se pudo cambiar', 'var(--rojo)');
 }
 
 async function borrarBoleta(id) {
