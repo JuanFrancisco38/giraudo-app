@@ -246,9 +246,7 @@ async function cargarBoletas() {
     const mc = e.moneda_costo || 'ARS';
     const firmaCorta = e.firma === 'Francisco J. Giraudo' ? 'FJG' : (e.firma === 'Giraudo SH' ? 'SH' : (e.firma || '—'));
     const pctIva = (e.pct_iva === 0 || e.pct_iva === '0') ? 'Exento' : (fmtNum(e.pct_iva, (Number(e.pct_iva) % 1) ? 1 : 0) + '%');
-    const pagoBadge = e.pago === 'Paga'
-      ? `<button class="badge badge-green" style="border:none;cursor:pointer" onclick="togglePagoBoleta('${r.id}')">Paga</button>`
-      : `<button class="badge badge-tierra" style="border:none;cursor:pointer" onclick="togglePagoBoleta('${r.id}')">Impaga</button>`;
+    const pagoBadge = `<button class="badge ${e.pago === 'Paga' ? 'badge-green' : 'badge-tierra'}" style="border:none;cursor:pointer" onclick="togglePagoBoleta('${r.id}', this)">${e.pago === 'Paga' ? 'Paga' : 'Impaga'}</button>`;
     const cant = e.cantidad ? `${fmtNum(e.cantidad)} ${e.unidad || ''}`.trim() : '—';
     return `<tr>
       <td>${fmtFecha(r.fecha)}</td>
@@ -287,13 +285,20 @@ async function editarDestinoBoleta(id, valor) {
   if (ok) toast('✅ Destino guardado'); else toast('❌ No se pudo guardar', 'var(--rojo)');
 }
 
-async function togglePagoBoleta(id) {
+async function togglePagoBoleta(id, btn) {
   const r = await sb('GET', 'boletas', null, `?id=eq.${id}&select=observaciones`);
   if (!r || !r[0]) return;
   const e = JSON.parse(r[0].observaciones || '{}');
   const nuevo = e.pago === 'Paga' ? 'Impaga' : 'Paga';
   const ok = await patchObsBoleta(id, { pago: nuevo });
-  if (ok) { toast(`✅ Marcada como ${nuevo}`); cargarBoletas(); } else toast('❌ No se pudo cambiar', 'var(--rojo)');
+  if (ok) {
+    toast(`✅ Marcada como ${nuevo}`);
+    if (btn) {
+      btn.textContent = nuevo;
+      btn.classList.toggle('badge-green', nuevo === 'Paga');
+      btn.classList.toggle('badge-tierra', nuevo === 'Impaga');
+    }
+  } else toast('❌ No se pudo cambiar', 'var(--rojo)');
 }
 
 async function borrarBoleta(id) {
