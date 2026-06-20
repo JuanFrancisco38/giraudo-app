@@ -1,6 +1,7 @@
 const CONCEPTOS_FEMIT = ['Venta de granos','Venta de hacienda','Servicios','Arrendamiento','Otro'];
 
 let feItemSeq = 0;
+let feArchivoActual = null;
 
 function abrirFormFemit() {
   const form = document.getElementById('form-femit');
@@ -77,6 +78,7 @@ function leerItemsFemit() {
 async function procesarFacturaEmitida(input) {
   const file = input.files[0];
   if (!file) return;
+  feArchivoActual = file;
   const status = document.getElementById('fe-doc-status');
   const result = document.getElementById('fe-result');
   status.textContent = `📄 Leyendo ${file.name}...`;
@@ -156,6 +158,13 @@ async function guardarFacturaEmitida() {
     campo: document.getElementById('fe-campo').value
   };
 
+  let archivoUrl = null;
+  if (feArchivoActual) {
+    toast('⏳ Subiendo documento...');
+    archivoUrl = await subirArchivo(feArchivoActual);
+    if (!archivoUrl) toast('⚠️ No se pudo subir el documento (se guarda igual)', 'var(--tierra)');
+  }
+
   let ok = 0;
   for (const it of items) {
     const data = {
@@ -165,6 +174,7 @@ async function guardarFacturaEmitida() {
       campo: cab.campo,
       monto: it.total,
       categoria: it.concepto,
+      archivo_url: archivoUrl,
       observaciones: JSON.stringify({
         tipo_factura: 'emitida',
         firma: cab.firma,
@@ -194,6 +204,7 @@ async function guardarFacturaEmitida() {
     document.getElementById('fe-result').style.display = 'none';
     document.getElementById('fe-doc-status').textContent = '';
     document.getElementById('fe-archivo').value = '';
+    feArchivoActual = null;
     ['fe-num','fe-cliente','fe-cuit','fe-tc','fe-campania'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('fe-items').innerHTML = '';
     cargarFacturasEmitidas();
@@ -256,7 +267,7 @@ async function cargarFacturasEmitidas() {
       <td><strong>${fmtMonto(r.monto, 'ARS')}</strong></td>
       <td style="font-size:11px">${e.campania || '—'}</td>
       <td>${cobroBadge}</td>
-      <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarFacturaEmitida('${r.id}')">🗑️</button></td>
+      <td style="white-space:nowrap">${r.archivo_url ? `<a class="btn btn-secondary" style="padding:4px 8px;font-size:12px;text-decoration:none" href="${r.archivo_url}" target="_blank" rel="noopener" title="Ver documento">👁️</a> ` : ''}<button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarFacturaEmitida('${r.id}')">🗑️</button></td>
     </tr>`;
   }).join('');
 }

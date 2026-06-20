@@ -81,6 +81,24 @@ async function sb(method, table, data=null, query='') {
   return text ? JSON.parse(text) : [];
 }
 
+async function subirArchivo(file) {
+  if (!file) return null;
+  const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
+  const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const r = await fetch(`${SUPABASE_URL}/storage/v1/object/documentos/${path}`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': file.type || 'application/octet-stream',
+      'x-upsert': 'true'
+    },
+    body: file
+  });
+  if (!r.ok) { console.error('Storage:', await r.text()); return null; }
+  return `${SUPABASE_URL}/storage/v1/object/public/documentos/${path}`;
+}
+
 function showSection(id, el) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));

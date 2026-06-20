@@ -1,6 +1,7 @@
 const RUBROS_BOLETA = ['Agroquímicos','Semillas','Arrendamientos','Combustibles y Lubricantes','Repuestos','Insumos Varios','Servicios Profesionales','Servicios Rurales','Servicios Energéticos','Ponedoras','Insumos Veterinarios','Inmuebles','Reparaciones'];
 
 let bolItemSeq = 0;
+let bolArchivoActual = null;
 
 function abrirFormBoleta() {
   const form = document.getElementById('form-boleta');
@@ -77,6 +78,7 @@ function leerItemsBoleta() {
 async function procesarBoleta(input) {
   const file = input.files[0];
   if (!file) return;
+  bolArchivoActual = file;
   const preview = document.getElementById('bol-preview');
   const status = document.getElementById('bol-status');
   const result = document.getElementById('bol-result');
@@ -163,6 +165,13 @@ async function guardarBoleta() {
     campo: document.getElementById('bol-campo').value
   };
 
+  let archivoUrl = null;
+  if (bolArchivoActual) {
+    toast('⏳ Subiendo documento...');
+    archivoUrl = await subirArchivo(bolArchivoActual);
+    if (!archivoUrl) toast('⚠️ No se pudo subir el documento (se guarda igual)', 'var(--tierra)');
+  }
+
   let ok = 0;
   for (const it of items) {
     const data = {
@@ -172,6 +181,7 @@ async function guardarBoleta() {
       campo: cab.campo,
       monto: it.total,
       categoria: it.rubro,
+      archivo_url: archivoUrl,
       observaciones: JSON.stringify({
         tipo_factura: 'recibida',
         firma: cab.firma,
@@ -201,6 +211,7 @@ async function guardarBoleta() {
     document.getElementById('bol-result').style.display = 'none';
     document.getElementById('bol-preview').style.display = 'none';
     document.getElementById('bol-archivo').value = '';
+    bolArchivoActual = null;
     ['bol-num','bol-prov','bol-cuit','bol-tc','bol-campania'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('bol-items').innerHTML = '';
     cargarBoletas();
@@ -275,7 +286,7 @@ async function cargarBoletas() {
       <td><strong>${fmtMonto(r.monto, 'ARS')}</strong></td>
       <td style="font-size:11px">${e.campania || '—'}</td>
       <td>${pagoBadge}</td>
-      <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarBoleta('${r.id}')">🗑️</button></td>
+      <td style="white-space:nowrap">${r.archivo_url ? `<a class="btn btn-secondary" style="padding:4px 8px;font-size:12px;text-decoration:none" href="${r.archivo_url}" target="_blank" rel="noopener" title="Ver documento">👁️</a> ` : ''}<button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarBoleta('${r.id}')">🗑️</button></td>
     </tr>`;
   }).join('');
 }
