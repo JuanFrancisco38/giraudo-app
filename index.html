@@ -38,7 +38,12 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--gris);color:va
 .sidebar-logo{padding:20px 16px 16px;border-bottom:1px solid rgba(255,255,255,0.15)}
 .sidebar-logo h1{font-size:16px;font-weight:700;letter-spacing:0.5px}
 .sidebar-logo p{font-size:11px;opacity:0.7;margin-top:2px}
-.sidebar-section{padding:12px 8px 4px 16px;font-size:10px;text-transform:uppercase;letter-spacing:1px;opacity:0.5;font-weight:600}
+.sidebar-section{padding:12px 16px 6px 16px;font-size:10px;text-transform:uppercase;letter-spacing:1px;opacity:0.5;font-weight:600;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.sidebar-section:hover{opacity:0.8}
+.sidebar-section .nav-chevron{font-size:10px;transition:transform 0.2s}
+.sidebar-section.collapsed .nav-chevron{transform:rotate(-90deg)}
+.sidebar-group{overflow:hidden;transition:max-height 0.25s ease}
+.sidebar-group.collapsed{max-height:0 !important}
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:13px;cursor:pointer;border-radius:6px;margin:1px 8px;transition:background 0.15s;opacity:0.85}
 .nav-item:hover{background:rgba(255,255,255,0.15);opacity:1}
 .nav-item.active{background:rgba(255,255,255,0.2);opacity:1;font-weight:600}
@@ -149,46 +154,54 @@ tr:hover td{background:var(--gris)}
     <h1>🌾 Grupo Giraudo</h1>
     <p>Sistema de gestión agropecuaria</p>
   </div>
-  <div class="sidebar-section">Principal</div>
-  <div class="nav-item active" onclick="showSection('dashboard',this)">📊 Dashboard</div>
-  <div class="nav-item" onclick="showSection('ia',this)">🤖 Consultas IA</div>
+  <div class="sidebar-section" onclick="toggleNav(this)">Principal <span class="nav-chevron">▾</span></div>
+  <div class="sidebar-group">
+    <div class="nav-item active" onclick="showSection('dashboard',this)">📊 Dashboard</div>
+    <div class="nav-item" onclick="showSection('ia',this)">🤖 Consultas IA</div>
+  </div>
 
-  <div class="sidebar-section">Carga de trabajos</div>
-  <div class="nav-item" onclick="showSection('trabajos_agri',this)">🌾 Trabajos lotes</div>
-  <div class="nav-item" onclick="showSection('eventos',this)">💉 Trabajos manga</div>
-  <div class="nav-item" onclick="showSection('mantenimiento',this)">🔧 Mantenimiento maquinarias</div>
-  <div class="nav-item" onclick="showSection('importar',this)">📥 Importar jornada (IA)</div>
+  <div class="sidebar-section" onclick="toggleNav(this)">Carga de trabajos <span class="nav-chevron">▾</span></div>
+  <div class="sidebar-group">
+    <div class="nav-item" onclick="showSection('trabajos_agri',this)">🌾 Trabajos lotes</div>
+    <div class="nav-item" onclick="showSection('eventos',this)">💉 Trabajos manga</div>
+    <div class="nav-item" onclick="showSection('mantenimiento',this)">🔧 Mantenimiento maquinarias</div>
+    <div class="nav-item" onclick="showSection('importar',this)">📥 Importar jornada (IA)</div>
+  </div>
 
-  <div class="sidebar-section">Carga de documentos</div>
-  <div class="nav-item" onclick="showSection('boletas',this)">🧾 Facturas recibidas</div>
-  <div class="nav-item" onclick="showSection('facturas_emitidas',this)">🧾 Facturas emitidas</div>
-  <div class="nav-item" onclick="showSection('notas_credito',this)">📝 Notas crédito</div>
-  <div class="nav-item" onclick="showSection('notas_debito',this)">📝 Notas débito</div>
-  <div class="nav-item" onclick="showSection('liq_granos',this)">📄 Liquidaciones granos</div>
-  <div class="nav-item" onclick="showSection('certificaciones',this)">📋 Certificaciones de grano</div>
-  <div class="nav-item" onclick="showSection('liq_hacienda',this)">📄 Liquidación de hacienda</div>
-  <div class="nav-item" onclick="showSection('retenciones',this)">📑 Retenciones</div>
-  <div class="nav-item" onclick="showSection('movimientos',this)">💰 Movimientos</div>
+  <div class="sidebar-section" onclick="toggleNav(this)">Carga de documentos <span class="nav-chevron">▾</span></div>
+  <div class="sidebar-group">
+    <div class="nav-item" onclick="showSection('boletas',this)">🧾 Facturas recibidas</div>
+    <div class="nav-item" onclick="showSection('facturas_emitidas',this)">🧾 Facturas emitidas</div>
+    <div class="nav-item" onclick="showSection('notas_credito',this)">📝 Notas crédito</div>
+    <div class="nav-item" onclick="showSection('notas_debito',this)">📝 Notas débito</div>
+    <div class="nav-item" onclick="showSection('liq_granos',this)">📄 Liquidaciones granos</div>
+    <div class="nav-item" onclick="showSection('certificaciones',this)">📋 Certificaciones de grano</div>
+    <div class="nav-item" onclick="showSection('liq_hacienda',this)">📄 Liquidación de hacienda</div>
+    <div class="nav-item" onclick="showSection('retenciones',this)">📑 Retenciones</div>
+    <div class="nav-item" onclick="showSection('movimientos',this)">💰 Movimientos</div>
+  </div>
 
-  <div class="sidebar-section">Ver / Analizar</div>
-  <div class="sidebar-subsection">Agricultura</div>
-  <div class="nav-item" onclick="showSection('trabajos_agri',this)">🌾 Trabajos lotes</div>
-  <div class="nav-item" onclick="showSection('lotes',this)">🗺️ Historial lotes</div>
-  <div class="nav-item" onclick="showSection('agro_dash',this)">📊 Análisis económicos</div>
-  <div class="sidebar-subsection">Ganadería</div>
-  <div class="nav-item" onclick="showSection('eventos',this)">💉 Trabajos manga</div>
-  <div class="nav-item" onclick="showSection('animales',this)">🐄 Stock</div>
-  <div class="nav-item" onclick="proximamente('Historial de madres',this)">👪 Historial madres</div>
-  <div class="nav-item" onclick="showSection('pesadas',this)">⚖️ Pesadas</div>
-  <div class="nav-item" onclick="showSection('hoteleria',this)">🏨 Hotelería</div>
-  <div class="nav-item" onclick="showSection('alimentacion',this)">🌽 Alimentación</div>
-  <div class="sidebar-subsection">Maquinaria</div>
-  <div class="nav-item" onclick="showSection('maquinaria',this)">🚜 Inventario</div>
-  <div class="nav-item" onclick="showSection('mantenimiento',this)">🔧 Mantenimientos</div>
-  <div class="nav-item" onclick="proximamente('Trabajos por maquinaria',this)">🛠️ Trabajos maquinaria</div>
-  <div class="sidebar-subsection">General</div>
-  <div class="nav-item" onclick="showSection('precios',this)">📈 Precios relativos</div>
-  <div class="nav-item" onclick="showSection('balance',this)">📊 Balance mensual</div>
+  <div class="sidebar-section" onclick="toggleNav(this)">Ver / Analizar <span class="nav-chevron">▾</span></div>
+  <div class="sidebar-group">
+    <div class="sidebar-subsection">Agricultura</div>
+    <div class="nav-item" onclick="showSection('trabajos_agri',this)">🌾 Trabajos lotes</div>
+    <div class="nav-item" onclick="showSection('lotes',this)">🗺️ Historial lotes</div>
+    <div class="nav-item" onclick="showSection('agro_dash',this)">📊 Análisis económicos</div>
+    <div class="sidebar-subsection">Ganadería</div>
+    <div class="nav-item" onclick="showSection('eventos',this)">💉 Trabajos manga</div>
+    <div class="nav-item" onclick="showSection('animales',this)">🐄 Stock</div>
+    <div class="nav-item" onclick="proximamente('Historial de madres',this)">👪 Historial madres</div>
+    <div class="nav-item" onclick="showSection('pesadas',this)">⚖️ Pesadas</div>
+    <div class="nav-item" onclick="showSection('hoteleria',this)">🏨 Hotelería</div>
+    <div class="nav-item" onclick="showSection('alimentacion',this)">🌽 Alimentación</div>
+    <div class="sidebar-subsection">Maquinaria</div>
+    <div class="nav-item" onclick="showSection('maquinaria',this)">🚜 Inventario</div>
+    <div class="nav-item" onclick="showSection('mantenimiento',this)">🔧 Mantenimientos</div>
+    <div class="nav-item" onclick="proximamente('Trabajos por maquinaria',this)">🛠️ Trabajos maquinaria</div>
+    <div class="sidebar-subsection">General</div>
+    <div class="nav-item" onclick="showSection('precios',this)">📈 Precios relativos</div>
+    <div class="nav-item" onclick="showSection('balance',this)">📊 Balance mensual</div>
+  </div>
 
   <div class="sidebar-footer">
     <div style="font-weight:600;margin-bottom:2px">Francisco Giraudo</div>

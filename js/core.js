@@ -114,6 +114,26 @@ function showSection(id, el) {
   closeSidebar();
 }
 
+function toggleNav(header) {
+  const group = header.nextElementSibling;
+  const colapsado = group.classList.toggle('collapsed');
+  header.classList.toggle('collapsed', colapsado);
+  const estados = JSON.parse(localStorage.getItem('navColapsados') || '{}');
+  estados[header.textContent.trim()] = colapsado;
+  localStorage.setItem('navColapsados', JSON.stringify(estados));
+}
+
+function restaurarNav() {
+  const estados = JSON.parse(localStorage.getItem('navColapsados') || '{}');
+  document.querySelectorAll('.sidebar-section').forEach(h => {
+    if (estados[h.textContent.trim()]) {
+      h.classList.add('collapsed');
+      if (h.nextElementSibling) h.nextElementSibling.classList.add('collapsed');
+    }
+  });
+}
+restaurarNav();
+
 function proximamente(nombre, el) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
