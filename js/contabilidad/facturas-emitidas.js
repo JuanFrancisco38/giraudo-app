@@ -211,18 +211,42 @@ async function guardarFacturaEmitida() {
   } else toast('❌ Error al guardar', 'var(--rojo)');
 }
 
+let femitTodas = [];
+
 async function cargarFacturasEmitidas() {
   const rows = await sb('GET', 'boletas', '', '?order=fecha.desc');
-  const tbody = document.getElementById('tabla-femit');
-  if (!tbody) return;
-  const emitidas = (rows || []).filter(r => {
+  femitTodas = (rows || []).filter(r => {
     try { return JSON.parse(r.observaciones || '{}').tipo_factura === 'emitida'; } catch(e) { return false; }
   });
 
+  const selCamp = document.getElementById('fe-filtro-campania');
+  if (selCamp) {
+    const actual = selCamp.value;
+    const camps = [...new Set(femitTodas.map(r => { try { return JSON.parse(r.observaciones || '{}').campania; } catch(e) { return ''; } }).filter(c => c))].sort();
+    selCamp.innerHTML = '<option value="">Todas las campañas</option>' + camps.map(c => `<option${c === actual ? ' selected' : ''}>${c}</option>`).join('');
+  }
+  renderFacturasEmitidas();
+}
+
+function renderFacturasEmitidas() {
+  const tbody = document.getElementById('tabla-femit');
+  if (!tbody) return;
+  const fFirma = document.getElementById('fe-filtro-firma')?.value || '';
+  const fCamp = document.getElementById('fe-filtro-campania')?.value || '';
+  const emitidas = femitTodas.filter(r => {
+    let e = {}; try { e = JSON.parse(r.observaciones || '{}'); } catch(err) {}
+    if (fFirma && e.firma !== fFirma) return false;
+    if (fCamp && (e.campania || '') !== fCamp) return false;
+    return true;
+  });
+
   if (!emitidas.length) {
-    tbody.innerHTML = '<tr><td colspan="18"><div class="empty-state"><div class="icon">🧾</div><h3>Sin facturas emitidas</h3><p>Subí un PDF o foto de la factura</p></div></td></tr>';
+    const hayFiltro = fFirma || fCamp;
+    tbody.innerHTML = `<tr><td colspan="18"><div class="empty-state"><div class="icon">🧾</div><h3>${hayFiltro ? 'Sin resultados para el filtro' : 'Sin facturas emitidas'}</h3><p>${hayFiltro ? 'Probá con otra firma o campaña' : 'Subí un PDF o foto de la factura'}</p></div></td></tr>`;
     ['fe-total-facturado','fe-total-cobrado','fe-total-pendiente','fe-total-iva'].forEach(id => document.getElementById(id).textContent = fmtMonto(0, 'ARS'));
     ['fe-cant','fe-cant-cobrado','fe-cant-pendiente'].forEach(id => document.getElementById(id).textContent = '0 ítems');
+    const cr = document.getElementById('fe-resumen-concepto');
+    if (cr) cr.innerHTML = '<p style="font-size:13px;color:var(--texto-suave)">Sin datos.</p>';
     return;
   }
 
@@ -241,6 +265,31 @@ async function cargarFacturasEmitidas() {
   document.getElementById('fe-cant').textContent = emitidas.length + ' ítem' + (emitidas.length !== 1 ? 's' : '');
   document.getElementById('fe-cant-cobrado').textContent = tot.cobradoCant + ' ítem' + (tot.cobradoCant !== 1 ? 's' : '');
   document.getElementById('fe-cant-pendiente').textContent = tot.pendienteCant + ' ítem' + (tot.pendienteCant !== 1 ? 's' : '');
+
+  const porConcepto = {};
+  emitidas.forEach(r => {
+    const c = r.categoria || 'Sin concepto';
+    if (!porConcepto[c]) porConcepto[c] = { total: 0, cant: 0 };
+    porConcepto[c].total += r.monto || 0;
+    porConcepto[c].cant++;
+  });
+  const cont = document.getElementById('fe-resumen-concepto');
+  if (cont) {
+    const filas = Object.entries(porConcepto).sort((a, b) => b[1].total - a[1].total).map(([c, v]) => {
+      const pct = tot.fact ? Math.round(v.total / tot.fact * 100) : 0;
+      return `<tr>
+        <td><span class="badge badge-gray">${c}</span></td>
+        <td style="text-align:right">${v.cant}</td>
+        <td style="text-align:right"><strong>${fmtMonto(v.total, 'ARS')}</strong></td>
+        <td style="text-align:right;color:var(--texto-suave)">${pct}%</td>
+      </tr>`;
+    }).join('');
+    cont.innerHTML = `<table style="width:100%;font-size:13px">
+      <thead><tr><th style="text-align:left">Concepto</th><th style="text-align:right">Ítems</th><th style="text-align:right">Total</th><th style="text-align:right">%</th></tr></thead>
+      <tbody>${filas}</tbody>
+      <tfoot><tr style="border-top:2px solid var(--gris-borde)"><td><strong>Total</strong></td><td style="text-align:right"><strong>${emitidas.length}</strong></td><td style="text-align:right"><strong>${fmtMonto(tot.fact, 'ARS')}</strong></td><td></td></tr></tfoot>
+    </table>`;
+  }
 
   tbody.innerHTML = emitidas.map(r => {
     const e = JSON.parse(r.observaciones || '{}');
@@ -283,7 +332,11 @@ async function patchObsFemit(id, cambios) {
 
 async function editarDestinoFemit(id, valor) {
   const ok = await patchObsFemit(id, { destino: valor });
-  if (ok) toast('✅ Destino guardado'); else toast('❌ No se pudo guardar', 'var(--rojo)');
+  if (ok) {
+    const row = femitTodas.find(b => b.id === id);
+    if (row) { const obs = JSON.parse(row.observaciones || '{}'); obs.destino = valor; row.observaciones = JSON.stringify(obs); }
+    toast('✅ Destino guardado');
+  } else toast('❌ No se pudo guardar', 'var(--rojo)');
 }
 
 async function toggleCobroFemit(id, btn) {
@@ -299,25 +352,10 @@ async function toggleCobroFemit(id, btn) {
       btn.classList.toggle('badge-green', nuevo === 'Cobrada');
       btn.classList.toggle('badge-tierra', nuevo === 'Pendiente');
     }
-    actualizarResumenCobroFemit();
+    const row = femitTodas.find(b => b.id === id);
+    if (row) { const obs = JSON.parse(row.observaciones || '{}'); obs.cobro = nuevo; row.observaciones = JSON.stringify(obs); }
+    renderFacturasEmitidas();
   } else toast('❌ No se pudo cambiar', 'var(--rojo)');
-}
-
-async function actualizarResumenCobroFemit() {
-  const rows = await sb('GET', 'boletas', '', '?order=fecha.desc');
-  const emitidas = (rows || []).filter(r => {
-    try { return JSON.parse(r.observaciones || '{}').tipo_factura === 'emitida'; } catch(e) { return false; }
-  });
-  const t = { cobrado: 0, cobradoCant: 0, pendiente: 0, pendienteCant: 0 };
-  emitidas.forEach(r => {
-    const e = JSON.parse(r.observaciones || '{}');
-    if (e.cobro === 'Cobrada') { t.cobrado += r.monto || 0; t.cobradoCant++; }
-    else { t.pendiente += r.monto || 0; t.pendienteCant++; }
-  });
-  document.getElementById('fe-total-cobrado').textContent = fmtMonto(t.cobrado, 'ARS');
-  document.getElementById('fe-cant-cobrado').textContent = t.cobradoCant + ' ítem' + (t.cobradoCant !== 1 ? 's' : '');
-  document.getElementById('fe-total-pendiente').textContent = fmtMonto(t.pendiente, 'ARS');
-  document.getElementById('fe-cant-pendiente').textContent = t.pendienteCant + ' ítem' + (t.pendienteCant !== 1 ? 's' : '');
 }
 
 async function borrarFacturaEmitida(id) {
