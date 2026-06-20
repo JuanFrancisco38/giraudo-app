@@ -950,7 +950,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
               <option value="Francisco J. Giraudo">Francisco J. Giraudo</option>
               <option value="Giraudo SH">Giraudo SH</option>
             </select>
-            <button class="btn btn-primary" onclick="toggleForm('form-boleta')">+ Cargar boleta</button>
+            <button class="btn btn-primary" onclick="abrirFormBoleta()">+ Cargar boleta</button>
           </div>
         </div>
 
@@ -968,6 +968,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             </div>
             <div>
               <p style="font-size:13px;color:var(--texto-suave);margin-bottom:12px">✏️ <strong>Opción 2:</strong> Cargá manualmente los datos de la boleta.</p>
+              <div style="font-size:12px;font-weight:600;color:var(--bordo);margin-bottom:8px">📋 Datos de la factura</div>
               <div class="form-grid">
                 <div class="form-group"><label>Fecha</label><input type="date" id="bol-fecha"></div>
                 <div class="form-group"><label>N° Factura</label><input type="text" id="bol-num" placeholder="Ej: A-0001-00001234"></div>
@@ -979,50 +980,9 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
                 </div>
                 <div class="form-group"><label>Razón social</label><input type="text" id="bol-prov" placeholder="Ej: Agroinsumos del Centro S.A."></div>
                 <div class="form-group"><label>CUIT proveedor</label><input type="text" id="bol-cuit" placeholder="Ej: 30-12345678-9"></div>
-                <div class="form-group"><label>Rubro</label>
-                  <select id="bol-cat">
-                    <option>Agroquímicos</option>
-                    <option>Semillas</option>
-                    <option>Arrendamientos</option>
-                    <option>Combustibles y Lubricantes</option>
-                    <option>Repuestos</option>
-                    <option>Insumos Varios</option>
-                    <option>Servicios Profesionales</option>
-                    <option>Servicios Rurales</option>
-                    <option>Servicios Energéticos</option>
-                    <option>Ponedoras</option>
-                    <option>Insumos Veterinarios</option>
-                    <option>Inmuebles</option>
-                    <option>Reparaciones</option>
-                  </select>
-                </div>
-                <div class="form-group full"><label>Descripción A — Concepto / producto (con concentración)</label><textarea id="bol-desc" placeholder="Ej: Glifosato 75% / Semilla soja DM 4612..."></textarea></div>
-                <div class="form-group"><label>Descripción B — Cantidad</label><input type="number" step="any" id="bol-cant" placeholder="Ej: 200"></div>
-                <div class="form-group"><label>Unidad</label>
-                  <select id="bol-unidad">
-                    <option value="">—</option>
-                    <option>kg</option>
-                    <option>lts</option>
-                    <option>tt</option>
-                    <option>unidad</option>
-                  </select>
-                </div>
-                <div class="form-group"><label>Descripción C — Costo unitario</label><input type="number" step="any" id="bol-costou" placeholder="Ej: 8.50"></div>
-                <div class="form-group"><label>Moneda costo unit.</label><select id="bol-moneda-cu"><option value="ARS">Pesos ($)</option><option value="USD">Dólares (U$D)</option></select></div>
-                <div class="form-group full"><label>Descripción D — Destino (cultivo / lote / actividad)</label><input type="text" id="bol-destino" placeholder="Lo completás vos — destino del ítem"></div>
                 <div class="form-group"><label>Vencimiento</label><input type="date" id="bol-vto"></div>
                 <div class="form-group"><label>Tipo de cambio (si figura)</label><input type="number" step="any" id="bol-tc" placeholder="Ej: 1050"></div>
-                <div class="form-group"><label>Subtotal (en pesos)</label><input type="number" step="any" id="bol-sub"></div>
-                <div class="form-group"><label>% IVA</label>
-                  <select id="bol-pctiva" onchange="calcularIvaBoleta()">
-                    <option value="21">21%</option>
-                    <option value="10.5">10,5%</option>
-                    <option value="0">Exento</option>
-                  </select>
-                </div>
-                <div class="form-group"><label>IVA</label><input type="number" step="any" id="bol-iva"></div>
-                <div class="form-group"><label>Total</label><input type="number" step="any" id="bol-total" style="font-weight:600"></div>
-                <div class="form-group"><label>Campaña</label><input type="text" id="bol-campania" placeholder="Lo completás vos — Ej: 2025/26" list="campanias-list"></div>
+                <div class="form-group"><label>Campaña</label><input type="text" id="bol-campania" placeholder="Ej: 2025/26" list="campanias-list"></div>
                 <div class="form-group"><label>Estado de pago</label>
                   <select id="bol-pago">
                     <option value="Impaga">Impaga</option>
@@ -1041,6 +1001,12 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
                   <option>2024/25</option><option>2025/26</option><option>2026/27</option>
                 </datalist>
               </div>
+
+              <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0 8px">
+                <div style="font-size:12px;font-weight:600;color:var(--bordo)">🛒 Ítems / productos (un renglón por producto)</div>
+                <button type="button" class="btn btn-secondary" style="padding:4px 10px;font-size:12px" onclick="agregarItemBoleta()">+ Agregar ítem</button>
+              </div>
+              <div id="bol-items"></div>
             </div>
           </div>
           <div class="form-actions">

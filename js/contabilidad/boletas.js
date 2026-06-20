@@ -1,13 +1,77 @@
 const RUBROS_BOLETA = ['Agroquímicos','Semillas','Arrendamientos','Combustibles y Lubricantes','Repuestos','Insumos Varios','Servicios Profesionales','Servicios Rurales','Servicios Energéticos','Ponedoras','Insumos Veterinarios','Inmuebles','Reparaciones'];
 
-function calcularIvaBoleta() {
-  const sub = parseFloat(document.getElementById('bol-sub').value) || 0;
-  const pct = parseFloat(document.getElementById('bol-pctiva').value) || 0;
+let bolItemSeq = 0;
+
+function abrirFormBoleta() {
+  const form = document.getElementById('form-boleta');
+  const abriendo = form.style.display === 'none' || !form.style.display;
+  toggleForm('form-boleta');
+  if (abriendo && !document.querySelector('#bol-items .bol-item')) agregarItemBoleta();
+}
+
+function rubroOptions(sel) {
+  return RUBROS_BOLETA.map(r => `<option${r === sel ? ' selected' : ''}>${r}</option>`).join('');
+}
+
+function agregarItemBoleta(d = {}) {
+  const i = ++bolItemSeq;
+  const cont = document.getElementById('bol-items');
+  const div = document.createElement('div');
+  div.className = 'bol-item';
+  div.id = `bol-item-${i}`;
+  div.style.cssText = 'border:1px solid var(--gris-borde);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--bordo-claro)';
+  const unidades = ['','kg','lts','tt','unidad'];
+  div.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:12px;font-weight:600;color:var(--bordo)">Ítem</span>
+      <button type="button" class="btn btn-secondary" style="padding:2px 8px;font-size:12px" onclick="document.getElementById('bol-item-${i}').remove()">✕ Quitar</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Rubro</label><select class="bi-rubro">${rubroOptions(d.rubro)}</select></div>
+      <div class="form-group full"><label>Descripción A — Concepto / producto (con concentración)</label><input type="text" class="bi-desc" value="${(d.descripcion_a||'').replace(/"/g,'&quot;')}" placeholder="Ej: Glifosato 75%"></div>
+      <div class="form-group"><label>Descripción B — Cantidad</label><input type="number" step="any" class="bi-cant" value="${d.cantidad||''}" placeholder="Ej: 200"></div>
+      <div class="form-group"><label>Unidad</label><select class="bi-unidad">${unidades.map(u => `<option value="${u}"${u===(d.unidad||'')?' selected':''}>${u||'—'}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Descripción C — Costo unitario</label><input type="number" step="any" class="bi-costou" value="${d.costo_unitario||''}" placeholder="Ej: 8.50"></div>
+      <div class="form-group"><label>Moneda costo unit.</label><select class="bi-mcu"><option value="ARS"${(d.moneda_costo||'ARS')==='ARS'?' selected':''}>Pesos ($)</option><option value="USD"${d.moneda_costo==='USD'?' selected':''}>Dólares (U$D)</option></select></div>
+      <div class="form-group full"><label>Descripción D — Destino (cultivo / lote / actividad)</label><input type="text" class="bi-destino" value="${(d.destino||'').replace(/"/g,'&quot;')}" placeholder="Lo completás vos"></div>
+      <div class="form-group"><label>Subtotal (en pesos)</label><input type="number" step="any" class="bi-sub" value="${d.subtotal||''}" oninput="calcIvaItem(this)"></div>
+      <div class="form-group"><label>% IVA</label><select class="bi-pctiva" onchange="calcIvaItem(this)">
+        <option value="21"${Number(d.pct_iva)===21||d.pct_iva==null?' selected':''}>21%</option>
+        <option value="10.5"${Number(d.pct_iva)===10.5?' selected':''}>10,5%</option>
+        <option value="0"${Number(d.pct_iva)===0?' selected':''}>Exento</option>
+      </select></div>
+      <div class="form-group"><label>IVA</label><input type="number" step="any" class="bi-iva" value="${d.iva||''}"></div>
+      <div class="form-group"><label>Total</label><input type="number" step="any" class="bi-total" value="${d.total||''}" style="font-weight:600"></div>
+    </div>`;
+  cont.appendChild(div);
+  return div;
+}
+
+function calcIvaItem(el) {
+  const item = el.closest('.bol-item');
+  const sub = parseFloat(item.querySelector('.bi-sub').value) || 0;
+  const pct = parseFloat(item.querySelector('.bi-pctiva').value) || 0;
   if (sub) {
     const iva = Math.round(sub * pct / 100 * 100) / 100;
-    document.getElementById('bol-iva').value = iva;
-    document.getElementById('bol-total').value = Math.round((sub + iva) * 100) / 100;
+    item.querySelector('.bi-iva').value = iva;
+    item.querySelector('.bi-total').value = Math.round((sub + iva) * 100) / 100;
   }
+}
+
+function leerItemsBoleta() {
+  return [...document.querySelectorAll('#bol-items .bol-item')].map(item => ({
+    rubro: item.querySelector('.bi-rubro').value,
+    descripcion_a: item.querySelector('.bi-desc').value,
+    cantidad: parseFloat(item.querySelector('.bi-cant').value) || 0,
+    unidad: item.querySelector('.bi-unidad').value,
+    costo_unitario: parseFloat(item.querySelector('.bi-costou').value) || 0,
+    moneda_costo: item.querySelector('.bi-mcu').value,
+    destino: item.querySelector('.bi-destino').value,
+    subtotal: parseFloat(item.querySelector('.bi-sub').value) || 0,
+    pct_iva: parseFloat(item.querySelector('.bi-pctiva').value) || 0,
+    iva: parseFloat(item.querySelector('.bi-iva').value) || 0,
+    total: parseFloat(item.querySelector('.bi-total').value) || 0
+  }));
 }
 
 async function procesarBoleta(input) {
@@ -25,46 +89,41 @@ async function procesarBoleta(input) {
     const datos = await extraerDocIA(file,
       `Sos un asistente contable del Grupo Giraudo, Argentina. Analizá la boleta/factura recibida y extraé los datos.
 Identificá la firma receptora (a quién le facturaron): si el destinatario tiene CUIT 20-16226904-7 o dice "Francisco J. Giraudo" (sin Juan) es "Francisco J. Giraudo". Si tiene CUIT 30-71599118-3 o dice "Giraudo Francisco J. y Giraudo Juan F. SH" es "Giraudo SH".
-Clasificá el RUBRO eligiendo EXACTAMENTE una de estas opciones: ${RUBROS_BOLETA.join(', ')}.
-En "descripcion_a" poné el concepto / detalle del producto identificándolo por producto y concentración (ej: en agroquímicos "Glifosato 75%", "Glifosato 62%").
-En "cantidad" la cantidad comprada en números y en "unidad" elegí entre kg, lts, tt, unidad.
-En "costo_unitario" el precio por unidad y en "moneda_costo" si ese costo está en USD o ARS (los agroquímicos suelen estar en USD).
+MUY IMPORTANTE: la factura puede tener VARIOS productos/renglones. Tenés que devolver UN ítem por cada producto/línea de la factura en el array "items". NO los juntes en uno solo.
+Para cada ítem:
+- "rubro": clasificá eligiendo EXACTAMENTE una de: ${RUBROS_BOLETA.join(', ')}.
+- "descripcion_a": el detalle del producto identificándolo por producto y concentración (ej: "Glifosato 75%", "Doracur x500ml").
+- "cantidad" y "unidad" (kg, lts, tt, unidad).
+- "costo_unitario" y "moneda_costo" (ARS o USD; los agroquímicos suelen estar en USD).
+- "subtotal", "pct_iva" (21, 10.5 o 0 si exento como arrendamientos), "iva", "total" de ESE renglón, todos en pesos.
 Devolvé SOLO este JSON válido sin backticks ni texto adicional:
-{"firma":"Francisco J. Giraudo o Giraudo SH","fecha":"DD/MM/YYYY","vencimiento":"DD/MM/YYYY","numero_factura":"string","razon_social":"string","cuit_proveedor":"string","rubro":"uno de los rubros listados","descripcion_a":"string","cantidad":0,"unidad":"kg|lts|tt|unidad","costo_unitario":0,"moneda_costo":"ARS|USD","tipo_cambio":0,"subtotal":0,"pct_iva":21,"iva":0,"total":0}
-El subtotal, iva y total en pesos. pct_iva: 21, 10.5 o 0 (exento, ej. arrendamientos). tipo_cambio: si la factura lo aclara, sino 0. Montos en números sin símbolos ni puntos de miles. Si un dato no está, poné 0 o "".`,
-      'Extraé todos los datos de esta boleta/factura recibida.');
+{"firma":"Francisco J. Giraudo o Giraudo SH","fecha":"DD/MM/YYYY","vencimiento":"DD/MM/YYYY","numero_factura":"string","razon_social":"string","cuit_proveedor":"string","tipo_cambio":0,"items":[{"rubro":"","descripcion_a":"","cantidad":0,"unidad":"kg|lts|tt|unidad","costo_unitario":0,"moneda_costo":"ARS|USD","subtotal":0,"pct_iva":21,"iva":0,"total":0}]}
+Montos en números sin símbolos ni puntos de miles. Si un dato no está, poné 0 o "".`,
+      'Extraé todos los datos de esta boleta/factura recibida, un ítem por cada producto.');
 
-    const set = (id, val) => { if (val !== undefined && val !== null && val !== '' && val !== 0) document.getElementById(id).value = val; };
     if (datos.firma)   document.getElementById('bol-firma').value = datos.firma;
     if (datos.fecha)   document.getElementById('bol-fecha').value = parseFechaIA(datos.fecha);
     if (datos.vencimiento) document.getElementById('bol-vto').value = parseFechaIA(datos.vencimiento);
-    set('bol-num', datos.numero_factura);
-    set('bol-prov', datos.razon_social);
-    set('bol-cuit', datos.cuit_proveedor);
-    if (datos.rubro && RUBROS_BOLETA.includes(datos.rubro)) document.getElementById('bol-cat').value = datos.rubro;
-    set('bol-desc', datos.descripcion_a);
-    set('bol-cant', datos.cantidad);
-    if (datos.unidad) document.getElementById('bol-unidad').value = datos.unidad;
-    set('bol-costou', datos.costo_unitario);
-    if (datos.moneda_costo) document.getElementById('bol-moneda-cu').value = datos.moneda_costo;
-    set('bol-tc', datos.tipo_cambio);
-    set('bol-sub', datos.subtotal);
-    if (datos.pct_iva !== undefined) document.getElementById('bol-pctiva').value = [21,10.5,0].includes(Number(datos.pct_iva)) ? datos.pct_iva : 21;
-    set('bol-iva', datos.iva);
-    set('bol-total', datos.total);
+    if (datos.numero_factura) document.getElementById('bol-num').value = datos.numero_factura;
+    if (datos.razon_social) document.getElementById('bol-prov').value = datos.razon_social;
+    if (datos.cuit_proveedor) document.getElementById('bol-cuit').value = datos.cuit_proveedor;
+    if (datos.tipo_cambio) document.getElementById('bol-tc').value = datos.tipo_cambio;
 
-    const mc = datos.moneda_costo || 'ARS';
+    document.getElementById('bol-items').innerHTML = '';
+    bolItemSeq = 0;
+    const items = Array.isArray(datos.items) && datos.items.length ? datos.items : [{}];
+    items.forEach(it => agregarItemBoleta(it));
+
+    const totGlobal = items.reduce((a, it) => a + (Number(it.total) || 0), 0);
     preview.textContent = `✅ ${file.name} — leída correctamente`;
     result.style.display = 'block';
     result.innerHTML = `<strong>Datos extraídos:</strong><br>
-      🏢 Firma: <strong>${datos.firma || '—'}</strong> | 📅 ${fmtFecha(parseFechaIA(datos.fecha))} | Vto: ${fmtFecha(parseFechaIA(datos.vencimiento))}<br>
+      🏢 ${datos.firma || '—'} | 📅 ${fmtFecha(parseFechaIA(datos.fecha))} | N° ${datos.numero_factura || '—'}<br>
       🏪 ${datos.razon_social || '—'} (${datos.cuit_proveedor || '—'})<br>
-      🏷️ Rubro: <strong>${datos.rubro || '—'}</strong><br>
-      📋 ${datos.descripcion_a || '—'} — ${fmtNum(datos.cantidad)} ${datos.unidad || ''} × ${fmtMonto(datos.costo_unitario, mc)}<br>
-      💰 Subtotal: ${fmtMonto(datos.subtotal, 'ARS')} | IVA ${datos.pct_iva || 0}%: ${fmtMonto(datos.iva, 'ARS')} | <strong>Total: ${fmtMonto(datos.total, 'ARS')}</strong><br>
-      <span style="color:var(--texto-suave);font-size:12px">Completá Destino, Campaña y Estado de pago, revisá y guardá.</span>`;
+      🛒 <strong>${items.length}</strong> ítem(s) detectado(s) | Total factura: <strong>${fmtMonto(totGlobal, 'ARS')}</strong><br>
+      <span style="color:var(--texto-suave);font-size:12px">Revisá cada renglón, completá los Destinos y la Campaña, y guardá.</span>`;
     status.textContent = '';
-    toast('✅ Boleta leída — revisá y guardá');
+    toast(`✅ Boleta leída — ${items.length} ítem(s)`);
   } catch(e) {
     preview.textContent = '❌ ' + e.message;
     status.textContent = '';
@@ -75,35 +134,9 @@ El subtotal, iva y total en pesos. pct_iva: 21, 10.5 o 0 (exento, ej. arrendamie
 
 async function guardarBoleta() {
   const fecha = document.getElementById('bol-fecha').value;
-  const total = parseFloat(document.getElementById('bol-total').value) || 0;
-  if (!fecha || !total) { toast('Completá al menos fecha y total', 'var(--tierra)'); return; }
-
-  const data = {
-    fecha,
-    proveedor: document.getElementById('bol-prov').value,
-    concepto: document.getElementById('bol-desc').value,
-    campo: document.getElementById('bol-campo').value,
-    monto: total,
-    categoria: document.getElementById('bol-cat').value,
-    observaciones: JSON.stringify({
-      tipo_factura: 'recibida',
-      firma: document.getElementById('bol-firma').value,
-      vencimiento: document.getElementById('bol-vto').value,
-      cuit_proveedor: document.getElementById('bol-cuit').value,
-      numero_comprobante: document.getElementById('bol-num').value,
-      cantidad: parseFloat(document.getElementById('bol-cant').value) || 0,
-      unidad: document.getElementById('bol-unidad').value,
-      costo_unitario: parseFloat(document.getElementById('bol-costou').value) || 0,
-      moneda_costo: document.getElementById('bol-moneda-cu').value,
-      destino: document.getElementById('bol-destino').value,
-      tipo_cambio: parseFloat(document.getElementById('bol-tc').value) || 0,
-      subtotal: parseFloat(document.getElementById('bol-sub').value) || 0,
-      pct_iva: parseFloat(document.getElementById('bol-pctiva').value) || 0,
-      iva: parseFloat(document.getElementById('bol-iva').value) || 0,
-      campania: document.getElementById('bol-campania').value,
-      pago: document.getElementById('bol-pago').value
-    })
-  };
+  const items = leerItemsBoleta();
+  if (!fecha) { toast('Completá la fecha', 'var(--tierra)'); return; }
+  if (!items.length || !items.some(it => it.total || it.subtotal)) { toast('Agregá al menos un ítem con monto', 'var(--tierra)'); return; }
 
   const numero = document.getElementById('bol-num').value;
   if (numero) {
@@ -116,14 +149,60 @@ async function guardarBoleta() {
       return;
     }
   }
-  const r = await sb('POST', 'boletas', data);
-  if (r) {
-    toast('✅ Boleta registrada');
+
+  const cab = {
+    fecha,
+    firma: document.getElementById('bol-firma').value,
+    proveedor: document.getElementById('bol-prov').value,
+    cuit_proveedor: document.getElementById('bol-cuit').value,
+    numero_comprobante: numero,
+    vencimiento: document.getElementById('bol-vto').value,
+    tipo_cambio: parseFloat(document.getElementById('bol-tc').value) || 0,
+    campania: document.getElementById('bol-campania').value,
+    pago: document.getElementById('bol-pago').value,
+    campo: document.getElementById('bol-campo').value
+  };
+
+  let ok = 0;
+  for (const it of items) {
+    const data = {
+      fecha: cab.fecha,
+      proveedor: cab.proveedor,
+      concepto: it.descripcion_a,
+      campo: cab.campo,
+      monto: it.total,
+      categoria: it.rubro,
+      observaciones: JSON.stringify({
+        tipo_factura: 'recibida',
+        firma: cab.firma,
+        vencimiento: cab.vencimiento,
+        cuit_proveedor: cab.cuit_proveedor,
+        numero_comprobante: cab.numero_comprobante,
+        tipo_cambio: cab.tipo_cambio,
+        campania: cab.campania,
+        pago: cab.pago,
+        cantidad: it.cantidad,
+        unidad: it.unidad,
+        costo_unitario: it.costo_unitario,
+        moneda_costo: it.moneda_costo,
+        destino: it.destino,
+        subtotal: it.subtotal,
+        pct_iva: it.pct_iva,
+        iva: it.iva
+      })
+    };
+    const r = await sb('POST', 'boletas', data);
+    if (r) ok++;
+  }
+
+  if (ok) {
+    toast(`✅ Factura registrada — ${ok} ítem(s)`);
     toggleForm('form-boleta');
     document.getElementById('bol-result').style.display = 'none';
     document.getElementById('bol-preview').style.display = 'none';
     document.getElementById('bol-archivo').value = '';
-    ['bol-num','bol-prov','bol-cuit','bol-desc','bol-cant','bol-costou','bol-destino','bol-tc','bol-sub','bol-iva','bol-total','bol-campania'].forEach(id => document.getElementById(id).value = '');
+    ['bol-num','bol-prov','bol-cuit','bol-tc','bol-campania'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('bol-items').innerHTML = '';
     cargarBoletas();
   } else toast('❌ Error al guardar', 'var(--rojo)');
 }
@@ -159,8 +238,8 @@ async function cargarBoletas() {
   };
   document.getElementById('total-firma-fj').textContent = linea('FJ');
   document.getElementById('total-firma-sh').textContent = linea('SH');
-  document.getElementById('cant-firma-fj').textContent = acc.FJ.cant + ' boleta' + (acc.FJ.cant !== 1 ? 's' : '');
-  document.getElementById('cant-firma-sh').textContent = acc.SH.cant + ' boleta' + (acc.SH.cant !== 1 ? 's' : '');
+  document.getElementById('cant-firma-fj').textContent = acc.FJ.cant + ' ítem' + (acc.FJ.cant !== 1 ? 's' : '');
+  document.getElementById('cant-firma-sh').textContent = acc.SH.cant + ' ítem' + (acc.SH.cant !== 1 ? 's' : '');
 
   tbody.innerHTML = rows.map(r => {
     const e = r.observaciones ? JSON.parse(r.observaciones) : {};
@@ -195,9 +274,9 @@ async function cargarBoletas() {
 }
 
 async function borrarBoleta(id) {
-  if (!confirm('¿Borrar esta factura recibida?')) return;
+  if (!confirm('¿Borrar este ítem de la factura?')) return;
   await sb('DELETE', 'boletas', '', `?id=eq.${id}`);
-  toast('🗑️ Factura borrada');
+  toast('🗑️ Ítem borrado');
   cargarBoletas();
 }
 
