@@ -535,28 +535,28 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
         <div id="lh-res-categorias" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px"></div>
       </div>
       <div class="card">
-        <div class="card-header"><h3>Liquidaciones de hacienda</h3><button class="btn btn-primary" onclick="toggleForm('form-liqhac')">+ Registrar</button></div>
+        <div class="card-header"><h3>Liquidaciones de hacienda</h3><button class="btn btn-primary" onclick="abrirFormLiqHac()">+ Registrar</button></div>
         <div id="form-liqhac" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
           <div style="margin-bottom:14px;padding:12px;background:#faf8f5;border:1px dashed var(--gris-borde);border-radius:8px">
             <label style="font-weight:600;font-size:13px">📄 Cargar desde PDF o imagen — la IA completa los campos</label>
             <input type="file" id="lh-archivo" accept="application/pdf,image/*" onchange="procesarLiqHaciendaDoc(this)" style="display:block;margin-top:8px">
             <div id="lh-doc-status" style="font-size:12px;color:var(--texto-suave);margin-top:6px"></div>
           </div>
+
+          <div style="font-size:12px;font-weight:600;color:var(--bordo);margin-bottom:8px">📋 Datos de la liquidación</div>
           <div class="form-grid">
             <div class="form-group"><label>Fecha</label><input type="date" id="lh-fecha"></div>
             <div class="form-group"><label>N° liquidación</label><input type="text" id="lh-num" placeholder="Ej: 0005-26460"></div>
             <div class="form-group"><label>Razón social / Consignatario</label><input type="text" id="lh-cons" list="consignatarios-list" placeholder="Ej: Ferialvarez SRL"><datalist id="consignatarios-list"><option>Ferialvarez SRL</option><option>Gananor Pujol</option><option>Central Ganadera</option></datalist></div>
-            <div class="form-group"><label>Categoría</label><select id="lh-cat"><option>Terneros invernada</option><option>Terneras invernada</option><option>Vacas invernada</option><option>Vacas preñadas</option><option>Vaquillonas invernada</option><option>Novillos</option><option>Toros</option></select></div>
-            <div class="form-group"><label>Cabezas</label><input type="number" id="lh-cab"></div>
-            <div class="form-group"><label>Kg totales</label><input type="number" id="lh-kg"></div>
-            <div class="form-group"><label>Precio ($/kg o $/cab)</label><input type="number" id="lh-precio"></div>
-            <div class="form-group"><label>Importe $</label><input type="number" id="lh-sub"></div>
-            <div class="form-group"><label>Comisión $</label><input type="number" id="lh-com"></div>
-            <div class="form-group"><label>Retención $</label><input type="number" id="lh-gan"></div>
-            <div class="form-group"><label>IVA $</label><input type="number" id="lh-iva"></div>
-            <div class="form-group"><label>Total neto $</label><input type="number" id="lh-neto"></div>
           </div>
-          <div class="form-actions"><button class="btn btn-primary" onclick="guardarLiqHacienda()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-liqhac')">Cancelar</button></div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0 8px">
+            <div style="font-size:12px;font-weight:600;color:var(--bordo)">🐄 Categorías (un renglón por categoría)</div>
+            <button type="button" class="btn btn-secondary" style="padding:4px 10px;font-size:12px" onclick="agregarItemLiqHac()">+ Agregar categoría</button>
+          </div>
+          <div id="lh-items"></div>
+
+          <div class="form-actions" style="margin-top:14px"><button class="btn btn-primary" onclick="guardarLiqHacienda()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-liqhac')">Cancelar</button></div>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>N° Liquid.</th><th>Razón social / Consignatario</th><th>Cabezas</th><th>Categoría</th><th>Kg total</th><th>Kg/animal</th><th>Precio</th><th>Importe</th><th>Comisión</th><th>IVA</th><th>Retención</th><th>Total a cobrar</th><th></th></tr></thead>
         <tbody id="tabla-liqhac">
