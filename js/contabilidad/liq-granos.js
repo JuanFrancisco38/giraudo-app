@@ -90,16 +90,32 @@ async function guardarLiqGrano() {
   } else toast('❌ Error', 'var(--rojo)');
 }
 
+let liqgrTodas = [];
+let liqgrPagina = 1;
+
+function irPaginaLiqGr(p) { liqgrPagina = p; renderLiqGranos(); window.scrollTo({ top: document.getElementById('section-liq_granos').offsetTop, behavior: 'smooth' }); }
+
 async function cargarLiqGranos() {
-  const rows = await sb('GET', 'liquidaciones_granos', '', '?order=fecha.desc');
+  liqgrTodas = await sb('GET', 'liquidaciones_granos', '', '?order=fecha.desc') || [];
+  renderLiqGranos();
+}
+
+function renderLiqGranos() {
+  const rows = liqgrTodas;
   const tbody = document.getElementById('tabla-liqgr');
   if (!tbody) return;
+  const pag = document.getElementById('liqgr-paginador');
   if (!rows || !rows.length) {
     tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="icon">📄</div><h3>Sin liquidaciones</h3></div></td></tr>';
+    if (pag) pag.innerHTML = '';
     return;
   }
+  const totalPag = Math.ceil(rows.length / FILAS_POR_PAGINA) || 1;
+  if (liqgrPagina > totalPag) liqgrPagina = totalPag;
+  const pagina = rows.slice((liqgrPagina - 1) * FILAS_POR_PAGINA, liqgrPagina * FILAS_POR_PAGINA);
+  if (pag) pag.innerHTML = htmlPaginador(liqgrPagina, rows.length, 'irPaginaLiqGr');
   const cultColors = {soja:'green',maiz:'yellow',trigo:'tierra',girasol:'amarillo'};
-  tbody.innerHTML = rows.map(l => `
+  tbody.innerHTML = pagina.map(l => `
     <tr>
       <td>${fmtFecha(l.fecha)}</td>
       <td>${l.numero || '—'}</td>

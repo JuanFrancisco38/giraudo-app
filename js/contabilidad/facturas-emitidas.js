@@ -212,6 +212,10 @@ async function guardarFacturaEmitida() {
 }
 
 let femitTodas = [];
+let femitPagina = 1;
+
+function filtrarFemitReset() { femitPagina = 1; renderFacturasEmitidas(); }
+function irPaginaFemit(p) { femitPagina = p; renderFacturasEmitidas(); window.scrollTo({ top: document.getElementById('section-facturas_emitidas').offsetTop, behavior: 'smooth' }); }
 
 async function cargarFacturasEmitidas() {
   const rows = await sb('GET', 'boletas', '', '?order=fecha.desc');
@@ -247,6 +251,7 @@ function renderFacturasEmitidas() {
     ['fe-cant','fe-cant-cobrado','fe-cant-pendiente'].forEach(id => document.getElementById(id).textContent = '0 ítems');
     const cr = document.getElementById('fe-resumen-concepto');
     if (cr) cr.innerHTML = '<p style="font-size:13px;color:var(--texto-suave)">Sin datos.</p>';
+    document.getElementById('femit-paginador').innerHTML = '';
     return;
   }
 
@@ -287,7 +292,12 @@ function renderFacturasEmitidas() {
       <div style="margin-top:12px;font-size:13px;color:var(--texto-suave)">Total facturado: <strong style="color:var(--bordo)">${fmtMonto(tot.fact, 'ARS')}</strong> · ${emitidas.length} ítem${emitidas.length !== 1 ? 's' : ''}</div>`;
   }
 
-  tbody.innerHTML = emitidas.map(r => {
+  const totalPag = Math.ceil(emitidas.length / FILAS_POR_PAGINA) || 1;
+  if (femitPagina > totalPag) femitPagina = totalPag;
+  const pagina = emitidas.slice((femitPagina - 1) * FILAS_POR_PAGINA, femitPagina * FILAS_POR_PAGINA);
+  document.getElementById('femit-paginador').innerHTML = htmlPaginador(femitPagina, emitidas.length, 'irPaginaFemit');
+
+  tbody.innerHTML = pagina.map(r => {
     const e = JSON.parse(r.observaciones || '{}');
     const mc = e.moneda_costo || 'ARS';
     const firmaCorta = e.firma === 'Francisco J. Giraudo' ? 'FJG' : (e.firma === 'Giraudo SH' ? 'SH' : (e.firma || '—'));

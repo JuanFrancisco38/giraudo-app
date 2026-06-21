@@ -81,6 +81,21 @@ async function sb(method, table, data=null, query='') {
   return text ? JSON.parse(text) : [];
 }
 
+const FILAS_POR_PAGINA = 20;
+
+// Devuelve el HTML de los controles de paginación. fnName(pagina) debe existir global.
+function htmlPaginador(pagina, totalItems, fnName, perPage = FILAS_POR_PAGINA) {
+  const totalPag = Math.ceil(totalItems / perPage) || 1;
+  if (totalPag <= 1) return `<div style="padding:10px 12px;font-size:12px;color:var(--texto-suave);text-align:center">${totalItems} registro${totalItems !== 1 ? 's' : ''}</div>`;
+  const desde = (pagina - 1) * perPage + 1;
+  const hasta = Math.min(pagina * perPage, totalItems);
+  return `<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;flex-wrap:wrap">
+    <button class="btn btn-secondary" style="padding:4px 10px;font-size:12px" ${pagina <= 1 ? 'disabled' : ''} onclick="${fnName}(${pagina - 1})">‹ Anterior</button>
+    <span style="font-size:13px;color:var(--texto-suave)">Página <strong>${pagina}</strong> de <strong>${totalPag}</strong> · ${desde}-${hasta} de ${totalItems}</span>
+    <button class="btn btn-secondary" style="padding:4px 10px;font-size:12px" ${pagina >= totalPag ? 'disabled' : ''} onclick="${fnName}(${pagina + 1})">Siguiente ›</button>
+  </div>`;
+}
+
 async function subirArchivo(file) {
   if (!file) return null;
   const ext = (file.name.split('.').pop() || 'bin').toLowerCase();

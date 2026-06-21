@@ -219,6 +219,10 @@ async function guardarBoleta() {
 }
 
 let boletasTodas = [];
+let bolPagina = 1;
+
+function filtrarBoletasReset() { bolPagina = 1; renderBoletas(); }
+function irPaginaBoletas(p) { bolPagina = p; renderBoletas(); window.scrollTo({ top: document.getElementById('section-boletas').offsetTop, behavior: 'smooth' }); }
 
 async function cargarBoletas() {
   const todas = await sb('GET', 'boletas', '', '?order=fecha.desc');
@@ -257,6 +261,7 @@ function renderBoletas() {
     ['bol-cant-pagado','bol-cant-adeudado'].forEach(id => document.getElementById(id).textContent = '0 ítems');
     const cr = document.getElementById('bol-resumen-rubro');
     if (cr) cr.innerHTML = '<p style="font-size:13px;color:var(--texto-suave)">Sin datos.</p>';
+    document.getElementById('bol-paginador').innerHTML = '';
     return;
   }
 
@@ -308,7 +313,12 @@ function renderBoletas() {
   document.getElementById('cant-firma-fj').textContent = acc.FJ.cant + ' ítem' + (acc.FJ.cant !== 1 ? 's' : '');
   document.getElementById('cant-firma-sh').textContent = acc.SH.cant + ' ítem' + (acc.SH.cant !== 1 ? 's' : '');
 
-  tbody.innerHTML = rows.map(r => {
+  const totalPag = Math.ceil(rows.length / FILAS_POR_PAGINA) || 1;
+  if (bolPagina > totalPag) bolPagina = totalPag;
+  const pagina = rows.slice((bolPagina - 1) * FILAS_POR_PAGINA, bolPagina * FILAS_POR_PAGINA);
+  document.getElementById('bol-paginador').innerHTML = htmlPaginador(bolPagina, rows.length, 'irPaginaBoletas');
+
+  tbody.innerHTML = pagina.map(r => {
     const e = r.observaciones ? JSON.parse(r.observaciones) : {};
     const mc = e.moneda_costo || 'ARS';
     const firmaCorta = e.firma === 'Francisco J. Giraudo' ? 'FJG' : (e.firma === 'Giraudo SH' ? 'SH' : (e.firma || '—'));

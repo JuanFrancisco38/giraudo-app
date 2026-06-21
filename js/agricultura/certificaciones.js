@@ -80,16 +80,32 @@ function parseCert(c) {
   return { fecha: c.fecha, ...extra };
 }
 
+let certTodas = [];
+let certPagina = 1;
+
+function irPaginaCert(p) { certPagina = p; renderCertificaciones(); window.scrollTo({ top: document.getElementById('section-certificaciones').offsetTop, behavior: 'smooth' }); }
+
 async function cargarCertificaciones() {
-  const rows = await sb('GET', 'certificaciones', '', '?tipo=eq.deposito&order=fecha.desc');
+  certTodas = await sb('GET', 'certificaciones', '', '?tipo=eq.deposito&order=fecha.desc') || [];
+  renderCertificaciones();
+}
+
+function renderCertificaciones() {
+  const rows = certTodas;
   const tbody = document.getElementById('tabla-cert');
   if (!tbody) return;
+  const pag = document.getElementById('cert-paginador');
   if (!rows || !rows.length) {
     tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="icon">📋</div><h3>Sin certificaciones</h3></div></td></tr>';
+    if (pag) pag.innerHTML = '';
     return;
   }
+  const totalPag = Math.ceil(rows.length / FILAS_POR_PAGINA) || 1;
+  if (certPagina > totalPag) certPagina = totalPag;
+  const pagina = rows.slice((certPagina - 1) * FILAS_POR_PAGINA, certPagina * FILAS_POR_PAGINA);
+  if (pag) pag.innerHTML = htmlPaginador(certPagina, rows.length, 'irPaginaCert');
   const cultColors = {soja:'green',maiz:'yellow',trigo:'tierra',girasol:'amarillo'};
-  tbody.innerHTML = rows.map(row => {
+  tbody.innerHTML = pagina.map(row => {
     const c = parseCert(row);
     return `<tr>
       <td>${fmtFecha(c.fecha)}</td>

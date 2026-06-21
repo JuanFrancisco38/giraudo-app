@@ -613,6 +613,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
         </div>
         <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>C.O.E.</th><th>Acopiador</th><th>Grano</th><th>Kg</th><th>Ret. IVA</th><th>Flete</th><th>Neto</th><th></th></tr></thead>
         <tbody id="tabla-liqgr"><tr><td colspan="9"><div class="empty-state"><div class="icon">📄</div><h3>Sin liquidaciones</h3></div></td></tr></tbody></table></div>
+        <div id="liqgr-paginador"></div>
       </div>
     </div>
 
@@ -640,6 +641,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
         </div>
         <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>C.O.E.</th><th>Grano</th><th>CTGs</th><th>Kg bruto</th><th>Merma</th><th>Kg neto</th><th>Depositario</th><th></th></tr></thead>
         <tbody id="tabla-cert"><tr><td colspan="9"><div class="empty-state"><div class="icon">📋</div><h3>Sin certificaciones</h3></div></td></tr></tbody></table></div>
+        <div id="cert-paginador"></div>
       </div>
     </div>
 
@@ -958,12 +960,12 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
         <div class="card-header">
           <h3>🧾 Boletas recibidas — Carga con IA</h3>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <select id="bol-filtro-firma" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="renderBoletas()">
+            <select id="bol-filtro-firma" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="filtrarBoletasReset()">
               <option value="">Todas las firmas</option>
               <option value="Francisco J. Giraudo">Francisco J. Giraudo</option>
               <option value="Giraudo SH">Giraudo SH</option>
             </select>
-            <select id="bol-filtro-campania" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="renderBoletas()">
+            <select id="bol-filtro-campania" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="filtrarBoletasReset()">
               <option value="">Todas las campañas</option>
             </select>
             <button class="btn btn-primary" onclick="abrirFormBoleta()">+ Cargar boleta</button>
@@ -1077,6 +1079,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             </tbody>
           </table>
         </div>
+        <div id="bol-paginador"></div>
       </div>
     </div>
 
@@ -1086,12 +1089,12 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
         <div class="card-header">
           <h3>🧾 Facturas emitidas — Carga con IA</h3>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <select id="fe-filtro-firma" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="renderFacturasEmitidas()">
+            <select id="fe-filtro-firma" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="filtrarFemitReset()">
               <option value="">Todas las firmas</option>
               <option value="Francisco J. Giraudo">Francisco J. Giraudo</option>
               <option value="Giraudo SH">Giraudo SH</option>
             </select>
-            <select id="fe-filtro-campania" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="renderFacturasEmitidas()">
+            <select id="fe-filtro-campania" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="filtrarFemitReset()">
               <option value="">Todas las campañas</option>
             </select>
             <button class="btn btn-primary" onclick="abrirFormFemit()">+ Cargar factura</button>
@@ -1186,6 +1189,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             </tbody>
           </table>
         </div>
+        <div id="femit-paginador"></div>
       </div>
     </div>
 
