@@ -98,6 +98,20 @@ function renderLiqHacienda() {
   const rows = liqhacTodas;
   const tbody = document.getElementById('tabla-liqhac');
   if (!tbody) return;
+
+  // Resumen dinámico
+  const res = (rows || []).reduce((a, l) => {
+    a.cabezas += l.cabezas || 0;
+    a.neto += l.total_neto || 0;
+    a.gan += l.ret_ganancias || 0;
+    if (l.consignatario) a.cons.add(l.consignatario);
+    return a;
+  }, { cabezas: 0, neto: 0, gan: 0, cons: new Set() });
+  document.getElementById('lh-res-cabezas').textContent = fmtNum(res.cabezas);
+  document.getElementById('lh-res-neto').textContent = fmtMonto(res.neto, 'ARS');
+  document.getElementById('lh-res-gan').textContent = fmtMonto(res.gan, 'ARS');
+  document.getElementById('lh-res-cons').textContent = res.cons.size ? [...res.cons].join(' / ') : '—';
+
   const pag = document.getElementById('liqhac-paginador');
   if (!rows || !rows.length) {
     tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="icon">📄</div><h3>Sin liquidaciones</h3></div></td></tr>';
