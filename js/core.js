@@ -142,6 +142,7 @@ function showSection(id, el) {
   if (id === 'notas_credito') cargarNotas('nota_credito');
   if (id === 'notas_debito') cargarNotas('nota_debito');
   if (id === 'mantenimiento') cargarMantenimiento();
+  if (id === 'liq_hacienda') cargarLiqHacienda();
   if (id === 'dashboard') cargarDashboard();
   document.getElementById('topbar-title').textContent = titles[id] || id;
   closeSidebar();

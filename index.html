@@ -534,6 +534,11 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
       <div class="card">
         <div class="card-header"><h3>Liquidaciones de hacienda</h3><button class="btn btn-primary" onclick="toggleForm('form-liqhac')">+ Registrar</button></div>
         <div id="form-liqhac" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+          <div style="margin-bottom:14px;padding:12px;background:#faf8f5;border:1px dashed var(--gris-borde);border-radius:8px">
+            <label style="font-weight:600;font-size:13px">📄 Cargar desde PDF o imagen — la IA completa los campos</label>
+            <input type="file" id="lh-archivo" accept="application/pdf,image/*" onchange="procesarLiqHaciendaDoc(this)" style="display:block;margin-top:8px">
+            <div id="lh-doc-status" style="font-size:12px;color:var(--texto-suave);margin-top:6px"></div>
+          </div>
           <div class="form-grid">
             <div class="form-group"><label>Fecha</label><input type="date" id="lh-fecha"></div>
             <div class="form-group"><label>N° liquidación</label><input type="text" id="lh-num" placeholder="Ej: 0005-26460"></div>
@@ -550,15 +555,11 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
           </div>
           <div class="form-actions"><button class="btn btn-primary" onclick="guardarLiqHacienda()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-liqhac')">Cancelar</button></div>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>N° Liquid.</th><th>Consignatario</th><th>Categoría</th><th>Cab.</th><th>Subtotal</th><th>Ret. Gan.</th><th>Neto</th></tr></thead>
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>N° Liquid.</th><th>Consignatario</th><th>Categoría</th><th>Cab.</th><th>Subtotal</th><th>Ret. Gan.</th><th>Neto</th><th></th></tr></thead>
         <tbody id="tabla-liqhac">
-          <tr><td>12/09/2025</td><td>0005-26959</td><td>Ferialvarez</td><td><span class="badge badge-bordo">90 Vacas preñadas</span></td><td>90</td><td>$144.000.000</td><td>—</td><td><strong>$152.755.200</strong></td></tr>
-          <tr><td>25/07/2025</td><td>0005-26460</td><td>Ferialvarez</td><td><span class="badge badge-bordo">48 Terneros</span></td><td>48</td><td>$35.991.830</td><td>—</td><td><strong>$38.180.133</strong></td></tr>
-          <tr><td>20/11/2025</td><td>2004-09986</td><td>Gananor Pujol</td><td><span class="badge badge-bordo">95 Vaq.+Terneros</span></td><td>95</td><td>$90.162.880</td><td>$8.655.636</td><td><strong>$86.989.147</strong></td></tr>
-          <tr><td>05/12/2025</td><td>2004-10070</td><td>Gananor Pujol</td><td><span class="badge badge-bordo">45 Vaq.+Vacas+Toros</span></td><td>45</td><td>$65.250.000</td><td>$6.264.000</td><td><strong>$62.953.200</strong></td></tr>
-          <tr><td>18/12/2025</td><td>2004-10107</td><td>Gananor Pujol</td><td><span class="badge badge-bordo">30 Vacas preñez</span></td><td>30</td><td>$45.000.000</td><td>$4.320.000</td><td><strong>$43.416.000</strong></td></tr>
-          <tr><td>26/12/2025</td><td>2004-10146</td><td>Gananor Pujol</td><td><span class="badge badge-bordo">36 Vacas preñez</span></td><td>36</td><td>$78.480.000</td><td>$7.534.080</td><td><strong>$75.717.504</strong></td></tr>
+          <tr><td colspan="9"><div class="empty-state"><div class="icon">📄</div><h3>Sin liquidaciones</h3></div></td></tr>
         </tbody></table></div>
+        <div id="liqhac-paginador"></div>
       </div>
     </div>
 
