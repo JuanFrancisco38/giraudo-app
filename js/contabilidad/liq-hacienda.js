@@ -129,7 +129,7 @@ function renderLiqHacienda() {
     <tr>
       <td>${fmtFecha(l.fecha)}</td>
       <td>${l.numero || '—'}</td>
-      <td><strong>${l.consignatario || '—'}</strong></td>
+      <td><input type="text" value="${(l.consignatario||'').replace(/"/g,'&quot;')}" placeholder="—" list="consignatarios-list" onchange="editarConsignatario('${l.id}', this.value)" style="width:150px;font-size:12px;padding:3px 5px;border:1px solid var(--gris-borde);border-radius:4px"></td>
       <td>${l.cabezas || '—'}</td>
       <td><span class="badge badge-bordo">${l.categoria || '—'}</span></td>
       <td>${l.kg_totales ? fmtKg(l.kg_totales) : '—'}</td>
@@ -143,6 +143,16 @@ function renderLiqHacienda() {
       <td style="white-space:nowrap">${l.archivo_url ? `<a class="btn btn-secondary" style="padding:4px 8px;font-size:12px;text-decoration:none" href="${l.archivo_url}" target="_blank" rel="noopener" title="Ver documento">👁️</a> ` : ''}<button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarLiqHacienda('${l.id}')">🗑️</button></td>
     </tr>`;
   }).join('');
+}
+
+async function editarConsignatario(id, valor) {
+  const r = await sb('PATCH', 'liquidaciones_hacienda', { consignatario: valor }, `?id=eq.${id}`);
+  if (r !== null) {
+    const row = liqhacTodas.find(l => l.id === id);
+    if (row) row.consignatario = valor;
+    renderLiqHacienda();
+    toast('✅ Consignatario guardado');
+  } else toast('❌ No se pudo guardar', 'var(--rojo)');
 }
 
 async function borrarLiqHacienda(id) {
