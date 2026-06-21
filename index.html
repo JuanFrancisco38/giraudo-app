@@ -527,9 +527,12 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
         <div class="resumen-grid">
           <div class="resumen-item"><div class="ri-label">Total cabezas vendidas</div><div class="ri-value" id="lh-res-cabezas">0</div></div>
           <div class="resumen-item"><div class="ri-label">Total neto cobrado</div><div class="ri-value" style="font-size:13px" id="lh-res-neto">$0</div></div>
+          <div class="resumen-item"><div class="ri-label">Precio promedio venta</div><div class="ri-value" style="font-size:13px" id="lh-res-precio">$0/kg</div></div>
           <div class="resumen-item"><div class="ri-label">Ret. Ganancias hacienda</div><div class="ri-value" style="font-size:13px" id="lh-res-gan">$0</div></div>
           <div class="resumen-item"><div class="ri-label">Consignatarios</div><div class="ri-value" style="font-size:13px" id="lh-res-cons">—</div></div>
         </div>
+        <div style="font-size:12px;font-weight:600;color:var(--bordo);margin:14px 0 8px">Por categoría</div>
+        <div id="lh-res-categorias" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px"></div>
       </div>
       <div class="card">
         <div class="card-header"><h3>Liquidaciones de hacienda</h3><button class="btn btn-primary" onclick="toggleForm('form-liqhac')">+ Registrar</button></div>

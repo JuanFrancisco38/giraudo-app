@@ -101,17 +101,36 @@ function renderLiqHacienda() {
   if (!tbody) return;
 
   // Resumen dinámico
+  const porCat = {};
   const res = (rows || []).reduce((a, l) => {
     a.cabezas += l.cabezas || 0;
     a.neto += l.total_neto || 0;
     a.gan += l.ret_ganancias || 0;
+    a.importe += l.subtotal || 0;
+    a.kg += l.kg_totales || 0;
     if (l.consignatario) a.cons.add(l.consignatario);
+    const cat = l.categoria || 'Sin categoría';
+    if (!porCat[cat]) porCat[cat] = { cabezas: 0, kg: 0 };
+    porCat[cat].cabezas += l.cabezas || 0;
+    porCat[cat].kg += l.kg_totales || 0;
     return a;
-  }, { cabezas: 0, neto: 0, gan: 0, cons: new Set() });
+  }, { cabezas: 0, neto: 0, gan: 0, importe: 0, kg: 0, cons: new Set() });
   document.getElementById('lh-res-cabezas').textContent = fmtNum(res.cabezas);
   document.getElementById('lh-res-neto').textContent = fmtMonto(res.neto, 'ARS');
   document.getElementById('lh-res-gan').textContent = fmtMonto(res.gan, 'ARS');
+  document.getElementById('lh-res-precio').textContent = res.kg ? fmtMonto(res.importe / res.kg, 'ARS') + '/kg' : '$0/kg';
   document.getElementById('lh-res-cons').textContent = res.cons.size ? [...res.cons].join(' / ') : '—';
+
+  const contCat = document.getElementById('lh-res-categorias');
+  if (contCat) {
+    const cats = Object.entries(porCat).sort((a, b) => b[1].cabezas - a[1].cabezas);
+    contCat.innerHTML = cats.length ? cats.map(([cat, v]) => `
+      <div style="background:#fff;border:1px solid var(--bordo-suave);border-radius:8px;padding:10px">
+        <div style="font-size:12px;color:var(--bordo);font-weight:600;margin-bottom:4px">${cat}</div>
+        <div style="font-size:15px;font-weight:700;color:var(--bordo)">${fmtNum(v.cabezas)} cab.</div>
+        <div style="font-size:12px;color:var(--texto-suave);margin-top:2px">${fmtKg(v.kg)} vendidos</div>
+      </div>`).join('') : '<div style="font-size:12px;color:var(--texto-suave)">Sin datos.</div>';
+  }
 
   const pag = document.getElementById('liqhac-paginador');
   if (!rows || !rows.length) {
