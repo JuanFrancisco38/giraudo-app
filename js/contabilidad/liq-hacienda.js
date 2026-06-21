@@ -17,13 +17,14 @@ async function procesarLiqHaciendaDoc(input) {
 
 Guía de campos:
 - cabezas: cantidad de animales.
-- kg_totales: kilos totales vendidos.
+- kg_totales: kilos totales vendidos (peso total).
 - precio: precio unitario ($/kg o $/cabeza).
-- subtotal: importe bruto antes de deducciones.
+- subtotal: IMPORTE bruto de la venta antes de deducciones.
 - comision: comisión / gastos de venta del consignatario.
-- ret_ganancias: retención de impuesto a las ganancias.
+- ret_ganancias: RETENCIÓN (impuesto a las ganancias u otras retenciones aplicadas).
 - iva: IVA.
-- total_neto: neto a cobrar / total a liquidar.
+- total_neto: TOTAL A COBRAR / neto a liquidar.
+(El Kg/animal NO hace falta, se calcula solo dividiendo kg_totales por cabezas.)
 
 IMPORTANTE: revisá la sección de deducciones línea por línea. Si un valor no figura, poné 0. Montos como número sin símbolos ni puntos de miles.`,
       'Extraé TODOS los datos de esta liquidación de hacienda.');
@@ -122,18 +123,26 @@ function renderLiqHacienda() {
   if (liqhacPagina > totalPag) liqhacPagina = totalPag;
   const pagina = rows.slice((liqhacPagina - 1) * FILAS_POR_PAGINA, liqhacPagina * FILAS_POR_PAGINA);
   if (pag) pag.innerHTML = htmlPaginador(liqhacPagina, rows.length, 'irPaginaLiqHac');
-  tbody.innerHTML = pagina.map(l => `
+  tbody.innerHTML = pagina.map(l => {
+    const kgAnimal = (l.kg_totales && l.cabezas) ? l.kg_totales / l.cabezas : null;
+    return `
     <tr>
       <td>${fmtFecha(l.fecha)}</td>
       <td>${l.numero || '—'}</td>
-      <td>${l.consignatario || '—'}</td>
-      <td><span class="badge badge-bordo">${l.cabezas ? l.cabezas + ' ' : ''}${l.categoria || ''}</span></td>
+      <td><strong>${l.consignatario || '—'}</strong></td>
       <td>${l.cabezas || '—'}</td>
+      <td><span class="badge badge-bordo">${l.categoria || '—'}</span></td>
+      <td>${l.kg_totales ? fmtKg(l.kg_totales) : '—'}</td>
+      <td>${kgAnimal ? fmtKg(Math.round(kgAnimal)) : '—'}</td>
+      <td>${l.precio ? fmtMonto(l.precio, 'ARS') : '—'}</td>
       <td>${l.subtotal ? fmtMonto(l.subtotal, 'ARS') : '—'}</td>
+      <td>${l.comision ? fmtMonto(l.comision, 'ARS') : '—'}</td>
+      <td>${l.iva ? fmtMonto(l.iva, 'ARS') : '—'}</td>
       <td>${l.ret_ganancias ? fmtMonto(l.ret_ganancias, 'ARS') : '—'}</td>
       <td><strong>${l.total_neto ? fmtMonto(l.total_neto, 'ARS') : '—'}</strong></td>
       <td style="white-space:nowrap">${l.archivo_url ? `<a class="btn btn-secondary" style="padding:4px 8px;font-size:12px;text-decoration:none" href="${l.archivo_url}" target="_blank" rel="noopener" title="Ver documento">👁️</a> ` : ''}<button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarLiqHacienda('${l.id}')">🗑️</button></td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 async function borrarLiqHacienda(id) {

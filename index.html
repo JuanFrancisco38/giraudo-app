@@ -547,17 +547,17 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             <div class="form-group"><label>Cabezas</label><input type="number" id="lh-cab"></div>
             <div class="form-group"><label>Kg totales</label><input type="number" id="lh-kg"></div>
             <div class="form-group"><label>Precio ($/kg o $/cab)</label><input type="number" id="lh-precio"></div>
-            <div class="form-group"><label>Subtotal $</label><input type="number" id="lh-sub"></div>
+            <div class="form-group"><label>Importe $</label><input type="number" id="lh-sub"></div>
             <div class="form-group"><label>Comisión $</label><input type="number" id="lh-com"></div>
-            <div class="form-group"><label>Ret. Ganancias $</label><input type="number" id="lh-gan"></div>
+            <div class="form-group"><label>Retención $</label><input type="number" id="lh-gan"></div>
             <div class="form-group"><label>IVA $</label><input type="number" id="lh-iva"></div>
             <div class="form-group"><label>Total neto $</label><input type="number" id="lh-neto"></div>
           </div>
           <div class="form-actions"><button class="btn btn-primary" onclick="guardarLiqHacienda()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-liqhac')">Cancelar</button></div>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>N° Liquid.</th><th>Consignatario</th><th>Categoría</th><th>Cab.</th><th>Subtotal</th><th>Ret. Gan.</th><th>Neto</th><th></th></tr></thead>
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>N° Liquid.</th><th>Razón social / Consignatario</th><th>Cabezas</th><th>Categoría</th><th>Kg total</th><th>Kg/animal</th><th>Precio</th><th>Importe</th><th>Comisión</th><th>IVA</th><th>Retención</th><th>Total a cobrar</th><th></th></tr></thead>
         <tbody id="tabla-liqhac">
-          <tr><td colspan="9"><div class="empty-state"><div class="icon">📄</div><h3>Sin liquidaciones</h3></div></td></tr>
+          <tr><td colspan="14"><div class="empty-state"><div class="icon">📄</div><h3>Sin liquidaciones</h3></div></td></tr>
         </tbody></table></div>
         <div id="liqhac-paginador"></div>
       </div>
