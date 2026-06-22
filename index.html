@@ -1348,22 +1348,44 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
               <label style="font-weight:600;font-size:13px">📷 Cargar desde foto o PDF — la IA completa lo que pueda leer</label>
               <input type="file" id="chr-archivo" accept="application/pdf,image/*" onchange="procesarChequeDoc(this,'recibido')" style="display:block;margin-top:8px">
               <div id="chr-doc-status" style="font-size:12px;color:var(--texto-suave);margin-top:6px"></div>
-              <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">Revisá siempre Beneficiario/Librador y Detalle — son datos que el cheque no trae y hay que completar a mano.</div>
+              <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">Revisá siempre Origen y Destino — son datos que el cheque no trae y hay que completar a mano.</div>
             </div>
+            <div style="font-size:12px;font-weight:700;color:var(--bordo);margin:8px 0 6px;text-transform:uppercase;letter-spacing:0.5px">Origen</div>
             <div class="form-grid">
-              <div class="form-group"><label>Fecha recepción</label><input type="date" id="chr-fecha"></div>
-              <div class="form-group"><label>N° cheque</label><input type="text" id="chr-num" placeholder="Ej: 00012345"></div>
-              <div class="form-group"><label>Banco</label><input type="text" id="chr-banco" placeholder="Ej: Banco Galicia"></div>
-              <div class="form-group"><label>Librador (quién lo emitió)</label><input type="text" id="chr-libr" placeholder="Ej: Turaglio Cereales S.R.L."></div>
-              <div class="form-group"><label>CUIT librador</label><input type="text" id="chr-cuit"></div>
-              <div class="form-group full"><label>Detalle (factura, producto, motivo...)</label><input type="text" id="chr-detalle" placeholder="Ej: Pago factura A-0001-00001234 / Venta de soja"></div>
-              <div class="form-group"><label>Firma destino</label><select id="chr-firma"><option value="Giraudo SH">Giraudo SH</option><option value="Francisco J. Giraudo">Francisco J. Giraudo</option></select></div>
-              <div class="form-group"><label>Fecha de cobro</label><input type="date" id="chr-fcobro"></div>
-              <div class="form-group"><label>Monto $</label><input type="number" step="any" id="chr-monto"></div>
-              <div class="form-group"><label>Estado</label><select id="chr-estado"><option value="cartera">En cartera</option><option value="efectivizado">Cobrado</option><option value="rechazado">Rechazado</option></select></div>
+              <div class="form-group"><label>Fecha</label><input type="date" id="chr-fecha"></div>
+              <div class="form-group"><label>Recibido de</label><input type="text" id="chr-libr" placeholder="Ej: Turaglio Cereales S.R.L."></div>
+              <div class="form-group"><label>CUIT</label><input type="text" id="chr-cuit"></div>
+              <div class="form-group"><label>Motivo</label><input type="text" id="chr-detalle" placeholder="Ej: Venta de soja"></div>
+              <div class="form-group"><label>Fac. (origen)</label><input type="text" id="chr-fac-origen" placeholder="N° factura que generó el cobro"></div>
               <div class="form-group"><label>Blanco / Negro</label><select id="chr-registro"><option value="blanco">Blanco</option><option value="negro">Negro</option></select></div>
-              <div class="form-group"><label>Endosado a (si aplica)</label><input type="text" id="chr-endoso" placeholder="A quién se lo entregaste"></div>
-              <div class="form-group"><label>Fecha endoso</label><input type="date" id="chr-fendoso"></div>
+            </div>
+
+            <div style="font-size:12px;font-weight:700;color:var(--bordo);margin:16px 0 6px;text-transform:uppercase;letter-spacing:0.5px">Datos del cheque</div>
+            <div class="form-grid">
+              <div class="form-group"><label>Banco</label><input type="text" id="chr-banco" placeholder="Ej: Banco Galicia"></div>
+              <div class="form-group"><label>Cuenta</label><input type="text" id="chr-cuenta" placeholder="N° de cuenta"></div>
+              <div class="form-group"><label>N° cheque</label><input type="text" id="chr-num" placeholder="Ej: 00012345"></div>
+              <div class="form-group"><label>Fecha Vto.</label><input type="date" id="chr-fcobro"></div>
+              <div class="form-group"><label>Importe $</label><input type="number" step="any" id="chr-monto"></div>
+              <div class="form-group"><label>Firma destino</label><select id="chr-firma"><option value="Giraudo SH">Giraudo SH</option><option value="Francisco J. Giraudo">Francisco J. Giraudo</option></select></div>
+              <div class="form-group"><label>Estado</label><select id="chr-estado"><option value="cartera">En cartera</option><option value="efectivizado">Cobrado</option><option value="rechazado">Rechazado</option></select></div>
+            </div>
+
+            <div style="font-size:12px;font-weight:700;color:var(--bordo);margin:16px 0 6px;text-transform:uppercase;letter-spacing:0.5px">Destino</div>
+            <div class="form-grid">
+              <div class="form-group"><label>Destino</label><input type="text" id="chr-destino" placeholder="A quién se lo entregaste / dónde se usó"></div>
+              <div class="form-group"><label>Fact. (destino)</label><input type="text" id="chr-fac-destino" placeholder="N° factura que pagás con este cheque"></div>
+              <div class="form-group"><label>Rubro</label>
+                <select id="chr-rubro">
+                  <option value="">—</option>
+                  <option>Agroquímicos</option><option>Semillas</option><option>Fertilizantes</option><option>Arrendamientos Rurales</option>
+                  <option>Combustibles y Lubricantes</option><option>Fletes</option><option>Gastos de Comercialización</option><option>Insumos Varios</option>
+                  <option>Inversiones Inmobiliarias</option><option>Inversiones Mobiliarias</option><option>Reparaciones</option><option>Repuestos</option>
+                  <option>Seguros</option><option>Servicios Profesionales</option><option>Servicios Rurales</option><option>Servicios Varios</option>
+                  <option>Ponedoras</option><option>Servicios de Acondicionamiento de Granos</option><option>Insumos Balanceado</option>
+                  <option>Insumos Veterinarios</option><option>Servicios Energéticos</option>
+                </select>
+              </div>
               <div class="form-group full"><label>Observaciones</label><input type="text" id="chr-obs"></div>
             </div>
             <div class="form-actions"><button class="btn btn-primary" onclick="guardarCheque('recibido')">Guardar cheque</button><button class="btn btn-secondary" onclick="toggleForm('form-chr')">Cancelar</button></div>
@@ -1394,8 +1416,16 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
           </div>
 
           <div class="table-wrap"><table>
-            <thead><tr><th>Fecha recep.</th><th>N° cheque</th><th>Banco</th><th>Librador</th><th>Detalle</th><th>Firma</th><th>F. cobro</th><th>Monto</th><th>Estado</th><th>Blanco/Negro</th><th>Endosado a</th><th></th></tr></thead>
-            <tbody id="tabla-chr"><tr><td colspan="12"><div class="empty-state"><div class="icon">💳</div><h3>Sin cheques recibidos</h3></div></td></tr></tbody>
+            <thead>
+              <tr>
+                <th colspan="5" style="text-align:center;background:var(--bordo-claro)">ORIGEN</th>
+                <th colspan="6" style="text-align:center;background:#f0f0ee">DATOS DEL CHEQUE</th>
+                <th colspan="3" style="text-align:center;background:var(--bordo-claro)">DESTINO</th>
+                <th></th>
+              </tr>
+              <tr><th>Fecha</th><th>Recibido de</th><th>Motivo</th><th>Fac.</th><th>B/N</th><th>Banco</th><th>Cuenta</th><th>N° cheque</th><th>Fecha Vto.</th><th>Importe</th><th>Estado</th><th>Destino</th><th>Fact.</th><th>Rubro</th><th></th></tr>
+            </thead>
+            <tbody id="tabla-chr"><tr><td colspan="15"><div class="empty-state"><div class="icon">💳</div><h3>Sin cheques recibidos</h3></div></td></tr></tbody>
           </table></div>
           <div id="chr-paginador"></div>
         </div>

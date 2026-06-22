@@ -82,8 +82,11 @@ async function guardarCheque(tipo) {
     observaciones: g('obs').value
   };
   if (tipo === 'recibido') {
-    data.endosado_a = g('endoso').value;
-    data.fecha_endoso = g('fendoso').value || null;
+    data.cuenta = g('cuenta').value;
+    data.factura_origen = g('fac-origen').value;
+    data.destino = g('destino').value;
+    data.factura_destino = g('fac-destino').value;
+    data.rubro_destino = g('rubro').value;
   }
 
   const r = await sb('POST', 'cheques', data);
@@ -91,7 +94,7 @@ async function guardarCheque(tipo) {
     toast(`✅ ${cfg.label.charAt(0).toUpperCase() + cfg.label.slice(1)} registrado`);
     toggleForm(`form-${cfg.pref}`);
     ['num','banco','libr','cuit','detalle','fcobro','monto','obs'].forEach(id => g(id).value = '');
-    if (tipo === 'recibido') { g('endoso').value = ''; g('fendoso').value = ''; }
+    if (tipo === 'recibido') { ['cuenta','fac-origen','destino','fac-destino','rubro'].forEach(id => g(id).value = ''); }
     g('estado').value = 'cartera';
     g('registro').value = 'blanco';
     g('archivo').value = '';
@@ -127,7 +130,7 @@ function renderCheques(tipo) {
   const fEstado = document.getElementById(`${cfg.pref}-filtro-estado`)?.value || '';
   const rows = st.todas.filter(c => {
     if (fEstado && c.estado !== fEstado) return false;
-    if (fBusca && !`${c.contraparte || ''} ${c.numero || ''} ${c.detalle || ''}`.toLowerCase().includes(fBusca)) return false;
+    if (fBusca && !`${c.contraparte || ''} ${c.numero || ''} ${c.detalle || ''} ${c.destino || ''} ${c.factura_origen || ''} ${c.factura_destino || ''}`.toLowerCase().includes(fBusca)) return false;
     if (st.mesFiltro && (c.fecha_cobro || '').slice(0, 7) !== st.mesFiltro) return false;
     return true;
   });
@@ -184,7 +187,7 @@ function renderCheques(tipo) {
     }
   }
 
-  const colspan = tipo === 'recibido' ? 11 : 10;
+  const colspan = tipo === 'recibido' ? 15 : 10;
   if (!rows.length) {
     const hayFiltro = fBusca || fEstado || st.mesFiltro;
     tbody.innerHTML = `<tr><td colspan="${colspan}"><div class="empty-state"><div class="icon">💳</div><h3>${hayFiltro ? 'Sin resultados para el filtro' : `Sin ${cfg.label}s`}</h3></div></td></tr>`;
@@ -207,16 +210,19 @@ function renderCheques(tipo) {
     const firmaCorta = c.firma === 'Francisco J. Giraudo' ? 'FJG' : (c.firma === 'Giraudo SH' ? 'SH' : (c.firma || '—'));
     const filas = tipo === 'recibido' ? `
       <td>${fmtFecha(c.fecha_emision)}</td>
-      <td style="font-size:11px">${c.numero || '—'}</td>
-      <td>${c.banco || '—'}</td>
       <td><strong>${c.contraparte || '—'}</strong></td>
       <td style="font-size:12px">${c.detalle || '—'}</td>
-      <td><span class="badge badge-bordo" style="font-size:10px">${firmaCorta}</span></td>
+      <td style="font-size:11px">${c.factura_origen || '—'}</td>
+      <td>${registroBadge}</td>
+      <td>${c.banco || '—'}</td>
+      <td style="font-size:11px">${c.cuenta || '—'}</td>
+      <td style="font-size:11px">${c.numero || '—'}</td>
       <td style="font-size:11px;color:var(--texto-suave)">${fmtFecha(c.fecha_cobro)}</td>
       <td><strong>${fmtMonto(c.monto, 'ARS')}</strong></td>
       <td>${badge}</td>
-      <td>${registroBadge}</td>
-      <td style="font-size:12px">${c.endosado_a || '—'}</td>
+      <td style="font-size:12px">${c.destino || '—'}</td>
+      <td style="font-size:11px">${c.factura_destino || '—'}</td>
+      <td><span class="badge badge-gray" style="font-size:10px">${c.rubro_destino || '—'}</span></td>
     ` : `
       <td>${fmtFecha(c.fecha_emision)}</td>
       <td style="font-size:11px">${c.numero || '—'}</td>
