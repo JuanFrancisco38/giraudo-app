@@ -964,6 +964,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
         <div class="card-header">
           <h3>🧾 Boletas recibidas — Carga con IA</h3>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input type="text" id="bol-filtro-busca" placeholder="🔎 Buscar razón social o N° factura..." oninput="filtrarBoletasReset()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;width:220px">
             <select id="bol-filtro-firma" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="filtrarBoletasReset()">
               <option value="">Todas las firmas</option>
               <option value="Francisco J. Giraudo">Francisco J. Giraudo</option>
@@ -1093,6 +1094,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
         <div class="card-header">
           <h3>🧾 Facturas emitidas — Carga con IA</h3>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input type="text" id="fe-filtro-busca" placeholder="🔎 Buscar razón social o N° factura..." oninput="filtrarFemitReset()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;width:220px">
             <select id="fe-filtro-firma" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="filtrarFemitReset()">
               <option value="">Todas las firmas</option>
               <option value="Francisco J. Giraudo">Francisco J. Giraudo</option>

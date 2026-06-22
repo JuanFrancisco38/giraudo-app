@@ -243,16 +243,21 @@ async function cargarBoletas() {
 function renderBoletas() {
   const fFirma = document.getElementById('bol-filtro-firma')?.value || '';
   const fCamp = document.getElementById('bol-filtro-campania')?.value || '';
+  const fBusca = (document.getElementById('bol-filtro-busca')?.value || '').trim().toLowerCase();
   const rows = boletasTodas.filter(r => {
     let e = {}; try { e = JSON.parse(r.observaciones || '{}'); } catch(err) {}
     if (fFirma && e.firma !== fFirma) return false;
     if (fCamp && (e.campania || '') !== fCamp) return false;
+    if (fBusca) {
+      const texto = `${r.proveedor || ''} ${e.numero_comprobante || ''}`.toLowerCase();
+      if (!texto.includes(fBusca)) return false;
+    }
     return true;
   });
   const tbody = document.getElementById('tabla-boletas');
   if (!rows || !rows.length) {
-    const hayFiltro = (document.getElementById('bol-filtro-firma')?.value || '') || (document.getElementById('bol-filtro-campania')?.value || '');
-    tbody.innerHTML = `<tr><td colspan="18"><div class="empty-state"><div class="icon">🧾</div><h3>${hayFiltro ? 'Sin resultados para el filtro' : 'Sin boletas cargadas'}</h3><p>${hayFiltro ? 'Probá con otra firma o campaña' : 'Subí una foto o PDF de la boleta'}</p></div></td></tr>`;
+    const hayFiltro = fFirma || fCamp || fBusca;
+    tbody.innerHTML = `<tr><td colspan="18"><div class="empty-state"><div class="icon">🧾</div><h3>${hayFiltro ? 'Sin resultados para el filtro' : 'Sin boletas cargadas'}</h3><p>${hayFiltro ? 'Probá con otra búsqueda, firma o campaña' : 'Subí una foto o PDF de la boleta'}</p></div></td></tr>`;
     document.getElementById('total-firma-fj').textContent = fmtMonto(0, 'ARS');
     document.getElementById('total-firma-sh').textContent = fmtMonto(0, 'ARS');
     document.getElementById('cant-firma-fj').textContent = '0 boletas';

@@ -237,16 +237,21 @@ function renderFacturasEmitidas() {
   if (!tbody) return;
   const fFirma = document.getElementById('fe-filtro-firma')?.value || '';
   const fCamp = document.getElementById('fe-filtro-campania')?.value || '';
+  const fBusca = (document.getElementById('fe-filtro-busca')?.value || '').trim().toLowerCase();
   const emitidas = femitTodas.filter(r => {
     let e = {}; try { e = JSON.parse(r.observaciones || '{}'); } catch(err) {}
     if (fFirma && e.firma !== fFirma) return false;
     if (fCamp && (e.campania || '') !== fCamp) return false;
+    if (fBusca) {
+      const texto = `${r.proveedor || ''} ${e.numero_comprobante || ''}`.toLowerCase();
+      if (!texto.includes(fBusca)) return false;
+    }
     return true;
   });
 
   if (!emitidas.length) {
-    const hayFiltro = fFirma || fCamp;
-    tbody.innerHTML = `<tr><td colspan="18"><div class="empty-state"><div class="icon">🧾</div><h3>${hayFiltro ? 'Sin resultados para el filtro' : 'Sin facturas emitidas'}</h3><p>${hayFiltro ? 'Probá con otra firma o campaña' : 'Subí un PDF o foto de la factura'}</p></div></td></tr>`;
+    const hayFiltro = fFirma || fCamp || fBusca;
+    tbody.innerHTML = `<tr><td colspan="18"><div class="empty-state"><div class="icon">🧾</div><h3>${hayFiltro ? 'Sin resultados para el filtro' : 'Sin facturas emitidas'}</h3><p>${hayFiltro ? 'Probá con otra búsqueda, firma o campaña' : 'Subí un PDF o foto de la factura'}</p></div></td></tr>`;
     ['fe-total-facturado','fe-total-cobrado','fe-total-pendiente','fe-total-iva'].forEach(id => document.getElementById(id).textContent = fmtMonto(0, 'ARS'));
     ['fe-cant','fe-cant-cobrado','fe-cant-pendiente'].forEach(id => document.getElementById(id).textContent = '0 ítems');
     const cr = document.getElementById('fe-resumen-concepto');
