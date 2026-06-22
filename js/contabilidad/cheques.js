@@ -120,9 +120,9 @@ function renderCheques(tipo) {
     contProy.innerHTML = [...meses].sort().map(ym => {
       const v = porMes[ym] || { total: 0, cant: 0 };
       const tieneMonto = v.total > 0;
-      return `<div style="background:${tieneMonto ? '#fff' : '#fafafa'};border:1px solid ${tieneMonto ? 'var(--bordo-suave)' : 'var(--gris-borde)'};border-radius:8px;padding:10px;text-align:center">
+      return `<div style="background:${tieneMonto ? '#fff' : '#fafafa'};border:1px solid ${tieneMonto ? 'var(--bordo-suave)' : 'var(--gris-borde)'};border-radius:8px;padding:10px;text-align:center;min-height:78px;display:flex;flex-direction:column;justify-content:center;gap:2px">
         <div style="font-size:11px;color:var(--texto-suave);font-weight:600">${nombreMes(ym)}</div>
-        <div style="font-size:15px;font-weight:700;color:${tieneMonto ? 'var(--bordo)' : 'var(--texto-suave)'};margin-top:4px">${fmtMonto(v.total, 'ARS')}</div>
+        <div style="font-size:15px;font-weight:700;color:${tieneMonto ? 'var(--bordo)' : 'var(--texto-suave)'}">${fmtMonto(v.total, 'ARS')}</div>
         <div style="font-size:11px;color:var(--texto-suave)">${v.cant} cheque${v.cant !== 1 ? 's' : ''}</div>
       </div>`;
     }).join('');
