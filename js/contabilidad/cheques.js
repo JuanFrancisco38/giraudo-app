@@ -73,14 +73,6 @@ async function guardarCheque(tipo) {
     data.fecha_endoso = g('fendoso').value || null;
   }
 
-  const st = chequeState[tipo];
-  if (st.archivo) {
-    toast('⏳ Subiendo foto/PDF...');
-    const url = await subirArchivo(st.archivo);
-    if (url) data.archivo_url = url;
-    else toast('⚠️ No se pudo subir el archivo (se guarda igual)', 'var(--tierra)');
-  }
-
   const r = await sb('POST', 'cheques', data);
   if (r) {
     toast(`✅ ${cfg.label.charAt(0).toUpperCase() + cfg.label.slice(1)} registrado`);
@@ -91,7 +83,7 @@ async function guardarCheque(tipo) {
     g('registro').value = 'blanco';
     g('archivo').value = '';
     document.getElementById(`${cfg.pref}-doc-status`).textContent = '';
-    st.archivo = null;
+    chequeState[tipo].archivo = null;
     cargarCheques(tipo);
   } else toast('❌ Error al guardar', 'var(--rojo)');
 }
@@ -215,7 +207,7 @@ function renderCheques(tipo) {
       <td>${badge}</td>
       <td>${registroBadge}</td>
     `;
-    return `<tr>${filas}<td style="white-space:nowrap">${c.archivo_url ? `<a class="btn btn-secondary" style="padding:4px 8px;font-size:12px;text-decoration:none" href="${c.archivo_url}" target="_blank" rel="noopener" title="Ver foto/PDF">👁️</a> ` : ''}<button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarCheque('${c.id}','${tipo}')">🗑️</button></td></tr>`;
+    return `<tr>${filas}<td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarCheque('${c.id}','${tipo}')">🗑️</button></td></tr>`;
   }).join('');
 }
 
