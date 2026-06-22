@@ -152,12 +152,20 @@ function renderCheques(tipo) {
   // Proyección por mes (cheques en cartera agrupados por fecha de cobro/pago) — muestra todos los meses del año en curso, aunque estén en $0
   const contProy = document.getElementById(`${cfg.pref}-proyeccion`);
   if (contProy) {
+    const clasificarBanco = (banco) => {
+      const b = (banco || '').toLowerCase();
+      if (b.includes('bancor') || b.includes('córdoba') || b.includes('cordoba')) return 'Bancor';
+      if (b.includes('nación') || b.includes('nacion') || b.includes('bna')) return 'B. Nación';
+      return 'Otros';
+    };
     const porMes = {};
     st.todas.filter(c => c.estado === 'cartera' && c.fecha_cobro).forEach(c => {
       const mes = c.fecha_cobro.slice(0, 7); // YYYY-MM
-      if (!porMes[mes]) porMes[mes] = { total: 0, cant: 0 };
+      if (!porMes[mes]) porMes[mes] = { total: 0, cant: 0, bancos: {} };
       porMes[mes].total += c.monto || 0;
       porMes[mes].cant++;
+      const b = clasificarBanco(c.banco);
+      porMes[mes].bancos[b] = (porMes[mes].bancos[b] || 0) + (c.monto || 0);
     });
     const anioActual = new Date().getFullYear();
     const meses = new Set();
@@ -165,14 +173,18 @@ function renderCheques(tipo) {
     Object.keys(porMes).forEach(ym => meses.add(ym));
     const nombreMes = nombreMesCheque;
     contProy.innerHTML = [...meses].sort().map(ym => {
-      const v = porMes[ym] || { total: 0, cant: 0 };
+      const v = porMes[ym] || { total: 0, cant: 0, bancos: {} };
       const tieneMonto = v.total > 0;
       const activo = st.mesFiltro === ym;
       const borde = activo ? 'var(--bordo)' : (tieneMonto ? 'var(--bordo-suave)' : 'var(--gris-borde)');
-      return `<div onclick="filtrarMesCheque('${tipo}','${ym}')" style="cursor:pointer;background:${activo ? 'var(--bordo-claro)' : (tieneMonto ? '#fff' : '#fafafa')};border:${activo ? '2px' : '1px'} solid ${borde};border-radius:8px;padding:10px;text-align:center;min-height:78px;display:flex;flex-direction:column;justify-content:center;gap:2px">
+      const desgloseBancos = (tipo === 'emitido' && tieneMonto)
+        ? Object.entries(v.bancos || {}).sort((a,b) => b[1]-a[1]).map(([b, t]) => `<div style="font-size:10px;color:var(--texto-suave)">${b}: ${fmtMonto(t, 'ARS')}</div>`).join('')
+        : '';
+      return `<div onclick="filtrarMesCheque('${tipo}','${ym}')" style="cursor:pointer;background:${activo ? 'var(--bordo-claro)' : (tieneMonto ? '#fff' : '#fafafa')};border:${activo ? '2px' : '1px'} solid ${borde};border-radius:8px;padding:10px;text-align:center;min-height:${tipo === 'emitido' ? '96' : '78'}px;display:flex;flex-direction:column;justify-content:center;gap:2px">
         <div style="font-size:11px;color:var(--texto-suave);font-weight:600">${nombreMes(ym)}</div>
         <div style="font-size:15px;font-weight:700;color:${tieneMonto ? 'var(--bordo)' : 'var(--texto-suave)'}">${fmtMonto(v.total, 'ARS')}</div>
         <div style="font-size:11px;color:var(--texto-suave)">${v.cant} cheque${v.cant !== 1 ? 's' : ''}</div>
+        ${desgloseBancos}
       </div>`;
     }).join('');
   }
