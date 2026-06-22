@@ -100,13 +100,16 @@ async function cargarLiqGranos() {
   renderLiqGranos();
 }
 
+function filtrarLiqGrReset() { liqgrPagina = 1; renderLiqGranos(); }
+
 function renderLiqGranos() {
-  const rows = liqgrTodas;
+  const fBusca = (document.getElementById('liqgr-filtro-busca')?.value || '').trim().toLowerCase();
+  const rows = fBusca ? liqgrTodas.filter(l => `${l.acopio || ''} ${l.numero || ''}`.toLowerCase().includes(fBusca)) : liqgrTodas;
   const tbody = document.getElementById('tabla-liqgr');
   if (!tbody) return;
   const pag = document.getElementById('liqgr-paginador');
   if (!rows || !rows.length) {
-    tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="icon">📄</div><h3>Sin liquidaciones</h3></div></td></tr>';
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="icon">📄</div><h3>${fBusca ? 'Sin resultados para la búsqueda' : 'Sin liquidaciones'}</h3></div></td></tr>`;
     if (pag) pag.innerHTML = '';
     return;
   }

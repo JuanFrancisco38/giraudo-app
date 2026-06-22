@@ -147,6 +147,8 @@ async function cargarLiqHacienda() {
   renderLiqHacienda();
 }
 
+function filtrarLiqHacReset() { liqhacPagina = 1; renderLiqHacienda(); }
+
 function renderLiqHacienda() {
   const rows = liqhacTodas;
   const tbody = document.getElementById('tabla-liqhac');
@@ -188,15 +190,17 @@ function renderLiqHacienda() {
   }
 
   const pag = document.getElementById('liqhac-paginador');
-  if (!rows || !rows.length) {
-    tbody.innerHTML = '<tr><td colspan="14"><div class="empty-state"><div class="icon">📄</div><h3>Sin liquidaciones</h3></div></td></tr>';
+  const fBusca = (document.getElementById('liqhac-filtro-busca')?.value || '').trim().toLowerCase();
+  const filtradas = fBusca ? rows.filter(l => `${l.consignatario || ''} ${l.numero || ''}`.toLowerCase().includes(fBusca)) : rows;
+  if (!filtradas || !filtradas.length) {
+    tbody.innerHTML = `<tr><td colspan="14"><div class="empty-state"><div class="icon">📄</div><h3>${fBusca ? 'Sin resultados para la búsqueda' : 'Sin liquidaciones'}</h3></div></td></tr>`;
     if (pag) pag.innerHTML = '';
     return;
   }
-  const totalPag = Math.ceil(rows.length / FILAS_POR_PAGINA) || 1;
+  const totalPag = Math.ceil(filtradas.length / FILAS_POR_PAGINA) || 1;
   if (liqhacPagina > totalPag) liqhacPagina = totalPag;
-  const pagina = rows.slice((liqhacPagina - 1) * FILAS_POR_PAGINA, liqhacPagina * FILAS_POR_PAGINA);
-  if (pag) pag.innerHTML = htmlPaginador(liqhacPagina, rows.length, 'irPaginaLiqHac');
+  const pagina = filtradas.slice((liqhacPagina - 1) * FILAS_POR_PAGINA, liqhacPagina * FILAS_POR_PAGINA);
+  if (pag) pag.innerHTML = htmlPaginador(liqhacPagina, filtradas.length, 'irPaginaLiqHac');
   tbody.innerHTML = pagina.map(l => {
     const kgAnimal = (l.kg_totales && l.cabezas) ? l.kg_totales / l.cabezas : null;
     return `

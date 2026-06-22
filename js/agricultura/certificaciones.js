@@ -90,13 +90,16 @@ async function cargarCertificaciones() {
   renderCertificaciones();
 }
 
+function filtrarCertReset() { certPagina = 1; renderCertificaciones(); }
+
 function renderCertificaciones() {
-  const rows = certTodas;
+  const fBusca = (document.getElementById('cert-filtro-busca')?.value || '').trim().toLowerCase();
+  const rows = fBusca ? certTodas.filter(row => { const c = parseCert(row); return `${c.depositario || ''} ${c.coe || ''}`.toLowerCase().includes(fBusca); }) : certTodas;
   const tbody = document.getElementById('tabla-cert');
   if (!tbody) return;
   const pag = document.getElementById('cert-paginador');
   if (!rows || !rows.length) {
-    tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="icon">📋</div><h3>Sin certificaciones</h3></div></td></tr>';
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="icon">📋</div><h3>${fBusca ? 'Sin resultados para la búsqueda' : 'Sin certificaciones'}</h3></div></td></tr>`;
     if (pag) pag.innerHTML = '';
     return;
   }

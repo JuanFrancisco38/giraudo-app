@@ -535,7 +535,12 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
         <div id="lh-res-categorias" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px"></div>
       </div>
       <div class="card">
-        <div class="card-header"><h3>Liquidaciones de hacienda</h3><button class="btn btn-primary" onclick="abrirFormLiqHac()">+ Registrar</button></div>
+        <div class="card-header"><h3>Liquidaciones de hacienda</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input type="text" id="liqhac-filtro-busca" placeholder="🔎 Buscar consignatario o N° liquidación..." oninput="filtrarLiqHacReset()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;width:240px">
+            <button class="btn btn-primary" onclick="abrirFormLiqHac()">+ Registrar</button>
+          </div>
+        </div>
         <div id="form-liqhac" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
           <div style="margin-bottom:14px;padding:12px;background:#faf8f5;border:1px dashed var(--gris-borde);border-radius:8px">
             <label style="font-weight:600;font-size:13px">📄 Cargar desde PDF o imagen — la IA completa los campos</label>
@@ -590,7 +595,12 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><h3>Liquidaciones de granos</h3><button class="btn btn-primary" onclick="toggleForm('form-liqgr')">+ Registrar</button></div>
+        <div class="card-header"><h3>Liquidaciones de granos</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input type="text" id="liqgr-filtro-busca" placeholder="🔎 Buscar acopiador o C.O.E..." oninput="filtrarLiqGrReset()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;width:220px">
+            <button class="btn btn-primary" onclick="toggleForm('form-liqgr')">+ Registrar</button>
+          </div>
+        </div>
         <div id="form-liqgr" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
           <div style="margin-bottom:14px;padding:12px;background:#faf8f5;border:1px dashed var(--gris-borde);border-radius:8px">
             <label style="font-weight:600;font-size:13px">📄 Cargar desde PDF o imagen — la IA completa los campos</label>
@@ -624,7 +634,12 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
     <!-- CERTIFICACIONES -->
     <div id="section-certificaciones" class="section">
       <div class="card">
-        <div class="card-header"><h3>📋 Certificaciones de depósito — Campaña 25/26</h3><button class="btn btn-primary" onclick="toggleForm('form-cert')">+ Registrar</button></div>
+        <div class="card-header"><h3>📋 Certificaciones de depósito — Campaña 25/26</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input type="text" id="cert-filtro-busca" placeholder="🔎 Buscar depositario o C.O.E..." oninput="filtrarCertReset()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;width:220px">
+            <button class="btn btn-primary" onclick="toggleForm('form-cert')">+ Registrar</button>
+          </div>
+        </div>
         <div id="form-cert" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
           <div style="margin-bottom:14px;padding:12px;background:#faf8f5;border:1px dashed var(--gris-borde);border-radius:8px">
             <label style="font-weight:600;font-size:13px">📄 Cargar desde PDF o imagen — la IA completa los campos</label>
