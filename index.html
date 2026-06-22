@@ -178,6 +178,7 @@ tr:hover td{background:var(--gris)}
     <div class="nav-item" onclick="showSection('certificaciones',this)">📋 Certificaciones de grano</div>
     <div class="nav-item" onclick="showSection('liq_hacienda',this)">📄 Liquidación de hacienda</div>
     <div class="nav-item" onclick="showSection('retenciones',this)">📑 Retenciones</div>
+    <div class="nav-item" onclick="showSection('cheques',this)">💳 Cheques</div>
     <div class="nav-item" onclick="showSection('movimientos',this)">💰 Movimientos</div>
   </div>
 
@@ -1320,6 +1321,130 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
       </div>
     </div>
 
+    <!-- CHEQUES -->
+    <div id="section-cheques" class="section">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab(this,'tab-chr')">Recibidos</div>
+        <div class="tab" onclick="switchTab(this,'tab-che')">Emitidos</div>
+      </div>
+
+      <div id="tab-chr">
+        <div class="card">
+          <div class="card-header">
+            <h3>💳 Cheques recibidos</h3>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <input type="text" id="chr-filtro-busca" placeholder="🔎 Buscar librador o N° cheque..." oninput="filtrarChequeReset('recibido')" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;width:220px">
+              <select id="chr-filtro-estado" onchange="filtrarChequeReset('recibido')" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px">
+                <option value="">Todos los estados</option>
+                <option value="cartera">En cartera</option>
+                <option value="efectivizado">Cobrado</option>
+                <option value="rechazado">Rechazado</option>
+              </select>
+              <button class="btn btn-primary" onclick="toggleForm('form-chr')">+ Cargar cheque</button>
+            </div>
+          </div>
+          <div id="form-chr" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+            <div class="form-grid">
+              <div class="form-group"><label>Fecha recepción</label><input type="date" id="chr-fecha"></div>
+              <div class="form-group"><label>N° cheque</label><input type="text" id="chr-num" placeholder="Ej: 00012345"></div>
+              <div class="form-group"><label>Banco</label><input type="text" id="chr-banco" placeholder="Ej: Banco Galicia"></div>
+              <div class="form-group"><label>Librador (quién lo emitió)</label><input type="text" id="chr-libr" placeholder="Ej: Turaglio Cereales S.R.L."></div>
+              <div class="form-group"><label>CUIT librador</label><input type="text" id="chr-cuit"></div>
+              <div class="form-group"><label>Firma destino</label><select id="chr-firma"><option value="Giraudo SH">Giraudo SH</option><option value="Francisco J. Giraudo">Francisco J. Giraudo</option></select></div>
+              <div class="form-group"><label>Fecha de cobro</label><input type="date" id="chr-fcobro"></div>
+              <div class="form-group"><label>Monto $</label><input type="number" step="any" id="chr-monto"></div>
+              <div class="form-group"><label>Estado</label><select id="chr-estado"><option value="cartera">En cartera</option><option value="efectivizado">Cobrado</option><option value="rechazado">Rechazado</option></select></div>
+              <div class="form-group"><label>Endosado a (si aplica)</label><input type="text" id="chr-endoso" placeholder="A quién se lo entregaste"></div>
+              <div class="form-group"><label>Fecha endoso</label><input type="date" id="chr-fendoso"></div>
+              <div class="form-group full"><label>Observaciones</label><input type="text" id="chr-obs"></div>
+            </div>
+            <div class="form-actions"><button class="btn btn-primary" onclick="guardarCheque('recibido')">Guardar cheque</button><button class="btn btn-secondary" onclick="toggleForm('form-chr')">Cancelar</button></div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px;border-bottom:1px solid var(--gris-borde)">
+            <div style="background:var(--bordo-claro);border-radius:8px;padding:12px;border:1px solid var(--bordo-suave)">
+              <div style="font-size:12px;color:var(--bordo);font-weight:600">📥 En cartera</div>
+              <div style="font-size:18px;font-weight:700;color:var(--bordo);margin-top:6px" id="chr-tot-cartera">$0</div>
+              <div style="font-size:11px;color:var(--texto-suave)" id="chr-cant-cartera">0 cheques</div>
+            </div>
+            <div style="background:var(--verde-claro);border-radius:8px;padding:12px;border:1px solid var(--verde)">
+              <div style="font-size:12px;color:var(--verde);font-weight:600">✅ Cobrados</div>
+              <div style="font-size:18px;font-weight:700;color:var(--verde);margin-top:6px" id="chr-tot-efectivizado">$0</div>
+              <div style="font-size:11px;color:var(--texto-suave)" id="chr-cant-efectivizado">0 cheques</div>
+            </div>
+            <div style="background:var(--rojo-claro);border-radius:8px;padding:12px;border:1px solid var(--rojo)">
+              <div style="font-size:12px;color:var(--rojo);font-weight:600">❌ Rechazados</div>
+              <div style="font-size:18px;font-weight:700;color:var(--rojo);margin-top:6px" id="chr-tot-rechazado">$0</div>
+              <div style="font-size:11px;color:var(--texto-suave)" id="chr-cant-rechazado">0 cheques</div>
+            </div>
+          </div>
+
+          <div class="table-wrap"><table>
+            <thead><tr><th>Fecha recep.</th><th>N° cheque</th><th>Banco</th><th>Librador</th><th>Firma</th><th>F. cobro</th><th>Monto</th><th>Estado</th><th>Endosado a</th><th></th></tr></thead>
+            <tbody id="tabla-chr"><tr><td colspan="10"><div class="empty-state"><div class="icon">💳</div><h3>Sin cheques recibidos</h3></div></td></tr></tbody>
+          </table></div>
+          <div id="chr-paginador"></div>
+        </div>
+      </div>
+
+      <div id="tab-che" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <h3>💳 Cheques emitidos</h3>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <input type="text" id="che-filtro-busca" placeholder="🔎 Buscar beneficiario o N° cheque..." oninput="filtrarChequeReset('emitido')" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;width:220px">
+              <select id="che-filtro-estado" onchange="filtrarChequeReset('emitido')" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px">
+                <option value="">Todos los estados</option>
+                <option value="cartera">En cartera</option>
+                <option value="efectivizado">Pagado</option>
+                <option value="rechazado">Rechazado</option>
+              </select>
+              <button class="btn btn-primary" onclick="toggleForm('form-che')">+ Cargar cheque</button>
+            </div>
+          </div>
+          <div id="form-che" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+            <div class="form-grid">
+              <div class="form-group"><label>Fecha emisión</label><input type="date" id="che-fecha"></div>
+              <div class="form-group"><label>N° cheque</label><input type="text" id="che-num" placeholder="Ej: 00012345"></div>
+              <div class="form-group"><label>Banco</label><input type="text" id="che-banco" placeholder="Ej: Banco Galicia"></div>
+              <div class="form-group"><label>Beneficiario</label><input type="text" id="che-libr" placeholder="Ej: Agroinsumos del Centro S.A."></div>
+              <div class="form-group"><label>CUIT beneficiario</label><input type="text" id="che-cuit"></div>
+              <div class="form-group"><label>Firma emisora</label><select id="che-firma"><option value="Giraudo SH">Giraudo SH</option><option value="Francisco J. Giraudo">Francisco J. Giraudo</option></select></div>
+              <div class="form-group"><label>Fecha de pago</label><input type="date" id="che-fcobro"></div>
+              <div class="form-group"><label>Monto $</label><input type="number" step="any" id="che-monto"></div>
+              <div class="form-group"><label>Estado</label><select id="che-estado"><option value="cartera">En cartera</option><option value="efectivizado">Pagado</option><option value="rechazado">Rechazado</option></select></div>
+              <div class="form-group full"><label>Observaciones</label><input type="text" id="che-obs"></div>
+            </div>
+            <div class="form-actions"><button class="btn btn-primary" onclick="guardarCheque('emitido')">Guardar cheque</button><button class="btn btn-secondary" onclick="toggleForm('form-che')">Cancelar</button></div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px;border-bottom:1px solid var(--gris-borde)">
+            <div style="background:var(--bordo-claro);border-radius:8px;padding:12px;border:1px solid var(--bordo-suave)">
+              <div style="font-size:12px;color:var(--bordo);font-weight:600">📤 En cartera</div>
+              <div style="font-size:18px;font-weight:700;color:var(--bordo);margin-top:6px" id="che-tot-cartera">$0</div>
+              <div style="font-size:11px;color:var(--texto-suave)" id="che-cant-cartera">0 cheques</div>
+            </div>
+            <div style="background:var(--verde-claro);border-radius:8px;padding:12px;border:1px solid var(--verde)">
+              <div style="font-size:12px;color:var(--verde);font-weight:600">✅ Pagados</div>
+              <div style="font-size:18px;font-weight:700;color:var(--verde);margin-top:6px" id="che-tot-efectivizado">$0</div>
+              <div style="font-size:11px;color:var(--texto-suave)" id="che-cant-efectivizado">0 cheques</div>
+            </div>
+            <div style="background:var(--rojo-claro);border-radius:8px;padding:12px;border:1px solid var(--rojo)">
+              <div style="font-size:12px;color:var(--rojo);font-weight:600">❌ Rechazados</div>
+              <div style="font-size:18px;font-weight:700;color:var(--rojo);margin-top:6px" id="che-tot-rechazado">$0</div>
+              <div style="font-size:11px;color:var(--texto-suave)" id="che-cant-rechazado">0 cheques</div>
+            </div>
+          </div>
+
+          <div class="table-wrap"><table>
+            <thead><tr><th>Fecha emisión</th><th>N° cheque</th><th>Banco</th><th>Beneficiario</th><th>Firma</th><th>F. pago</th><th>Monto</th><th>Estado</th><th></th></tr></thead>
+            <tbody id="tabla-che"><tr><td colspan="9"><div class="empty-state"><div class="icon">💳</div><h3>Sin cheques emitidos</h3></div></td></tr></tbody>
+          </table></div>
+          <div id="che-paginador"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- MOVIMIENTOS -->
     <div id="section-movimientos" class="section">
       <div class="card">
@@ -1419,6 +1544,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 <script src="js/contabilidad/boletas.js"></script>
 <script src="js/contabilidad/facturas-emitidas.js"></script>
 <script src="js/contabilidad/notas.js"></script>
+<script src="js/contabilidad/cheques.js"></script>
 <script src="js/contabilidad/balance.js"></script>
 <script src="js/mercado/precios.js"></script>
 <script src="js/importar.js"></script>

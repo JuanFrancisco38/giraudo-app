@@ -130,7 +130,7 @@ function showSection(id, el) {
     mantenimiento:'Mantenimiento', precios:'Precios relativos',
     boletas:'Facturas recibidas', facturas_emitidas:'Facturas emitidas',
     notas_credito:'Notas de crédito', notas_debito:'Notas de débito', movimientos:'Movimientos',
-    retenciones:'Retenciones', balance:'Balance mensual'
+    retenciones:'Retenciones', balance:'Balance mensual', cheques:'Cheques'
   };
   if (id === 'boletas') cargarBoletas();
   if (id === 'precios') cargarHistorialPrecios();
@@ -143,6 +143,7 @@ function showSection(id, el) {
   if (id === 'notas_debito') cargarNotas('nota_debito');
   if (id === 'mantenimiento') cargarMantenimiento();
   if (id === 'liq_hacienda') cargarLiqHacienda();
+  if (id === 'cheques') cargarTodosCheques();
   if (id === 'dashboard') cargarDashboard();
   document.getElementById('topbar-title').textContent = titles[id] || id;
   closeSidebar();
