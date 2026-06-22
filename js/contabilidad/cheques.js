@@ -98,6 +98,30 @@ function renderCheques(tipo) {
     if (elCant) elCant.textContent = acc[e].cant + ' cheque' + (acc[e].cant !== 1 ? 's' : '');
   });
 
+  // Proyección por mes (solo cheques en cartera, agrupados por fecha de cobro/pago)
+  const contProy = document.getElementById(`${cfg.pref}-proyeccion`);
+  if (contProy) {
+    const porMes = {};
+    st.todas.filter(c => c.estado === 'cartera' && c.fecha_cobro).forEach(c => {
+      const mes = c.fecha_cobro.slice(0, 7); // YYYY-MM
+      if (!porMes[mes]) porMes[mes] = { total: 0, cant: 0 };
+      porMes[mes].total += c.monto || 0;
+      porMes[mes].cant++;
+    });
+    const meses = Object.keys(porMes).sort();
+    const nombreMes = (ym) => {
+      const [y, m] = ym.split('-');
+      const nombres = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+      return `${nombres[parseInt(m) - 1]} ${y}`;
+    };
+    contProy.innerHTML = meses.length ? meses.map(ym => `
+      <div style="background:#fff;border:1px solid var(--bordo-suave);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:11px;color:var(--texto-suave);font-weight:600">${nombreMes(ym)}</div>
+        <div style="font-size:15px;font-weight:700;color:var(--bordo);margin-top:4px">${fmtMonto(porMes[ym].total, 'ARS')}</div>
+        <div style="font-size:11px;color:var(--texto-suave)">${porMes[ym].cant} cheque${porMes[ym].cant !== 1 ? 's' : ''}</div>
+      </div>`).join('') : '<div style="font-size:12px;color:var(--texto-suave)">Sin cheques en cartera con fecha de cobro/pago.</div>';
+  }
+
   const colspan = tipo === 'recibido' ? 11 : 10;
   if (!rows.length) {
     const hayFiltro = fBusca || fEstado;
