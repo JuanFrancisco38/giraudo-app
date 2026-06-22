@@ -1344,6 +1344,12 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             </div>
           </div>
           <div id="form-chr" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+            <div style="margin-bottom:14px;padding:12px;background:#faf8f5;border:1px dashed var(--gris-borde);border-radius:8px">
+              <label style="font-weight:600;font-size:13px">📷 Cargar desde foto o PDF — la IA completa lo que pueda leer</label>
+              <input type="file" id="chr-archivo" accept="application/pdf,image/*" onchange="procesarChequeDoc(this,'recibido')" style="display:block;margin-top:8px">
+              <div id="chr-doc-status" style="font-size:12px;color:var(--texto-suave);margin-top:6px"></div>
+              <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">Revisá siempre Beneficiario/Librador y Detalle — son datos que el cheque no trae y hay que completar a mano.</div>
+            </div>
             <div class="form-grid">
               <div class="form-group"><label>Fecha recepción</label><input type="date" id="chr-fecha"></div>
               <div class="form-group"><label>N° cheque</label><input type="text" id="chr-num" placeholder="Ej: 00012345"></div>
@@ -1410,6 +1416,12 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             </div>
           </div>
           <div id="form-che" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+            <div style="margin-bottom:14px;padding:12px;background:#faf8f5;border:1px dashed var(--gris-borde);border-radius:8px">
+              <label style="font-weight:600;font-size:13px">📷 Cargar desde foto o PDF — la IA completa lo que pueda leer</label>
+              <input type="file" id="che-archivo" accept="application/pdf,image/*" onchange="procesarChequeDoc(this,'emitido')" style="display:block;margin-top:8px">
+              <div id="che-doc-status" style="font-size:12px;color:var(--texto-suave);margin-top:6px"></div>
+              <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">Revisá siempre Beneficiario y Detalle — son datos que el cheque no trae y hay que completar a mano.</div>
+            </div>
             <div class="form-grid">
               <div class="form-group"><label>Fecha emisión</label><input type="date" id="che-fecha"></div>
               <div class="form-group"><label>N° cheque</label><input type="text" id="che-num" placeholder="Ej: 00012345"></div>
