@@ -36,6 +36,7 @@ async function guardarCheque(tipo) {
     fecha_cobro: g('fcobro').value || null,
     monto,
     estado: g('estado').value,
+    registro: g('registro').value,
     observaciones: g('obs').value
   };
   if (tipo === 'recibido') {
@@ -50,6 +51,7 @@ async function guardarCheque(tipo) {
     ['num','banco','libr','cuit','detalle','fcobro','monto','obs'].forEach(id => g(id).value = '');
     if (tipo === 'recibido') { g('endoso').value = ''; g('fendoso').value = ''; }
     g('estado').value = 'cartera';
+    g('registro').value = 'blanco';
     cargarCheques(tipo);
   } else toast('❌ Error al guardar', 'var(--rojo)');
 }
@@ -147,6 +149,7 @@ function renderCheques(tipo) {
 
   tbody.innerHTML = pagina.map(c => {
     const badge = `<button class="badge ${ESTADO_BADGE[c.estado] || 'badge-bordo'}" style="border:none;cursor:pointer" onclick="cicloEstadoCheque('${c.id}','${tipo}', this)">${estadoLabel[c.estado] || c.estado}</button>`;
+    const registroBadge = `<button class="badge ${c.registro === 'negro' ? 'badge-gray' : 'badge-blue'}" style="border:none;cursor:pointer" onclick="toggleRegistroCheque('${c.id}','${tipo}', this)">${c.registro === 'negro' ? 'Negro' : 'Blanco'}</button>`;
     const firmaCorta = c.firma === 'Francisco J. Giraudo' ? 'FJG' : (c.firma === 'Giraudo SH' ? 'SH' : (c.firma || '—'));
     const filas = tipo === 'recibido' ? `
       <td>${fmtFecha(c.fecha_emision)}</td>
@@ -158,6 +161,7 @@ function renderCheques(tipo) {
       <td style="font-size:11px;color:var(--texto-suave)">${fmtFecha(c.fecha_cobro)}</td>
       <td><strong>${fmtMonto(c.monto, 'ARS')}</strong></td>
       <td>${badge}</td>
+      <td>${registroBadge}</td>
       <td style="font-size:12px">${c.endosado_a || '—'}</td>
     ` : `
       <td>${fmtFecha(c.fecha_emision)}</td>
@@ -169,9 +173,23 @@ function renderCheques(tipo) {
       <td style="font-size:11px;color:var(--texto-suave)">${fmtFecha(c.fecha_cobro)}</td>
       <td><strong>${fmtMonto(c.monto, 'ARS')}</strong></td>
       <td>${badge}</td>
+      <td>${registroBadge}</td>
     `;
     return `<tr>${filas}<td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarCheque('${c.id}','${tipo}')">🗑️</button></td></tr>`;
   }).join('');
+}
+
+async function toggleRegistroCheque(id, tipo, btn) {
+  const st = chequeState[tipo];
+  const cheque = st.todas.find(c => c.id === id);
+  if (!cheque) return;
+  const nuevo = cheque.registro === 'negro' ? 'blanco' : 'negro';
+  const r = await sb('PATCH', 'cheques', { registro: nuevo }, `?id=eq.${id}`);
+  if (r !== null) {
+    cheque.registro = nuevo;
+    renderCheques(tipo);
+    toast('✅ Actualizado');
+  } else toast('❌ No se pudo cambiar', 'var(--rojo)');
 }
 
 async function cicloEstadoCheque(id, tipo, btn) {
