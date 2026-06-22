@@ -4,9 +4,22 @@ const CHEQUE_CFG = {
 };
 
 const chequeState = {
-  recibido: { todas: [], pagina: 1, archivo: null },
-  emitido:  { todas: [], pagina: 1, archivo: null }
+  recibido: { todas: [], pagina: 1, archivo: null, mesFiltro: null },
+  emitido:  { todas: [], pagina: 1, archivo: null, mesFiltro: null }
 };
+
+function nombreMesCheque(ym) {
+  const [y, m] = ym.split('-');
+  const nombres = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  return `${nombres[parseInt(m) - 1]} ${y}`;
+}
+
+function filtrarMesCheque(tipo, ym) {
+  const st = chequeState[tipo];
+  st.mesFiltro = (st.mesFiltro === ym) ? null : ym;
+  st.pagina = 1;
+  renderCheques(tipo);
+}
 
 async function procesarChequeDoc(input, tipo) {
   const file = input.files[0];
@@ -115,6 +128,7 @@ function renderCheques(tipo) {
   const rows = st.todas.filter(c => {
     if (fEstado && c.estado !== fEstado) return false;
     if (fBusca && !`${c.contraparte || ''} ${c.numero || ''} ${c.detalle || ''}`.toLowerCase().includes(fBusca)) return false;
+    if (st.mesFiltro && (c.fecha_cobro || '').slice(0, 7) !== st.mesFiltro) return false;
     return true;
   });
 
@@ -146,15 +160,13 @@ function renderCheques(tipo) {
     const meses = new Set();
     for (let m = 1; m <= 12; m++) meses.add(`${anioActual}-${String(m).padStart(2,'0')}`);
     Object.keys(porMes).forEach(ym => meses.add(ym));
-    const nombreMes = (ym) => {
-      const [y, m] = ym.split('-');
-      const nombres = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-      return `${nombres[parseInt(m) - 1]} ${y}`;
-    };
+    const nombreMes = nombreMesCheque;
     contProy.innerHTML = [...meses].sort().map(ym => {
       const v = porMes[ym] || { total: 0, cant: 0 };
       const tieneMonto = v.total > 0;
-      return `<div style="background:${tieneMonto ? '#fff' : '#fafafa'};border:1px solid ${tieneMonto ? 'var(--bordo-suave)' : 'var(--gris-borde)'};border-radius:8px;padding:10px;text-align:center;min-height:78px;display:flex;flex-direction:column;justify-content:center;gap:2px">
+      const activo = st.mesFiltro === ym;
+      const borde = activo ? 'var(--bordo)' : (tieneMonto ? 'var(--bordo-suave)' : 'var(--gris-borde)');
+      return `<div onclick="filtrarMesCheque('${tipo}','${ym}')" style="cursor:pointer;background:${activo ? 'var(--bordo-claro)' : (tieneMonto ? '#fff' : '#fafafa')};border:${activo ? '2px' : '1px'} solid ${borde};border-radius:8px;padding:10px;text-align:center;min-height:78px;display:flex;flex-direction:column;justify-content:center;gap:2px">
         <div style="font-size:11px;color:var(--texto-suave);font-weight:600">${nombreMes(ym)}</div>
         <div style="font-size:15px;font-weight:700;color:${tieneMonto ? 'var(--bordo)' : 'var(--texto-suave)'}">${fmtMonto(v.total, 'ARS')}</div>
         <div style="font-size:11px;color:var(--texto-suave)">${v.cant} cheque${v.cant !== 1 ? 's' : ''}</div>
@@ -162,9 +174,19 @@ function renderCheques(tipo) {
     }).join('');
   }
 
+  const indicador = document.getElementById(`${cfg.pref}-mes-indicador`);
+  if (indicador) {
+    if (st.mesFiltro) {
+      indicador.style.display = '';
+      indicador.innerHTML = `📌 Mostrando cheques de <strong>${nombreMesCheque(st.mesFiltro)}</strong> — <a href="#" onclick="filtrarMesCheque('${tipo}','${st.mesFiltro}');return false" style="color:var(--bordo);text-decoration:underline">ver todos</a>`;
+    } else {
+      indicador.style.display = 'none';
+    }
+  }
+
   const colspan = tipo === 'recibido' ? 11 : 10;
   if (!rows.length) {
-    const hayFiltro = fBusca || fEstado;
+    const hayFiltro = fBusca || fEstado || st.mesFiltro;
     tbody.innerHTML = `<tr><td colspan="${colspan}"><div class="empty-state"><div class="icon">💳</div><h3>${hayFiltro ? 'Sin resultados para el filtro' : `Sin ${cfg.label}s`}</h3></div></td></tr>`;
     document.getElementById(`${cfg.pref}-paginador`).innerHTML = '';
     return;
