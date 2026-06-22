@@ -104,7 +104,7 @@ function filtrarLiqGrReset() { liqgrPagina = 1; renderLiqGranos(); }
 
 function renderLiqGranos() {
   const fBusca = (document.getElementById('liqgr-filtro-busca')?.value || '').trim().toLowerCase();
-  const rows = fBusca ? liqgrTodas.filter(l => `${l.acopio || ''} ${l.numero || ''}`.toLowerCase().includes(fBusca)) : liqgrTodas;
+  const rows = fBusca ? liqgrTodas.filter(l => `${l.acopio || ''} ${l.numero || ''} ${l.cultivo || ''}`.toLowerCase().includes(fBusca)) : liqgrTodas;
   const tbody = document.getElementById('tabla-liqgr');
   if (!tbody) return;
   const pag = document.getElementById('liqgr-paginador');

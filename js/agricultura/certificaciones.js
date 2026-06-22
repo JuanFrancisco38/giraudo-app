@@ -94,7 +94,7 @@ function filtrarCertReset() { certPagina = 1; renderCertificaciones(); }
 
 function renderCertificaciones() {
   const fBusca = (document.getElementById('cert-filtro-busca')?.value || '').trim().toLowerCase();
-  const rows = fBusca ? certTodas.filter(row => { const c = parseCert(row); return `${c.depositario || ''} ${c.coe || ''}`.toLowerCase().includes(fBusca); }) : certTodas;
+  const rows = fBusca ? certTodas.filter(row => { const c = parseCert(row); return `${c.depositario || ''} ${c.coe || ''} ${c.grano || ''}`.toLowerCase().includes(fBusca); }) : certTodas;
   const tbody = document.getElementById('tabla-cert');
   if (!tbody) return;
   const pag = document.getElementById('cert-paginador');
