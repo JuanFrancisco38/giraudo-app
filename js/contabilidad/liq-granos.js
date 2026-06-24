@@ -135,7 +135,7 @@ function renderLiqGranos() {
   if (!tbody) return;
   const pag = document.getElementById('liqgr-paginador');
   if (!rows || !rows.length) {
-    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><div class="icon">📄</div><h3>${fBusca ? 'Sin resultados para la búsqueda' : 'Sin liquidaciones'}</h3></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="24"><div class="empty-state"><div class="icon">📄</div><h3>${fBusca ? 'Sin resultados para la búsqueda' : 'Sin liquidaciones'}</h3></div></td></tr>`;
     if (pag) pag.innerHTML = '';
     return;
   }
@@ -146,15 +146,28 @@ function renderLiqGranos() {
   const cultColors = {soja:'green',maiz:'yellow',trigo:'tierra',girasol:'amarillo'};
   tbody.innerHTML = pagina.map(l => `
     <tr>
-      <td>${fmtFecha(l.fecha)}</td>
       <td>${l.firma || '—'}</td>
       <td>${l.razon_social || '—'}</td>
-      <td>${l.numero || '—'}</td>
+      <td>${fmtFecha(l.fecha)}</td>
       <td><span class="badge badge-${cultColors[l.grano?.toLowerCase()] || 'gray'}">${l.grano || '—'}</span></td>
+      <td>${l.numero || '—'}</td>
+      <td>${l.observacion || '—'}</td>
+      <td>${l.campania || '—'}</td>
       <td>${l.kg ? fmtKg(l.kg) : '—'}</td>
+      <td>${l.precio_tt ? fmtMonto(l.precio_tt, 'ARS') : '—'}</td>
+      <td>${l.subtotal ? fmtMonto(l.subtotal, 'ARS') : '—'}</td>
       <td>${l.importe_iva ? fmtMonto(l.importe_iva, 'ARS') : '—'}</td>
+      <td>${l.operacion_civa ? fmtMonto(l.operacion_civa, 'ARS') : '—'}</td>
+      <td>${l.comision_civa ? fmtMonto(l.comision_civa, 'ARS') : '—'}</td>
+      <td>${l.derecho_registro ? fmtMonto(l.derecho_registro, 'ARS') : '—'}</td>
+      <td>${l.sellados_cordoba ? fmtMonto(l.sellados_cordoba, 'ARS') : '—'}</td>
+      <td>${l.flete_puerto_civa ? fmtMonto(l.flete_puerto_civa, 'ARS') : '—'}</td>
       <td>${l.ganancias ? fmtMonto(l.ganancias, 'ARS') : '—'}</td>
+      <td>${l.iva_5_8 ? fmtMonto(l.iva_5_8, 'ARS') : '—'}</td>
+      <td>${l.total_retencion_afip ? fmtMonto(l.total_retencion_afip, 'ARS') : '—'}</td>
+      <td>${l.total_deducciones ? fmtMonto(l.total_deducciones, 'ARS') : '—'}</td>
       <td>${l.iva_rg2300 ? fmtMonto(l.iva_rg2300, 'ARS') : '—'}</td>
+      <td>${l.pago_condicion || '—'}</td>
       <td><strong>${l.neto_cobrar ? fmtMonto(l.neto_cobrar, 'ARS') : '—'}</strong></td>
       <td style="white-space:nowrap">${l.archivo_url ? `<a class="btn btn-secondary" style="padding:4px 8px;font-size:12px;text-decoration:none" href="${l.archivo_url}" target="_blank" rel="noopener" title="Ver documento">👁️</a> ` : ''}<button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarLiqGrano('${l.id}')">🗑️</button></td>
     </tr>`).join('');
