@@ -22,9 +22,9 @@ async function cargarResumenGranos() {
   };
 
   ventas.forEach(l => {
-    const g = get(l.cultivo);
+    const g = get(l.grano);
     g.kgVendido += parseFloat(l.kg) || 0;
-    const monto = parseFloat(l.subtotal) || ((parseFloat(l.kg) || 0) * (parseFloat(l.precio) || 0));
+    const monto = parseFloat(l.subtotal) || ((parseFloat(l.kg) || 0) * (parseFloat(l.precio_tt) || 0) / 1000);
     g.monto += monto;
   });
 
@@ -66,12 +66,12 @@ async function cargarResumenGranos() {
   // Totales generales
   const sum = campo => ventas.reduce((s, l) => s + (parseFloat(l[campo]) || 0), 0);
   const fmt = n => n ? fmtMonto(n, 'ARS') : '—';
-  document.getElementById('rg-retiva').textContent = fmt(sum('ret_iva'));
-  document.getElementById('rg-retgan').textContent = fmt(sum('ret_ganancias'));
-  document.getElementById('rg-rg4310').textContent = fmt(sum('ret_iva_rg4310'));
-  document.getElementById('rg-comision').textContent = fmt(sum('comision'));
-  document.getElementById('rg-flete').textContent = fmt(sum('flete'));
-  document.getElementById('rg-neto').textContent = fmt(sum('total_neto'));
+  document.getElementById('rg-retiva').textContent = fmt(sum('importe_iva'));
+  document.getElementById('rg-retgan').textContent = fmt(sum('ganancias'));
+  document.getElementById('rg-rg4310').textContent = fmt(sum('iva_rg2300'));
+  document.getElementById('rg-comision').textContent = fmt(sum('comision_civa'));
+  document.getElementById('rg-flete').textContent = fmt(sum('flete_puerto_civa'));
+  document.getElementById('rg-neto').textContent = fmt(sum('neto_cobrar'));
 
   const info = document.getElementById('dolar-info');
   if (dolar) info.textContent = `${localStorage.getItem('dolar_fuente') || 'Dólar'}: ${fmtMonto(dolar, 'ARS')} (${localStorage.getItem('dolar_fecha') || ''})`;

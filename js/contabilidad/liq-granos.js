@@ -9,35 +9,52 @@ async function procesarLiqGranoDoc(input) {
   try {
     const datos = await extraerDocIA(file,
       `Sos un asistente contable agropecuario argentino experto en liquidaciones de granos (formato C1116, liquidaciones de acopios como Turaglio, CEC, etc.). Leé TODO el documento con atención y extraé cada dato. Devolvé SOLO este JSON válido sin backticks ni texto adicional:
-{"fecha":"DD/MM/YYYY","coe":"string (COE, C.O.E. o número de liquidación)","acopiador":"string (nombre del acopio/comprador)","grano":"Soja|Maíz|Trigo|Girasol|Sorgo","kg":0,"precio":0,"subtotal":0,"ret_iva":0,"ret_iva_rg4310":0,"ret_ganancias":0,"flete":0,"comision":0,"neto":0}
+{"firma":"string (quién firmó/recibió, si figura)","razon_social":"string (nombre del acopio/comprador)","fecha":"DD/MM/YYYY","grano":"Soja|Maíz|Trigo|Girasol|Sorgo","numero":"string (N° formulario, COE o número de liquidación)","observacion":"Venta|Canje|Ajuste calidad","campania":"string (ej 25/26)","kg":0,"precio_tt":0,"subtotal":0,"importe_iva":0,"operacion_civa":0,"comision_civa":0,"derecho_registro":0,"sellados_cordoba":0,"flete_puerto_civa":0,"ganancias":0,"iva_5_8":0,"total_retencion_afip":0,"total_deducciones":0,"iva_rg2300":0,"pago_condicion":"string","neto_cobrar":0}
 
-Guía de campos (pueden aparecer con otros nombres):
+Guía de campos (pueden aparecer con otros nombres en el documento):
 - kg: kilogramos netos / peso neto.
-- precio: precio unitario $/kg o $/tn (si es por tonelada, dividí por 1000).
-- subtotal: importe bruto / importe de la operación antes de deducciones.
-- ret_iva: retención de IVA (IVA retenido).
-- ret_iva_rg4310: retención IVA RG 4310/2018 (puede decir "RG 4310" o "percepción IVA").
-- ret_ganancias: retención de impuesto a las ganancias.
-- flete: gastos de flete / acarreo / flete a puerto.
-- comision: comisión / gastos de comercialización / gastos de venta.
-- neto: neto a cobrar / total a liquidar / importe neto.
+- precio_tt: precio por tonelada (TT). Si el documento da precio por kg, multiplicá por 1000.
+- subtotal: importe bruto / importe de la operación antes de IVA.
+- importe_iva: monto de IVA de la operación (no retención).
+- operacion_civa: importe de la operación con IVA incluido (subtotal + importe_iva).
+- comision_civa: comisión o gastos de comercialización con IVA incluido.
+- derecho_registro: derecho de registro de la operación.
+- sellados_cordoba: sellados de la provincia de Córdoba.
+- flete_puerto_civa: flete a puerto con IVA incluido.
+- ganancias: retención de impuesto a las ganancias.
+- iva_5_8: retención de IVA al 5% u 8% según corresponda.
+- total_retencion_afip: total de retenciones de AFIP (suma de ganancias + IVA RG2300 + iva_5_8 si corresponde).
+- total_deducciones: total de deducciones (comisión + derecho de registro + sellados + flete, etc.).
+- iva_rg2300: retención de IVA RG 2300 (puede decir "RG 2300" o percepción/retención IVA específica).
+- pago_condicion: condición o forma de pago (ej: "Contado", "30 días", etc.) si figura.
+- neto_cobrar: neto a cobrar / total a liquidar / importe neto.
 
-IMPORTANTE: revisá la sección de deducciones/gastos línea por línea. Si un valor realmente no figura, poné 0. Montos como número sin símbolos ni puntos de miles.`,
-      'Extraé TODOS los datos de esta liquidación de granos, incluyendo cada retención, flete y comisión.');
+IMPORTANTE: revisá la sección de deducciones/retenciones línea por línea. Si un valor realmente no figura, poné 0 o "". Montos como número sin símbolos ni puntos de miles.`,
+      'Extraé TODOS los datos de esta liquidación de granos, incluyendo cada deducción y retención.');
 
+    if (datos.firma) document.getElementById('lg-firma').value = datos.firma;
+    if (datos.razon_social) document.getElementById('lg-razonsocial').value = datos.razon_social;
     if (datos.fecha) document.getElementById('lg-fecha').value = parseFechaIA(datos.fecha);
-    if (datos.coe) document.getElementById('lg-coe').value = datos.coe;
-    if (datos.acopiador) document.getElementById('lg-acop').value = datos.acopiador;
     if (datos.grano) document.getElementById('lg-grano').value = datos.grano;
+    if (datos.numero) document.getElementById('lg-numero').value = datos.numero;
+    if (datos.observacion) document.getElementById('lg-obs').value = datos.observacion;
+    if (datos.campania) document.getElementById('lg-campania').value = datos.campania;
     if (datos.kg) document.getElementById('lg-kg').value = datos.kg;
-    if (datos.precio) document.getElementById('lg-precio').value = datos.precio;
+    if (datos.precio_tt) document.getElementById('lg-preciott').value = datos.precio_tt;
     if (datos.subtotal) document.getElementById('lg-sub').value = datos.subtotal;
-    if (datos.ret_iva) document.getElementById('lg-retiva').value = datos.ret_iva;
-    if (datos.ret_iva_rg4310) document.getElementById('lg-rg4310').value = datos.ret_iva_rg4310;
-    if (datos.ret_ganancias) document.getElementById('lg-retgan').value = datos.ret_ganancias;
-    if (datos.flete) document.getElementById('lg-flete').value = datos.flete;
-    if (datos.comision) document.getElementById('lg-com').value = datos.comision;
-    if (datos.neto) document.getElementById('lg-neto').value = datos.neto;
+    if (datos.importe_iva) document.getElementById('lg-importeiva').value = datos.importe_iva;
+    if (datos.operacion_civa) document.getElementById('lg-opciva').value = datos.operacion_civa;
+    if (datos.comision_civa) document.getElementById('lg-comciva').value = datos.comision_civa;
+    if (datos.derecho_registro) document.getElementById('lg-derecho').value = datos.derecho_registro;
+    if (datos.sellados_cordoba) document.getElementById('lg-sellados').value = datos.sellados_cordoba;
+    if (datos.flete_puerto_civa) document.getElementById('lg-fleteciva').value = datos.flete_puerto_civa;
+    if (datos.ganancias) document.getElementById('lg-ganancias').value = datos.ganancias;
+    if (datos.iva_5_8) document.getElementById('lg-iva58').value = datos.iva_5_8;
+    if (datos.total_retencion_afip) document.getElementById('lg-totalretafip').value = datos.total_retencion_afip;
+    if (datos.total_deducciones) document.getElementById('lg-totaldeducciones').value = datos.total_deducciones;
+    if (datos.iva_rg2300) document.getElementById('lg-rg2300').value = datos.iva_rg2300;
+    if (datos.pago_condicion) document.getElementById('lg-pagocond').value = datos.pago_condicion;
+    if (datos.neto_cobrar) document.getElementById('lg-neto').value = datos.neto_cobrar;
 
     status.textContent = `✅ ${file.name} leída — revisá los campos y guardá`;
     toast('✅ Documento leído — revisá y guardá');
@@ -50,25 +67,34 @@ IMPORTANTE: revisá la sección de deducciones/gastos línea por línea. Si un v
 
 async function guardarLiqGrano() {
   const data = {
+    firma: document.getElementById('lg-firma').value,
+    razon_social: document.getElementById('lg-razonsocial').value,
     fecha: document.getElementById('lg-fecha').value,
-    numero: document.getElementById('lg-coe').value,
-    acopio: document.getElementById('lg-acop').value,
-    cultivo: document.getElementById('lg-grano').value,
+    grano: document.getElementById('lg-grano').value,
+    numero: document.getElementById('lg-numero').value,
+    observacion: document.getElementById('lg-obs').value,
+    campania: document.getElementById('lg-campania').value || '25/26',
     kg: parseFloat(document.getElementById('lg-kg').value) || null,
-    precio: parseFloat(document.getElementById('lg-precio').value) || null,
+    precio_tt: parseFloat(document.getElementById('lg-preciott').value) || null,
     subtotal: parseFloat(document.getElementById('lg-sub').value) || null,
-    ret_iva: parseFloat(document.getElementById('lg-retiva').value) || null,
-    ret_iva_rg4310: parseFloat(document.getElementById('lg-rg4310').value) || null,
-    ret_ganancias: parseFloat(document.getElementById('lg-retgan').value) || null,
-    flete: parseFloat(document.getElementById('lg-flete').value) || null,
-    comision: parseFloat(document.getElementById('lg-com').value) || null,
-    total_neto: parseFloat(document.getElementById('lg-neto').value) || null,
-    campania: '25/26'
+    importe_iva: parseFloat(document.getElementById('lg-importeiva').value) || null,
+    operacion_civa: parseFloat(document.getElementById('lg-opciva').value) || null,
+    comision_civa: parseFloat(document.getElementById('lg-comciva').value) || null,
+    derecho_registro: parseFloat(document.getElementById('lg-derecho').value) || null,
+    sellados_cordoba: parseFloat(document.getElementById('lg-sellados').value) || null,
+    flete_puerto_civa: parseFloat(document.getElementById('lg-fleteciva').value) || null,
+    ganancias: parseFloat(document.getElementById('lg-ganancias').value) || null,
+    iva_5_8: parseFloat(document.getElementById('lg-iva58').value) || null,
+    total_retencion_afip: parseFloat(document.getElementById('lg-totalretafip').value) || null,
+    total_deducciones: parseFloat(document.getElementById('lg-totaldeducciones').value) || null,
+    iva_rg2300: parseFloat(document.getElementById('lg-rg2300').value) || null,
+    pago_condicion: document.getElementById('lg-pagocond').value,
+    neto_cobrar: parseFloat(document.getElementById('lg-neto').value) || null
   };
   if (data.numero) {
     const existentes = await sb('GET', 'liquidaciones_granos', '', `?numero=eq.${encodeURIComponent(data.numero)}`);
     if (existentes && existentes.length) {
-      if (!confirm(`⚠️ Ya existe una liquidación con el C.O.E. "${data.numero}". ¿Querés guardarla igual?`)) {
+      if (!confirm(`⚠️ Ya existe una liquidación con el N° "${data.numero}". ¿Querés guardarla igual?`)) {
         toast('Guardado cancelado — posible duplicado', 'var(--tierra)');
         return;
       }
@@ -104,12 +130,12 @@ function filtrarLiqGrReset() { liqgrPagina = 1; renderLiqGranos(); }
 
 function renderLiqGranos() {
   const fBusca = (document.getElementById('liqgr-filtro-busca')?.value || '').trim().toLowerCase();
-  const rows = fBusca ? liqgrTodas.filter(l => `${l.acopio || ''} ${l.numero || ''} ${l.cultivo || ''}`.toLowerCase().includes(fBusca)) : liqgrTodas;
+  const rows = fBusca ? liqgrTodas.filter(l => `${l.razon_social || ''} ${l.numero || ''} ${l.grano || ''}`.toLowerCase().includes(fBusca)) : liqgrTodas;
   const tbody = document.getElementById('tabla-liqgr');
   if (!tbody) return;
   const pag = document.getElementById('liqgr-paginador');
   if (!rows || !rows.length) {
-    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="icon">📄</div><h3>${fBusca ? 'Sin resultados para la búsqueda' : 'Sin liquidaciones'}</h3></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11"><div class="empty-state"><div class="icon">📄</div><h3>${fBusca ? 'Sin resultados para la búsqueda' : 'Sin liquidaciones'}</h3></div></td></tr>`;
     if (pag) pag.innerHTML = '';
     return;
   }
@@ -121,13 +147,15 @@ function renderLiqGranos() {
   tbody.innerHTML = pagina.map(l => `
     <tr>
       <td>${fmtFecha(l.fecha)}</td>
+      <td>${l.firma || '—'}</td>
+      <td>${l.razon_social || '—'}</td>
       <td>${l.numero || '—'}</td>
-      <td>${l.acopio || '—'}</td>
-      <td><span class="badge badge-${cultColors[l.cultivo?.toLowerCase()] || 'gray'}">${l.cultivo || '—'}</span></td>
+      <td><span class="badge badge-${cultColors[l.grano?.toLowerCase()] || 'gray'}">${l.grano || '—'}</span></td>
       <td>${l.kg ? fmtKg(l.kg) : '—'}</td>
-      <td>${l.ret_iva ? fmtMonto(l.ret_iva, 'ARS') : '—'}</td>
-      <td>${l.flete ? fmtMonto(l.flete, 'ARS') : '—'}</td>
-      <td><strong>${l.total_neto ? fmtMonto(l.total_neto, 'ARS') : '—'}</strong></td>
+      <td>${l.importe_iva ? fmtMonto(l.importe_iva, 'ARS') : '—'}</td>
+      <td>${l.ganancias ? fmtMonto(l.ganancias, 'ARS') : '—'}</td>
+      <td>${l.iva_rg2300 ? fmtMonto(l.iva_rg2300, 'ARS') : '—'}</td>
+      <td><strong>${l.neto_cobrar ? fmtMonto(l.neto_cobrar, 'ARS') : '—'}</strong></td>
       <td style="white-space:nowrap">${l.archivo_url ? `<a class="btn btn-secondary" style="padding:4px 8px;font-size:12px;text-decoration:none" href="${l.archivo_url}" target="_blank" rel="noopener" title="Ver documento">👁️</a> ` : ''}<button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarLiqGrano('${l.id}')">🗑️</button></td>
     </tr>`).join('');
 }

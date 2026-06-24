@@ -587,18 +587,18 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
       <div class="resumen-box">
         <h4>💰 Totales generales — Campaña 25/26</h4>
         <div class="resumen-grid">
-          <div class="resumen-item"><div class="ri-label">Ret. IVA acumulada</div><div class="ri-value" id="rg-retiva">—</div></div>
-          <div class="resumen-item"><div class="ri-label">Ret. Ganancias</div><div class="ri-value" id="rg-retgan">—</div></div>
-          <div class="resumen-item"><div class="ri-label">IVA RG 4310/2018</div><div class="ri-value" id="rg-rg4310">—</div></div>
-          <div class="resumen-item"><div class="ri-label">Comisiones</div><div class="ri-value" id="rg-comision">—</div></div>
-          <div class="resumen-item"><div class="ri-label">Fletes</div><div class="ri-value" id="rg-flete">—</div></div>
+          <div class="resumen-item"><div class="ri-label">Importe IVA acumulado</div><div class="ri-value" id="rg-retiva">—</div></div>
+          <div class="resumen-item"><div class="ri-label">Ganancias</div><div class="ri-value" id="rg-retgan">—</div></div>
+          <div class="resumen-item"><div class="ri-label">IVA RG2300</div><div class="ri-value" id="rg-rg4310">—</div></div>
+          <div class="resumen-item"><div class="ri-label">Comisiones c/IVA</div><div class="ri-value" id="rg-comision">—</div></div>
+          <div class="resumen-item"><div class="ri-label">Fletes a puerto c/IVA</div><div class="ri-value" id="rg-flete">—</div></div>
           <div class="resumen-item"><div class="ri-label">Neto a cobrar</div><div class="ri-value" id="rg-neto">—</div></div>
         </div>
       </div>
       <div class="card">
         <div class="card-header"><h3>Liquidaciones de granos</h3>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <input type="text" id="liqgr-filtro-busca" placeholder="🔎 Buscar acopiador, C.O.E. o grano..." oninput="filtrarLiqGrReset()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;width:220px">
+            <input type="text" id="liqgr-filtro-busca" placeholder="🔎 Buscar razón social, N° o grano..." oninput="filtrarLiqGrReset()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;width:220px">
             <button class="btn btn-primary" onclick="toggleForm('form-liqgr')">+ Registrar</button>
           </div>
         </div>
@@ -609,25 +609,34 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             <div id="lg-doc-status" style="font-size:12px;color:var(--texto-suave);margin-top:6px"></div>
           </div>
           <div class="form-grid">
+            <div class="form-group"><label>Firma</label><input type="text" id="lg-firma" placeholder="Ej: Juan Giraudo"></div>
+            <div class="form-group"><label>Razón Social</label><input type="text" id="lg-razonsocial" list="acopiadores" placeholder="Ej: Turaglio Cereales S.R.L."><datalist id="acopiadores"><option>Turaglio Cereales S.R.L.</option><option>CEC Agroinsumos</option></datalist></div>
             <div class="form-group"><label>Fecha</label><input type="date" id="lg-fecha"></div>
-            <div class="form-group"><label>C.O.E.</label><input type="text" id="lg-coe"></div>
-            <div class="form-group"><label>Tipo</label><select id="lg-tipo"><option>Venta</option><option>Canje</option><option>Ajuste calidad</option></select></div>
-            <div class="form-group"><label>Acopiador</label><input type="text" id="lg-acop" list="acopiadores" placeholder="Ej: Turaglio Cereales S.R.L."><datalist id="acopiadores"><option>Turaglio Cereales S.R.L.</option><option>CEC Agroinsumos</option></datalist></div>
             <div class="form-group"><label>Grano</label><select id="lg-grano"><option>Soja</option><option>Maíz</option><option>Trigo</option><option>Girasol</option><option>Sorgo</option></select></div>
-            <div class="form-group"><label>Kg</label><input type="number" id="lg-kg"></div>
-            <div class="form-group"><label>Precio $/kg</label><input type="number" id="lg-precio"></div>
+            <div class="form-group"><label>N° For./COE</label><input type="text" id="lg-numero"></div>
+            <div class="form-group"><label>Observación</label><select id="lg-obs"><option>Venta</option><option>Canje</option><option>Ajuste calidad</option></select></div>
+            <div class="form-group"><label>Campaña</label><input type="text" id="lg-campania" placeholder="Ej: 25/26" value="25/26"></div>
+            <div class="form-group"><label>Cantidad Kg</label><input type="number" id="lg-kg"></div>
+            <div class="form-group"><label>Precio TT</label><input type="number" id="lg-preciott"></div>
             <div class="form-group"><label>Subtotal $</label><input type="number" id="lg-sub"></div>
-            <div class="form-group"><label>Ret. IVA $</label><input type="number" id="lg-retiva"></div>
-            <div class="form-group"><label>IVA RG 4310 $</label><input type="number" id="lg-rg4310"></div>
-            <div class="form-group"><label>Flete $</label><input type="number" id="lg-flete"></div>
-            <div class="form-group"><label>Comisión $</label><input type="number" id="lg-com"></div>
-            <div class="form-group"><label>Ret. Ganancias $</label><input type="number" id="lg-retgan"></div>
-            <div class="form-group"><label>Neto a cobrar $</label><input type="number" id="lg-neto"></div>
+            <div class="form-group"><label>Importe IVA $</label><input type="number" id="lg-importeiva"></div>
+            <div class="form-group"><label>Operación c/IVA $</label><input type="number" id="lg-opciva"></div>
+            <div class="form-group"><label>Comisión c/IVA $</label><input type="number" id="lg-comciva"></div>
+            <div class="form-group"><label>Derecho de Registro $</label><input type="number" id="lg-derecho"></div>
+            <div class="form-group"><label>Sellados Córdoba $</label><input type="number" id="lg-sellados"></div>
+            <div class="form-group"><label>Flete a puerto c/IVA $</label><input type="number" id="lg-fleteciva"></div>
+            <div class="form-group"><label>Ganancias $</label><input type="number" id="lg-ganancias"></div>
+            <div class="form-group"><label>IVA 5-8% $</label><input type="number" id="lg-iva58"></div>
+            <div class="form-group"><label>Total Retención AFIP $</label><input type="number" id="lg-totalretafip"></div>
+            <div class="form-group"><label>Total Deducciones $</label><input type="number" id="lg-totaldeducciones"></div>
+            <div class="form-group"><label>IVA RG2300 $</label><input type="number" id="lg-rg2300"></div>
+            <div class="form-group"><label>Pago según condición</label><input type="text" id="lg-pagocond"></div>
+            <div class="form-group"><label>Importe Neto a Cobrar $</label><input type="number" id="lg-neto"></div>
           </div>
           <div class="form-actions"><button class="btn btn-primary" onclick="guardarLiqGrano()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-liqgr')">Cancelar</button></div>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>C.O.E.</th><th>Acopiador</th><th>Grano</th><th>Kg</th><th>Ret. IVA</th><th>Flete</th><th>Neto</th><th></th></tr></thead>
-        <tbody id="tabla-liqgr"><tr><td colspan="9"><div class="empty-state"><div class="icon">📄</div><h3>Sin liquidaciones</h3></div></td></tr></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Firma</th><th>Razón Social</th><th>N° For./COE</th><th>Grano</th><th>Kg</th><th>Importe IVA</th><th>Ganancias</th><th>IVA RG2300</th><th>Neto a Cobrar</th><th></th></tr></thead>
+        <tbody id="tabla-liqgr"><tr><td colspan="11"><div class="empty-state"><div class="icon">📄</div><h3>Sin liquidaciones</h3></div></td></tr></tbody></table></div>
         <div id="liqgr-paginador"></div>
       </div>
     </div>

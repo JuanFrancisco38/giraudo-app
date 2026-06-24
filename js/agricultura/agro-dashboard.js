@@ -10,7 +10,7 @@ async function cargarAgroDashboard() {
   // Stat cards
   const totalHas = trabs.reduce((s, t) => s + (parseFloat(t.hectareas) || 0), 0);
   const totalKg = liqs.reduce((s, l) => s + (parseFloat(l.kg) || 0), 0);
-  const totalNeto = liqs.reduce((s, l) => s + (parseFloat(l.total_neto) || 0), 0);
+  const totalNeto = liqs.reduce((s, l) => s + (parseFloat(l.neto_cobrar) || 0), 0);
 
   document.getElementById('ag-trabajos').textContent = trabs.length || '—';
   document.getElementById('ag-has').textContent = totalHas ? fmtNum(totalHas) : '—';
@@ -43,10 +43,10 @@ async function cargarAgroDashboard() {
   // Granos por cultivo
   const porCultivo = {};
   liqs.forEach(l => {
-    const k = l.cultivo || 'Sin especificar';
+    const k = l.grano || 'Sin especificar';
     if (!porCultivo[k]) porCultivo[k] = { kg: 0, neto: 0 };
     porCultivo[k].kg += parseFloat(l.kg) || 0;
-    porCultivo[k].neto += parseFloat(l.total_neto) || 0;
+    porCultivo[k].neto += parseFloat(l.neto_cobrar) || 0;
   });
   const cultEl = document.getElementById('ag-porcultivo');
   const cultivos = Object.entries(porCultivo).sort((a, b) => b[1].kg - a[1].kg);
