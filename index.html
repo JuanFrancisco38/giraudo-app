@@ -754,10 +754,20 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             <div class="form-group"><label>Hectáreas</label><input type="number" id="tr-has"></div>
             <div class="form-group"><label>Cultivo</label><input type="text" id="tr-cultivo" placeholder="Ej: Alfalfa, Maíz, Soja"></div>
             <div class="form-group"><label>Contratista</label><input type="text" id="tr-cont"></div>
-            <div class="form-group"><label>Dosis</label><input type="text" id="tr-dosis" placeholder="Ej: 3 lt/ha"></div>
-            <div class="form-group"><label>Consumo total</label><input type="text" id="tr-consumo" placeholder="Ej: 270 lts"></div>
             <div class="form-group"><label>Campaña</label><input type="text" id="tr-campania" placeholder="Ej: 25/26"></div>
-            <div class="form-group full"><label>Descripción / Insumos</label><textarea id="tr-desc"></textarea></div>
+          </div>
+          <div style="margin-top:14px">
+            <label style="font-weight:600;font-size:13px">Insumos / Productos utilizados</label>
+            <p style="font-size:12px;color:var(--texto-suave);margin:4px 0 8px">Si el trabajo usó varios productos (ej: pulverización con dos herbicidas), agregá un renglón por cada uno.</p>
+            <div id="tr-insumos-list">
+              <div class="insumo-row" style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-end">
+                <div class="form-group" style="flex:2;margin:0"><label style="font-size:11px">Insumo / Producto</label><input type="text" class="ins-desc"></div>
+                <div class="form-group" style="flex:1;margin:0"><label style="font-size:11px">Dosis</label><input type="text" class="ins-dosis" placeholder="Ej: 3 lt/ha"></div>
+                <div class="form-group" style="flex:1;margin:0"><label style="font-size:11px">Consumo total</label><input type="text" class="ins-consumo" placeholder="Ej: 270 lts"></div>
+                <button type="button" class="btn btn-secondary" style="padding:6px 10px;font-size:12px" onclick="this.closest('.insumo-row').remove()">🗑️</button>
+              </div>
+            </div>
+            <button type="button" class="btn btn-secondary" style="margin-top:8px;font-size:12px;padding:6px 10px" onclick="agregarInsumoTrabajo()">+ Agregar insumo</button>
           </div>
           <div class="form-actions"><button class="btn btn-primary" onclick="guardarTrabajo()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-trab')">Cancelar</button></div>
         </div>

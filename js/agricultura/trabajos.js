@@ -1,5 +1,18 @@
+function filaInsumoTrabajoHTML() {
+  return `<div class="insumo-row" style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-end">
+    <div class="form-group" style="flex:2;margin:0"><label style="font-size:11px">Insumo / Producto</label><input type="text" class="ins-desc"></div>
+    <div class="form-group" style="flex:1;margin:0"><label style="font-size:11px">Dosis</label><input type="text" class="ins-dosis" placeholder="Ej: 3 lt/ha"></div>
+    <div class="form-group" style="flex:1;margin:0"><label style="font-size:11px">Consumo total</label><input type="text" class="ins-consumo" placeholder="Ej: 270 lts"></div>
+    <button type="button" class="btn btn-secondary" style="padding:6px 10px;font-size:12px" onclick="this.closest('.insumo-row').remove()">🗑️</button>
+  </div>`;
+}
+
+function agregarInsumoTrabajo() {
+  document.getElementById('tr-insumos-list').insertAdjacentHTML('beforeend', filaInsumoTrabajoHTML());
+}
+
 async function guardarTrabajo() {
-  const data = {
+  const header = {
     tipo: document.getElementById('tr-tipo').value,
     fecha: document.getElementById('tr-fecha').value,
     campo: document.getElementById('tr-campo').value,
@@ -7,14 +20,29 @@ async function guardarTrabajo() {
     hectareas: parseFloat(document.getElementById('tr-has').value) || null,
     cultivo: document.getElementById('tr-cultivo').value,
     contratista: document.getElementById('tr-cont').value || 'Propio',
-    dosis: document.getElementById('tr-dosis').value,
-    consumo_total: document.getElementById('tr-consumo').value,
-    campania: document.getElementById('tr-campania').value,
-    descripcion: document.getElementById('tr-desc').value
+    campania: document.getElementById('tr-campania').value
   };
-  const r = await sb('POST', 'trabajos_agricolas', data);
-  if (r) { toast('✅ Trabajo registrado'); toggleForm('form-trab'); cargarTrabajos(); }
-  else toast('❌ Error', 'var(--rojo)');
+  const filas = [...document.querySelectorAll('#tr-insumos-list .insumo-row')];
+  const insumos = filas.map(f => ({
+    descripcion: f.querySelector('.ins-desc').value,
+    dosis: f.querySelector('.ins-dosis').value,
+    consumo_total: f.querySelector('.ins-consumo').value
+  })).filter(i => i.descripcion || i.dosis || i.consumo_total);
+
+  const registros = insumos.length ? insumos.map(i => ({ ...header, ...i })) : [{ ...header, descripcion: '', dosis: '', consumo_total: '' }];
+
+  let ok = 0;
+  for (const data of registros) {
+    const r = await sb('POST', 'trabajos_agricolas', data);
+    if (r) ok++;
+  }
+  if (ok) {
+    toast(`✅ ${ok > 1 ? ok + ' renglones registrados' : 'Trabajo registrado'}`);
+    toggleForm('form-trab');
+    document.getElementById('tr-insumos-list').innerHTML = '';
+    agregarInsumoTrabajo();
+    cargarTrabajos();
+  } else toast('❌ Error', 'var(--rojo)');
 }
 
 let trabajosTodos = [];
@@ -104,7 +132,7 @@ async function procesarTrabajoImagen(input) {
     const datos = await extraerDocIA(file,
       `Sos un asistente agropecuario del Grupo Giraudo, Argentina. Analizá esta foto o PDF de una planilla / cuaderno de campo con trabajos agrícolas anotados (a mano o impresos) y extraé cada trabajo. Devolvé SOLO este JSON válido sin backticks ni texto adicional:
 {"trabajos":[{"tipo":"Siembra|Pulverización|Fertilización|Cosecha|Henificación|Enrollado|Labranza|Otro","fecha":"DD/MM/YYYY","campo":"string","lote":"string","hectareas":0,"cultivo":"string","contratista":"string","dosis":"string (ej: 3 lt/ha)","consumo_total":"string (ej: 270 lts)","campania":"string (ej: 25/26)","descripcion":"string"}]}
-Campo por defecto si no se aclara: "${campo}". Fecha por defecto si no se aclara: "${fecha ? fecha.split('-').reverse().join('/') : ''}". Si hay varios trabajos anotados, devolvé un objeto por cada uno. Si un dato no está, poné "" o 0. Si NO se menciona contratista (es decir, si la planilla no aclara que el trabajo lo hizo un tercero/contratista), poné "Propio" en ese campo, asumiendo que lo hizo el Grupo Giraudo con maquinaria/personal propio.`,
+Campo por defecto si no se aclara: "${campo}". Fecha por defecto si no se aclara: "${fecha ? fecha.split('-').reverse().join('/') : ''}". Si hay varios trabajos anotados, devolvé un objeto por cada uno. Si un dato no está, poné "" o 0. Si NO se menciona contratista (es decir, si la planilla no aclara que el trabajo lo hizo un tercero/contratista), poné "Propio" en ese campo, asumiendo que lo hizo el Grupo Giraudo con maquinaria/personal propio. IMPORTANTE: si un mismo trabajo (misma fecha/campo/lote/tipo) usó VARIOS productos o insumos (ej: una pulverización con dos herbicidas, o una siembra con semilla + fertilizante), generá UN OBJETO POR CADA PRODUCTO, repitiendo los mismos datos de fecha/campo/lote/hectareas/cultivo/contratista/campania en cada uno, y poniendo el nombre de ESE producto puntual en "descripcion" y su dosis específica en "dosis".`,
       'Extraé todos los trabajos de campo que figuren en esta imagen/PDF.');
 
     let ok = 0, fail = 0;
@@ -149,7 +177,7 @@ async function importarTrabajoTexto() {
         max_tokens: 1500,
         system: `Sos un asistente agropecuario del Grupo Giraudo, Argentina. El usuario describe trabajos de campo. Extraé cada trabajo y devolvé SOLO JSON válido sin backticks:
 {"trabajos":[{"tipo":"Siembra|Pulverización|Fertilización|Cosecha|Henificación|Enrollado|Labranza|Otro","fecha":"YYYY-MM-DD","campo":"string","lote":"string","hectareas":null,"cultivo":"string","contratista":"string","dosis":"string (ej: 3 lt/ha)","consumo_total":"string (ej: 270 lts)","campania":"string (ej: 25/26)","descripcion":"string","detalle":{}}]}
-Campo por defecto: "${campo}". Fecha por defecto: "${fecha || new Date().toISOString().split('T')[0]}". Si hay varios trabajos en el texto, creá un objeto por cada uno. Si NO se menciona contratista (no se aclara que lo hizo un tercero), poné "Propio" en ese campo, asumiendo que lo hizo el Grupo Giraudo con maquinaria/personal propio.`,
+Campo por defecto: "${campo}". Fecha por defecto: "${fecha || new Date().toISOString().split('T')[0]}". Si hay varios trabajos en el texto, creá un objeto por cada uno. Si NO se menciona contratista (no se aclara que lo hizo un tercero), poné "Propio" en ese campo, asumiendo que lo hizo el Grupo Giraudo con maquinaria/personal propio. IMPORTANTE: si un mismo trabajo (misma fecha/campo/lote/tipo) usó VARIOS productos o insumos (ej: pulverización con dos herbicidas, siembra con semilla + fertilizante), generá UN OBJETO POR CADA PRODUCTO, repitiendo los mismos datos de fecha/campo/lote/hectareas/cultivo/contratista/campania en cada uno, y poniendo el nombre de ESE producto puntual en "descripcion" y su dosis específica en "dosis".`,
         messages: [{ role: 'user', content: texto }]
       })
     });
