@@ -136,6 +136,8 @@ Campo por defecto si no se aclara: "${campo}". Fecha por defecto si no se aclara
 
 EQUIVALENCIAS DE CAMPO: "AZ" o "Azcona" = "Don Alfredo (Azcona)". "DV", "Vica" o "Doña Vica" = "Doña Vica". "SY", "Sant-Yago" o "Santiago" = "Sant-Yago". Usá siempre el nombre completo del campo tal como figura en estas equivalencias.
 
+LOTE: los lotes de Grupo Giraudo son SIEMPRE numéricos, sin letras. Si en la planilla aparece como "LT6", "Lote 6", "L6" o similar, extraé solo el número: "6". Nunca incluyas "LT", "L" ni "Lote" en el campo "lote".
+
 REGLA OBLIGATORIA SOBRE PRODUCTOS MÚLTIPLES: nunca pongas más de un producto/insumo en el campo "descripcion", y nunca sumes o concatenes dosis de distintos productos en "dosis" ni "consumo_total". Si un mismo trabajo (misma fecha/campo/lote/tipo) usó VARIOS productos (ej: una pulverización con dos herbicidas, o una siembra con semilla + fertilizante), tenés que devolver UN OBJETO POR CADA PRODUCTO, repitiendo fecha/campo/lote/hectareas/cultivo/contratista/campania en cada uno, y usando "descripcion" para el nombre de ESE producto puntual con su propia "dosis" y "consumo_total". Ejemplo: "Pulverización lote 1, 78has, glifosato 2lt/ha (160lts), 2,4-D 0.8lt/ha (60lts) y Finesse 1050gr" → TRES objetos (mismo lote/fecha/has): uno con descripcion "Glifosato", dosis "2 lt/ha", consumo_total "160 lts"; otro con descripcion "2,4-D", dosis "0.8 lt/ha", consumo_total "60 lts"; otro con descripcion "Finesse", dosis "1050 gr", consumo_total "1050 gr". NUNCA un solo objeto con todos los productos mezclados.`,
       'Extraé todos los trabajos de campo que figuren en esta imagen/PDF.');
 
@@ -185,6 +187,8 @@ async function importarTrabajoTexto() {
 Campo por defecto: "${campo}". Fecha por defecto: "${fecha || new Date().toISOString().split('T')[0]}". Si hay varios trabajos en el texto, creá un objeto por cada uno. Si NO se menciona contratista (no se aclara que lo hizo un tercero), poné "Propio" en ese campo, asumiendo que lo hizo el Grupo Giraudo con maquinaria/personal propio.
 
 EQUIVALENCIAS DE CAMPO: "AZ" o "Azcona" = "Don Alfredo (Azcona)". "DV", "Vica" o "Doña Vica" = "Doña Vica". "SY", "Sant-Yago" o "Santiago" = "Sant-Yago". Usá siempre el nombre completo del campo tal como figura en estas equivalencias.
+
+LOTE: los lotes de Grupo Giraudo son SIEMPRE numéricos, sin letras. Si en la planilla aparece como "LT6", "Lote 6", "L6" o similar, extraé solo el número: "6". Nunca incluyas "LT", "L" ni "Lote" en el campo "lote".
 
 REGLA OBLIGATORIA SOBRE PRODUCTOS MÚLTIPLES: nunca pongas más de un producto/insumo en el campo "descripcion", y nunca sumes o concatenes dosis de distintos productos en "dosis" ni "consumo_total". Si un mismo trabajo (misma fecha/campo/lote/tipo) menciona VARIOS productos, tenés que devolver UN OBJETO JSON POR CADA PRODUCTO, repitiendo fecha/campo/lote/hectareas/cultivo/contratista/campania en cada uno, y usando "descripcion" para el nombre de ESE producto puntual con su propia "dosis" y "consumo_total".
 Ejemplo: si el texto dice "Pulverización lote 1, 78has, glifosato 2lt/ha (160lts), 2,4-D 0.8lt/ha (60lts) y Finesse 1050gr" tenés que devolver TRES objetos de trabajos (mismo lote/fecha/has), cada uno con su propio producto en "descripcion": uno con descripcion "Glifosato", dosis "2 lt/ha", consumo_total "160 lts"; otro con descripcion "2,4-D", dosis "0.8 lt/ha", consumo_total "60 lts"; otro con descripcion "Finesse", dosis "1050 gr", consumo_total "1050 gr". NUNCA un solo objeto con todos los productos mezclados.`,
