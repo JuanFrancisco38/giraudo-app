@@ -61,21 +61,25 @@ function renderTrabajos() {
       <td>${t.campo || '—'}</td>
       <td>${t.lote || '—'}</td>
       <td>${t.hectareas ? t.hectareas + ' has' : '—'}</td>
-      <td>${t.cultivo || '—'}</td>
-      <td>${t.contratista || '—'}</td>
-      <td style="font-size:12px">${t.descripcion || '—'}</td>
-      <td>${t.dosis || '—'}</td>
+      <td>${inputEditableTrabajo(t.id, 'cultivo', t.cultivo, 70)}</td>
+      <td>${inputEditableTrabajo(t.id, 'contratista', t.contratista, 80)}</td>
+      <td>${inputEditableTrabajo(t.id, 'descripcion', t.descripcion, 160)}</td>
+      <td>${inputEditableTrabajo(t.id, 'dosis', t.dosis, 70, 'Ej: 3 lt/ha')}</td>
       <td>${t.consumo_total || '—'}</td>
-      <td><input type="text" value="${t.campania || ''}" placeholder="Ej: 25/26" style="width:70px;border:1px solid var(--gris-borde);border-radius:4px;padding:3px 5px;font-size:12px" onchange="editarCampaniaTrabajo('${t.id}', this.value)"></td>
+      <td>${inputEditableTrabajo(t.id, 'campania', t.campania, 70, 'Ej: 25/26')}</td>
       <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarTrabajo('${t.id}')">🗑️</button></td>
     </tr>`).join('');
 }
 
-async function editarCampaniaTrabajo(id, valor) {
+function inputEditableTrabajo(id, campo, valor, ancho, placeholder) {
+  return `<input type="text" value="${valor || ''}" placeholder="${placeholder || ''}" style="width:${ancho}px;border:1px solid var(--gris-borde);border-radius:4px;padding:3px 5px;font-size:12px" onchange="editarCampoTrabajo('${id}', '${campo}', this.value)">`;
+}
+
+async function editarCampoTrabajo(id, campo, valor) {
   const t = trabajosTodos.find(x => x.id === id);
-  if (t) t.campania = valor;
-  const r = await sb('PATCH', 'trabajos_agricolas', { campania: valor }, `?id=eq.${id}`);
-  if (r) toast('✅ Campaña actualizada');
+  if (t) t[campo] = valor;
+  const r = await sb('PATCH', 'trabajos_agricolas', { [campo]: valor }, `?id=eq.${id}`);
+  if (r) toast('✅ Actualizado');
   else toast('❌ Error al actualizar', 'var(--rojo)');
 }
 
