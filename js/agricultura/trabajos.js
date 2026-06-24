@@ -72,6 +72,44 @@ async function borrarTrabajo(id) {
   cargarTrabajos();
 }
 
+async function procesarTrabajoImagen(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const campo = document.getElementById('trt-campo').value;
+  const fecha = document.getElementById('trt-fecha').value;
+  const status = document.getElementById('trt-img-status');
+  const result = document.getElementById('trt-result');
+  status.textContent = `📷 Leyendo ${file.name}...`;
+  result.style.display = 'block'; result.innerHTML = 'Analizando...';
+
+  try {
+    const datos = await extraerDocIA(file,
+      `Sos un asistente agropecuario del Grupo Giraudo, Argentina. Analizá esta foto o PDF de una planilla / cuaderno de campo con trabajos agrícolas anotados (a mano o impresos) y extraé cada trabajo. Devolvé SOLO este JSON válido sin backticks ni texto adicional:
+{"trabajos":[{"tipo":"Siembra|Pulverización|Fertilización|Cosecha|Henificación|Enrollado|Labranza|Otro","fecha":"DD/MM/YYYY","campo":"string","lote":"string","hectareas":0,"cultivo":"string","contratista":"string","descripcion":"string"}]}
+Campo por defecto si no se aclara: "${campo}". Fecha por defecto si no se aclara: "${fecha ? fecha.split('-').reverse().join('/') : ''}". Si hay varios trabajos anotados, devolvé un objeto por cada uno. Si un dato no está, poné "" o 0.`,
+      'Extraé todos los trabajos de campo que figuren en esta imagen/PDF.');
+
+    let ok = 0, fail = 0;
+    for (const t of (datos.trabajos || [])) {
+      const r = await sb('POST', 'trabajos_agricolas', {
+        tipo: t.tipo, fecha: parseFechaIA(t.fecha) || fecha, campo: t.campo || campo,
+        lote: t.lote, hectareas: t.hectareas || null, cultivo: t.cultivo,
+        contratista: t.contratista, descripcion: t.descripcion
+      });
+      if (r) ok++; else fail++;
+    }
+
+    result.innerHTML = ok ? `✅ ${ok} trabajo${ok > 1 ? 's' : ''} registrado${ok > 1 ? 's' : ''}` + (fail ? `<br>❌ ${fail} con error` : '') : '❌ No se encontraron trabajos en la imagen.';
+    status.textContent = ok ? `✅ ${file.name} leída` : '';
+    if (ok) { toast(`✅ ${ok} trabajo${ok > 1 ? 's' : ''} registrado${ok > 1 ? 's' : ''}`); input.value = ''; cargarTrabajos(); }
+  } catch(e) {
+    console.error(e);
+    status.textContent = '❌ ' + e.message;
+    result.innerHTML = '❌ Error al procesar la imagen.';
+    toast('❌ Error al leer la imagen', 'var(--rojo)');
+  }
+}
+
 async function importarTrabajoTexto() {
   const texto = document.getElementById('trt-texto').value.trim();
   const campo = document.getElementById('trt-campo').value;

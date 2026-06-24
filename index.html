@@ -714,7 +714,12 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 
         <!-- CARGA POR TEXTO -->
         <div id="form-trab-texto" style="display:none;padding:18px;border-top:1px solid var(--gris-borde);background:var(--bordo-claro)">
-          <p style="font-size:13px;color:var(--bordo);margin-bottom:12px">✏️ Describí el trabajo con tus palabras y la IA lo interpreta y carga automáticamente. Podés cargar varios trabajos juntos.</p>
+          <p style="font-size:13px;color:var(--bordo);margin-bottom:12px">✏️ Describí el trabajo con tus palabras, o 📷 subí una foto de la planilla/cuaderno de campo — la IA lo interpreta y carga automáticamente. Podés cargar varios trabajos juntos.</p>
+          <div style="margin-bottom:14px;padding:12px;background:white;border:1px dashed var(--gris-borde);border-radius:8px">
+            <label style="font-weight:600;font-size:13px">📷 Cargar desde foto o PDF</label>
+            <input type="file" id="trt-archivo" accept="application/pdf,image/*" onchange="procesarTrabajoImagen(this)" style="display:block;margin-top:8px">
+            <div id="trt-img-status" style="font-size:12px;color:var(--texto-suave);margin-top:6px"></div>
+          </div>
           <div class="form-grid">
             <div class="form-group"><label>Campo</label>
               <select id="trt-campo"><option>Don Alfredo (Azcona)</option><option>Doña Vica</option><option>Sant-Yago</option></select>
