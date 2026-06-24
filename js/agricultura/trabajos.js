@@ -87,7 +87,7 @@ function renderTrabajos() {
       <td>${fmtFecha(t.fecha)}</td>
       <td><span class="badge badge-${colors[t.tipo] || 'gray'}">${t.tipo}</span></td>
       <td>${t.campo || '—'}</td>
-      <td>${t.lote || '—'}</td>
+      <td>${inputEditableTrabajo(t.id, 'lote', t.lote, 50)}</td>
       <td>${t.hectareas ? t.hectareas + ' has' : '—'}</td>
       <td>${inputEditableTrabajo(t.id, 'cultivo', t.cultivo, 70)}</td>
       <td>${inputEditableTrabajo(t.id, 'contratista', t.contratista, 80)}</td>
