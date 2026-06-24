@@ -151,7 +151,12 @@ function renderLiqGranos() {
       <td>${fmtFecha(l.fecha)}</td>
       <td><span class="badge badge-${cultColors[l.grano?.toLowerCase()] || 'gray'}">${l.grano || '—'}</span></td>
       <td>${l.numero || '—'}</td>
-      <td>${l.observacion || '—'}</td>
+      <td><select onchange="editarObservacionLiqGrano('${l.id}', this.value)" style="border:1px solid var(--gris-borde);border-radius:4px;padding:3px 5px;font-size:12px">
+        <option value="" ${!l.observacion ? 'selected' : ''}>—</option>
+        <option ${l.observacion === 'Venta' ? 'selected' : ''}>Venta</option>
+        <option ${l.observacion === 'Canje' ? 'selected' : ''}>Canje</option>
+        <option ${l.observacion === 'Ajuste calidad' ? 'selected' : ''}>Ajuste calidad</option>
+      </select></td>
       <td>${l.campania || '—'}</td>
       <td>${l.kg ? fmtKg(l.kg) : '—'}</td>
       <td>${l.precio_tt ? fmtMonto(l.precio_tt, 'ARS') : '—'}</td>
@@ -171,6 +176,14 @@ function renderLiqGranos() {
       <td><strong>${l.neto_cobrar ? fmtMonto(l.neto_cobrar, 'ARS') : '—'}</strong></td>
       <td style="white-space:nowrap">${l.archivo_url ? `<a class="btn btn-secondary" style="padding:4px 8px;font-size:12px;text-decoration:none" href="${l.archivo_url}" target="_blank" rel="noopener" title="Ver documento">👁️</a> ` : ''}<button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarLiqGrano('${l.id}')">🗑️</button></td>
     </tr>`).join('');
+}
+
+async function editarObservacionLiqGrano(id, valor) {
+  const l = liqgrTodas.find(x => x.id === id);
+  if (l) l.observacion = valor;
+  const r = await sb('PATCH', 'liquidaciones_granos', { observacion: valor }, `?id=eq.${id}`);
+  if (r) toast('✅ Observación actualizada');
+  else toast('❌ Error al actualizar', 'var(--rojo)');
 }
 
 async function borrarLiqGrano(id) {
