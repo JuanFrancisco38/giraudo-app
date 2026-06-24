@@ -754,13 +754,16 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             <div class="form-group"><label>Hectáreas</label><input type="number" id="tr-has"></div>
             <div class="form-group"><label>Cultivo</label><input type="text" id="tr-cultivo" placeholder="Ej: Alfalfa, Maíz, Soja"></div>
             <div class="form-group"><label>Contratista</label><input type="text" id="tr-cont"></div>
+            <div class="form-group"><label>Dosis</label><input type="text" id="tr-dosis" placeholder="Ej: 3 lt/ha"></div>
+            <div class="form-group"><label>Consumo total</label><input type="text" id="tr-consumo" placeholder="Ej: 270 lts"></div>
+            <div class="form-group"><label>Campaña</label><input type="text" id="tr-campania" placeholder="Ej: 25/26"></div>
             <div class="form-group full"><label>Descripción / Insumos</label><textarea id="tr-desc"></textarea></div>
           </div>
           <div class="form-actions"><button class="btn btn-primary" onclick="guardarTrabajo()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-trab')">Cancelar</button></div>
         </div>
 
-        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Campo</th><th>Lote</th><th>Has</th><th>Cultivo</th><th>Contratista</th><th>Descripción / Insumos</th><th></th></tr></thead>
-        <tbody id="tabla-trabajos"><tr><td colspan="9"><div class="empty-state"><div class="icon">🌾</div><h3>Sin trabajos registrados</h3></div></td></tr></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Campo</th><th>Lote</th><th>Has</th><th>Cultivo</th><th>Contratista</th><th>Dosis</th><th>Consumo total</th><th>Campaña</th><th>Descripción / Insumos</th><th></th></tr></thead>
+        <tbody id="tabla-trabajos"><tr><td colspan="12"><div class="empty-state"><div class="icon">🌾</div><h3>Sin trabajos registrados</h3></div></td></tr></tbody></table></div>
         <div id="trab-paginador"></div>
       </div>
     </div>

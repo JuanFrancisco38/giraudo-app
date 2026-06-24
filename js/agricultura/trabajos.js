@@ -7,6 +7,9 @@ async function guardarTrabajo() {
     hectareas: parseFloat(document.getElementById('tr-has').value) || null,
     cultivo: document.getElementById('tr-cultivo').value,
     contratista: document.getElementById('tr-cont').value,
+    dosis: document.getElementById('tr-dosis').value,
+    consumo_total: document.getElementById('tr-consumo').value,
+    campania: document.getElementById('tr-campania').value,
     descripcion: document.getElementById('tr-desc').value
   };
   const r = await sb('POST', 'trabajos_agricolas', data);
@@ -40,7 +43,7 @@ function renderTrabajos() {
   const pag = document.getElementById('trab-paginador');
   if (!rows.length) {
     const hayFiltro = fBusca || fTipo;
-    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="icon">🌾</div><h3>${hayFiltro ? 'Sin resultados para el filtro' : 'Sin trabajos'}</h3></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state"><div class="icon">🌾</div><h3>${hayFiltro ? 'Sin resultados para el filtro' : 'Sin trabajos'}</h3></div></td></tr>`;
     if (pag) pag.innerHTML = '';
     return;
   }
@@ -60,6 +63,9 @@ function renderTrabajos() {
       <td>${t.hectareas ? t.hectareas + ' has' : '—'}</td>
       <td>${t.cultivo || '—'}</td>
       <td>${t.contratista || '—'}</td>
+      <td>${t.dosis || '—'}</td>
+      <td>${t.consumo_total || '—'}</td>
+      <td>${t.campania || '—'}</td>
       <td style="font-size:12px">${t.descripcion || '—'}</td>
       <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarTrabajo('${t.id}')">🗑️</button></td>
     </tr>`).join('');
@@ -85,7 +91,7 @@ async function procesarTrabajoImagen(input) {
   try {
     const datos = await extraerDocIA(file,
       `Sos un asistente agropecuario del Grupo Giraudo, Argentina. Analizá esta foto o PDF de una planilla / cuaderno de campo con trabajos agrícolas anotados (a mano o impresos) y extraé cada trabajo. Devolvé SOLO este JSON válido sin backticks ni texto adicional:
-{"trabajos":[{"tipo":"Siembra|Pulverización|Fertilización|Cosecha|Henificación|Enrollado|Labranza|Otro","fecha":"DD/MM/YYYY","campo":"string","lote":"string","hectareas":0,"cultivo":"string","contratista":"string","descripcion":"string"}]}
+{"trabajos":[{"tipo":"Siembra|Pulverización|Fertilización|Cosecha|Henificación|Enrollado|Labranza|Otro","fecha":"DD/MM/YYYY","campo":"string","lote":"string","hectareas":0,"cultivo":"string","contratista":"string","dosis":"string (ej: 3 lt/ha)","consumo_total":"string (ej: 270 lts)","campania":"string (ej: 25/26)","descripcion":"string"}]}
 Campo por defecto si no se aclara: "${campo}". Fecha por defecto si no se aclara: "${fecha ? fecha.split('-').reverse().join('/') : ''}". Si hay varios trabajos anotados, devolvé un objeto por cada uno. Si un dato no está, poné "" o 0.`,
       'Extraé todos los trabajos de campo que figuren en esta imagen/PDF.');
 
@@ -94,7 +100,7 @@ Campo por defecto si no se aclara: "${campo}". Fecha por defecto si no se aclara
       const r = await sb('POST', 'trabajos_agricolas', {
         tipo: t.tipo, fecha: parseFechaIA(t.fecha) || fecha, campo: t.campo || campo,
         lote: t.lote, hectareas: t.hectareas || null, cultivo: t.cultivo,
-        contratista: t.contratista, descripcion: t.descripcion
+        contratista: t.contratista, dosis: t.dosis, consumo_total: t.consumo_total, campania: t.campania, descripcion: t.descripcion
       });
       if (r) ok++; else fail++;
     }
@@ -130,7 +136,7 @@ async function importarTrabajoTexto() {
         model: 'claude-sonnet-4-5',
         max_tokens: 1500,
         system: `Sos un asistente agropecuario del Grupo Giraudo, Argentina. El usuario describe trabajos de campo. Extraé cada trabajo y devolvé SOLO JSON válido sin backticks:
-{"trabajos":[{"tipo":"Siembra|Pulverización|Fertilización|Cosecha|Henificación|Enrollado|Labranza|Otro","fecha":"YYYY-MM-DD","campo":"string","lote":"string","hectareas":null,"cultivo":"string","contratista":"string","descripcion":"string","detalle":{}}]}
+{"trabajos":[{"tipo":"Siembra|Pulverización|Fertilización|Cosecha|Henificación|Enrollado|Labranza|Otro","fecha":"YYYY-MM-DD","campo":"string","lote":"string","hectareas":null,"cultivo":"string","contratista":"string","dosis":"string (ej: 3 lt/ha)","consumo_total":"string (ej: 270 lts)","campania":"string (ej: 25/26)","descripcion":"string","detalle":{}}]}
 Campo por defecto: "${campo}". Fecha por defecto: "${fecha || new Date().toISOString().split('T')[0]}". Si hay varios trabajos en el texto, creá un objeto por cada uno.`,
         messages: [{ role: 'user', content: texto }]
       })
@@ -146,7 +152,7 @@ Campo por defecto: "${campo}". Fecha por defecto: "${fecha || new Date().toISOSt
       const r = await sb('POST', 'trabajos_agricolas', {
         tipo: t.tipo, fecha: t.fecha, campo: t.campo || campo,
         lote: t.lote, hectareas: t.hectareas, cultivo: t.cultivo,
-        contratista: t.contratista, descripcion: t.descripcion, detalle: t.detalle || {}
+        contratista: t.contratista, dosis: t.dosis, consumo_total: t.consumo_total, campania: t.campania, descripcion: t.descripcion, detalle: t.detalle || {}
       });
       if (r) summary.push(`✅ ${t.tipo} — ${t.cultivo || ''} ${t.lote || ''}`);
       else errors.push(`❌ Error: ${t.tipo}`);
