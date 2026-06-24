@@ -65,10 +65,18 @@ function renderTrabajos() {
       <td>${t.contratista || '—'}</td>
       <td>${t.dosis || '—'}</td>
       <td>${t.consumo_total || '—'}</td>
-      <td>${t.campania || '—'}</td>
+      <td><input type="text" value="${t.campania || ''}" placeholder="Ej: 25/26" style="width:70px;border:1px solid var(--gris-borde);border-radius:4px;padding:3px 5px;font-size:12px" onchange="editarCampaniaTrabajo('${t.id}', this.value)"></td>
       <td style="font-size:12px">${t.descripcion || '—'}</td>
       <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarTrabajo('${t.id}')">🗑️</button></td>
     </tr>`).join('');
+}
+
+async function editarCampaniaTrabajo(id, valor) {
+  const t = trabajosTodos.find(x => x.id === id);
+  if (t) t.campania = valor;
+  const r = await sb('PATCH', 'trabajos_agricolas', { campania: valor }, `?id=eq.${id}`);
+  if (r) toast('✅ Campaña actualizada');
+  else toast('❌ Error al actualizar', 'var(--rojo)');
 }
 
 async function borrarTrabajo(id) {
