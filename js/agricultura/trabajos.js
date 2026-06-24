@@ -14,15 +14,44 @@ async function guardarTrabajo() {
   else toast('❌ Error', 'var(--rojo)');
 }
 
+let trabajosTodos = [];
+let trabajosPagina = 1;
+
+function filtrarTrabajosReset() { trabajosPagina = 1; renderTrabajos(); }
+function irPaginaTrabajos(p) { trabajosPagina = p; renderTrabajos(); window.scrollTo({ top: document.getElementById('section-trabajos_agri').offsetTop, behavior: 'smooth' }); }
+
 async function cargarTrabajos() {
   const rows = await sb('GET', 'trabajos_agricolas', '', '?tipo=neq.alimentacion&order=fecha.desc');
+  trabajosTodos = rows || [];
+  renderTrabajos();
+}
+
+function renderTrabajos() {
   const tbody = document.getElementById('tabla-trabajos');
-  if (!rows || !rows.length) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="icon">🌾</div><h3>Sin trabajos</h3></div></td></tr>';
+  if (!tbody) return;
+  const fBusca = (document.getElementById('trab-filtro-busca')?.value || '').trim().toLowerCase();
+  const fTipo = document.getElementById('trab-filtro-tipo')?.value || '';
+  const rows = trabajosTodos.filter(t => {
+    if (fTipo && t.tipo !== fTipo) return false;
+    if (fBusca && !`${t.lote || ''} ${t.cultivo || ''} ${t.contratista || ''}`.toLowerCase().includes(fBusca)) return false;
+    return true;
+  });
+
+  const pag = document.getElementById('trab-paginador');
+  if (!rows.length) {
+    const hayFiltro = fBusca || fTipo;
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="icon">🌾</div><h3>${hayFiltro ? 'Sin resultados para el filtro' : 'Sin trabajos'}</h3></div></td></tr>`;
+    if (pag) pag.innerHTML = '';
     return;
   }
+
+  const totalPag = Math.ceil(rows.length / FILAS_POR_PAGINA) || 1;
+  if (trabajosPagina > totalPag) trabajosPagina = totalPag;
+  const pagina = rows.slice((trabajosPagina - 1) * FILAS_POR_PAGINA, trabajosPagina * FILAS_POR_PAGINA);
+  if (pag) pag.innerHTML = htmlPaginador(trabajosPagina, rows.length, 'irPaginaTrabajos');
+
   const colors = {Siembra:'green',Pulverización:'blue',Fertilización:'yellow',Cosecha:'tierra',Henificación:'bordo'};
-  tbody.innerHTML = rows.map(t => `
+  tbody.innerHTML = pagina.map(t => `
     <tr>
       <td>${fmtFecha(t.fecha)}</td>
       <td><span class="badge badge-${colors[t.tipo] || 'gray'}">${t.tipo}</span></td>
@@ -31,7 +60,16 @@ async function cargarTrabajos() {
       <td>${t.hectareas ? t.hectareas + ' has' : '—'}</td>
       <td>${t.cultivo || '—'}</td>
       <td>${t.contratista || '—'}</td>
+      <td style="font-size:12px">${t.descripcion || '—'}</td>
+      <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarTrabajo('${t.id}')">🗑️</button></td>
     </tr>`).join('');
+}
+
+async function borrarTrabajo(id) {
+  if (!confirm('¿Borrar este trabajo? Esta acción no se puede deshacer.')) return;
+  await sb('DELETE', 'trabajos_agricolas', '', `?id=eq.${id}`);
+  toast('🗑️ Trabajo borrado');
+  cargarTrabajos();
 }
 
 async function importarTrabajoTexto() {

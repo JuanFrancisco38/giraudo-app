@@ -701,7 +701,12 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
     <div id="section-trabajos_agri" class="section">
       <div class="card">
         <div class="card-header"><h3>🌾 Trabajos de campo</h3>
-          <div style="display:flex;gap:8px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input type="text" id="trab-filtro-busca" placeholder="🔎 Buscar lote, cultivo o contratista..." oninput="filtrarTrabajosReset()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;width:220px">
+            <select id="trab-filtro-tipo" onchange="filtrarTrabajosReset()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px">
+              <option value="">Todos los tipos</option>
+              <option>Siembra</option><option>Pulverización</option><option>Fertilización</option><option>Cosecha</option><option>Henificación</option><option>Enrollado</option><option>Labranza</option><option>Otro</option>
+            </select>
             <button class="btn btn-primary" onclick="toggleForm('form-trab-texto')">📝 Cargar por texto</button>
             <button class="btn btn-secondary" onclick="toggleForm('form-trab')">+ Formulario</button>
           </div>
@@ -749,8 +754,9 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
           <div class="form-actions"><button class="btn btn-primary" onclick="guardarTrabajo()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-trab')">Cancelar</button></div>
         </div>
 
-        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Campo</th><th>Lote</th><th>Has</th><th>Cultivo</th><th>Contratista</th></tr></thead>
-        <tbody id="tabla-trabajos"><tr><td colspan="7"><div class="empty-state"><div class="icon">🌾</div><h3>Sin trabajos registrados</h3></div></td></tr></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Campo</th><th>Lote</th><th>Has</th><th>Cultivo</th><th>Contratista</th><th>Descripción / Insumos</th><th></th></tr></thead>
+        <tbody id="tabla-trabajos"><tr><td colspan="9"><div class="empty-state"><div class="icon">🌾</div><h3>Sin trabajos registrados</h3></div></td></tr></tbody></table></div>
+        <div id="trab-paginador"></div>
       </div>
     </div>
 
