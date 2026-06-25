@@ -75,22 +75,37 @@ function normalizarTexto(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]/
 
 function normalizarCampania(c) { return (c || '').split('/').map(p => p.trim().slice(-2)).join('/'); }
 
+function campaniaAnio(c) { return parseInt(normalizarCampania(c).split('/')[0], 10) || 0; }
+
 function buscarCostoUnitarioInsumo(descripcion, campania) {
   if (!descripcion) return null;
   const needle = normalizarTexto(descripcion);
   if (needle.length < 3) return null;
-  const campN = normalizarCampania(campania);
-  const precios = [];
+
+  const porCampania = {};
   boletasParaLotes.forEach(b => {
     if (!normalizarTexto(b.concepto).includes(needle)) return;
     let obs;
     try { obs = JSON.parse(b.observaciones || '{}'); } catch(e) { return; }
-    if (normalizarCampania(obs.campania) !== campN) return;
-    if (!obs.costo_unitario) return;
+    if (!obs.costo_unitario || !obs.campania) return;
     const precio = obs.moneda_costo === 'USD' ? obs.costo_unitario * (obs.tipo_cambio || 1) : obs.costo_unitario;
-    precios.push(precio);
+    const camp = normalizarCampania(obs.campania);
+    if (!porCampania[camp]) porCampania[camp] = [];
+    porCampania[camp].push(precio);
   });
-  if (!precios.length) return null;
+
+  const campN = normalizarCampania(campania);
+  if (porCampania[campN]) {
+    const precios = porCampania[campN];
+    return precios.reduce((s, p) => s + p, 0) / precios.length;
+  }
+
+  // Sin facturas de esta campaña: usar el promedio de la campaña anterior más reciente que tenga datos.
+  const anioTarget = campaniaAnio(campania);
+  const anteriores = Object.keys(porCampania).filter(c => campaniaAnio(c) <= anioTarget).sort((a, b) => campaniaAnio(b) - campaniaAnio(a));
+  const candidatas = anteriores.length ? anteriores : Object.keys(porCampania).sort((a, b) => campaniaAnio(a) - campaniaAnio(b));
+  if (!candidatas.length) return null;
+  const precios = porCampania[candidatas[0]];
   return precios.reduce((s, p) => s + p, 0) / precios.length;
 }
 
