@@ -9,9 +9,10 @@ async function procesarLiqGranoDoc(input) {
   try {
     const datos = await extraerDocIA(file,
       `Sos un asistente contable agropecuario argentino experto en liquidaciones de granos (formato C1116, liquidaciones de acopios como Turaglio, CEC, etc.). Leé TODO el documento con atención y extraé cada dato. Devolvé SOLO este JSON válido sin backticks ni texto adicional:
-{"firma":"string (quién firmó/recibió, si figura)","razon_social":"string (nombre del acopio/comprador)","fecha":"DD/MM/YYYY","grano":"Soja|Maíz|Trigo|Girasol|Sorgo","numero":"string (N° formulario, COE o número de liquidación)","observacion":"Venta|Canje|Ajuste calidad","campania":"string (ej 25/26)","kg":0,"precio_tt":0,"subtotal":0,"importe_iva":0,"operacion_civa":0,"comision_civa":0,"derecho_registro":0,"sellados_cordoba":0,"flete_puerto_civa":0,"ganancias":0,"iva_5_8":0,"total_retencion_afip":0,"total_deducciones":0,"iva_rg2300":0,"pago_condicion":"string","neto_cobrar":0}
+{"firma":"string (Razón Social que figura en el recuadro VENDEDOR del documento, ej: GIRAUDO FRANCISCO JAVIER)","razon_social":"string (nombre del acopio/comprador, recuadro COMPRADOR)","fecha":"DD/MM/YYYY","grano":"Soja|Maíz|Trigo|Girasol|Sorgo","numero":"string (N° formulario, COE o número de liquidación)","observacion":"Venta|Canje|Ajuste calidad","campania":"string (ej 25/26)","kg":0,"precio_tt":0,"subtotal":0,"importe_iva":0,"operacion_civa":0,"comision_civa":0,"derecho_registro":0,"sellados_cordoba":0,"flete_puerto_civa":0,"ganancias":0,"iva_5_8":0,"total_retencion_afip":0,"total_deducciones":0,"iva_rg2300":0,"pago_condicion":"string","neto_cobrar":0}
 
 Guía de campos (pueden aparecer con otros nombres en el documento):
+- firma: el documento suele tener un recuadro "VENDEDOR" con su Razón Social, Domicilio, C.U.I.T., etc. Tomá el valor de "Razón Social" de ESE recuadro (el del vendedor, es decir Grupo Giraudo) y poné lo en "firma". No confundir con el recuadro "COMPRADOR" (acopio/cerealera), que va en "razon_social".
 - kg: kilogramos netos / peso neto.
 - precio_tt: precio por tonelada (TT). Si el documento da precio por kg, multiplicá por 1000.
 - subtotal: importe bruto / importe de la operación antes de IVA.
