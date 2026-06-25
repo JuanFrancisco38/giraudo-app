@@ -122,23 +122,28 @@ function obtenerCampaniaDeBoleta(b, obs) {
   return '';
 }
 
-const ARRENDAMIENTO_CFG = {
-  'Don Alfredo (Azcona)': { proveedorMatch: 'azcona', hectareasTotales: 278 }
-};
+const POOLS_ARRENDAMIENTO = [
+  { campos: ['Don Alfredo (Azcona)'], proveedorMatch: 'azcona', hectareasTotales: 278 },
+  { campos: ['Doña Vica', 'Sant-Yago'], excluirProveedor: 'azcona', hectareasTotales: 490 }
+];
+
+function poolDeCampo(campo) { return POOLS_ARRENDAMIENTO.find(p => p.campos.includes(campo)); }
 
 function costoArrendamientoLote(campo, hectareasLote, campania) {
-  const cfg = ARRENDAMIENTO_CFG[campo];
-  if (!cfg || !hectareasLote) return 0;
+  const pool = poolDeCampo(campo);
+  if (!pool || !hectareasLote) return 0;
   const campN = normalizarCampania(campania);
   const total = boletasParaLotes.reduce((s, b) => {
     if (b.categoria !== 'Arrendamientos Rurales') return s;
-    if (!(b.proveedor || '').toLowerCase().includes(cfg.proveedorMatch)) return s;
+    const prov = (b.proveedor || '').toLowerCase();
+    if (pool.proveedorMatch && !prov.includes(pool.proveedorMatch)) return s;
+    if (pool.excluirProveedor && prov.includes(pool.excluirProveedor)) return s;
     let obs;
     try { obs = JSON.parse(b.observaciones || '{}'); } catch(e) { obs = {}; }
     if (obtenerCampaniaDeBoleta(b, obs) !== campN) return s;
     return s + (parseFloat(b.monto) || 0);
   }, 0);
-  return (total / cfg.hectareasTotales) * hectareasLote;
+  return (total / pool.hectareasTotales) * hectareasLote;
 }
 
 function precioPromedioGrano(grano, campania) {
