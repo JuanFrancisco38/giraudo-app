@@ -9,7 +9,7 @@ async function procesarLiqGranoDoc(input) {
   try {
     const datos = await extraerDocIA(file,
       `Sos un asistente contable agropecuario argentino experto en liquidaciones de granos (formato C1116, liquidaciones de acopios como Turaglio, CEC, etc.). Leé TODO el documento con atención y extraé cada dato. Devolvé SOLO este JSON válido sin backticks ni texto adicional:
-{"firma":"string (Razón Social que figura en el recuadro VENDEDOR del documento, ej: GIRAUDO FRANCISCO JAVIER)","razon_social":"string (nombre del acopio/comprador, recuadro COMPRADOR)","fecha":"DD/MM/YYYY","grano":"Soja|Maíz|Trigo|Girasol|Sorgo","numero":"string (N° formulario, COE o número de liquidación)","observacion":"Venta|Canje|Ajuste calidad","campania":"string (ej 25/26)","kg":0,"precio_tt":0,"subtotal":0,"importe_iva":0,"operacion_civa":0,"comision_civa":0,"derecho_registro":0,"sellados_cordoba":0,"flete_puerto_civa":0,"ganancias":0,"iva_5_8":0,"total_retencion_afip":0,"total_deducciones":0,"iva_rg2300":0,"pago_condicion":"string","neto_cobrar":0}
+{"firma":"string (Razón Social que figura en el recuadro VENDEDOR del documento, ej: GIRAUDO FRANCISCO JAVIER)","razon_social":"string (nombre del acopio/comprador, recuadro COMPRADOR)","fecha":"DD/MM/YYYY","grano":"Soja|Maíz|Trigo|Girasol|Sorgo","numero":"string (N° formulario, COE o número de liquidación)","observacion":"Venta|Canje|Ajuste calidad","campania":"string (ej 25/26)","kg":0,"precio_tt":0,"subtotal":0,"importe_iva":0,"operacion_civa":0,"comision_civa":0,"derecho_registro":0,"sellados_cordoba":0,"flete_puerto_civa":0,"ganancias":0,"iva_5_8":0,"total_retencion_afip":0,"total_deducciones":0,"iva_rg2300":0,"neto_cobrar":0}
 
 Guía de campos (pueden aparecer con otros nombres en el documento):
 - firma: el documento suele tener un recuadro "VENDEDOR" con su Razón Social, Domicilio, C.U.I.T., etc. Tomá el valor de "Razón Social" de ESE recuadro (el del vendedor, es decir Grupo Giraudo) y poné lo en "firma". No confundir con el recuadro "COMPRADOR" (acopio/cerealera), que va en "razon_social".
@@ -27,7 +27,6 @@ Guía de campos (pueden aparecer con otros nombres en el documento):
 - total_retencion_afip: total de retenciones de AFIP (suma de ganancias + IVA RG2300 + iva_5_8 si corresponde).
 - total_deducciones: total de deducciones (comisión + derecho de registro + sellados + flete, etc.).
 - iva_rg2300: retención de IVA RG 2300 (puede decir "RG 2300" o percepción/retención IVA específica).
-- pago_condicion: condición o forma de pago (ej: "Contado", "30 días", etc.) si figura.
 - neto_cobrar: neto a cobrar / total a liquidar / importe neto.
 
 IMPORTANTE: revisá la sección de deducciones/retenciones línea por línea. Si un valor realmente no figura, poné 0 o "". Montos como número sin símbolos ni puntos de miles.`,
@@ -54,7 +53,6 @@ IMPORTANTE: revisá la sección de deducciones/retenciones línea por línea. Si
     if (datos.total_retencion_afip) document.getElementById('lg-totalretafip').value = datos.total_retencion_afip;
     if (datos.total_deducciones) document.getElementById('lg-totaldeducciones').value = datos.total_deducciones;
     if (datos.iva_rg2300) document.getElementById('lg-rg2300').value = datos.iva_rg2300;
-    if (datos.pago_condicion) document.getElementById('lg-pagocond').value = datos.pago_condicion;
     if (datos.neto_cobrar) document.getElementById('lg-neto').value = datos.neto_cobrar;
 
     status.textContent = `✅ ${file.name} leída — revisá los campos y guardá`;
@@ -89,7 +87,6 @@ async function guardarLiqGrano() {
     total_retencion_afip: parseFloat(document.getElementById('lg-totalretafip').value) || null,
     total_deducciones: parseFloat(document.getElementById('lg-totaldeducciones').value) || null,
     iva_rg2300: parseFloat(document.getElementById('lg-rg2300').value) || null,
-    pago_condicion: document.getElementById('lg-pagocond').value,
     neto_cobrar: parseFloat(document.getElementById('lg-neto').value) || null
   };
   if (data.numero) {
@@ -136,7 +133,7 @@ function renderLiqGranos() {
   if (!tbody) return;
   const pag = document.getElementById('liqgr-paginador');
   if (!rows || !rows.length) {
-    tbody.innerHTML = `<tr><td colspan="24"><div class="empty-state"><div class="icon">📄</div><h3>${fBusca ? 'Sin resultados para la búsqueda' : 'Sin liquidaciones'}</h3></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="23"><div class="empty-state"><div class="icon">📄</div><h3>${fBusca ? 'Sin resultados para la búsqueda' : 'Sin liquidaciones'}</h3></div></td></tr>`;
     if (pag) pag.innerHTML = '';
     return;
   }
@@ -173,7 +170,6 @@ function renderLiqGranos() {
       <td>${l.total_retencion_afip ? fmtMonto(l.total_retencion_afip, 'ARS') : '—'}</td>
       <td>${l.total_deducciones ? fmtMonto(l.total_deducciones, 'ARS') : '—'}</td>
       <td>${l.iva_rg2300 ? fmtMonto(l.iva_rg2300, 'ARS') : '—'}</td>
-      <td>${l.pago_condicion || '—'}</td>
       <td><strong>${l.neto_cobrar ? fmtMonto(l.neto_cobrar, 'ARS') : '—'}</strong></td>
       <td style="white-space:nowrap">${l.archivo_url ? `<a class="btn btn-secondary" style="padding:4px 8px;font-size:12px;text-decoration:none" href="${l.archivo_url}" target="_blank" rel="noopener" title="Ver documento">👁️</a> ` : ''}<button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarLiqGrano('${l.id}')">🗑️</button></td>
     </tr>`).join('');
