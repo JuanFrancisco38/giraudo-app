@@ -138,6 +138,17 @@ function calcularResumenLote(campo, lote, campania) {
 
 const colorPorCampo = { 'Don Alfredo (Azcona)': 'bordo', 'Doña Vica': 'cielo', 'Sant-Yago': 'tierra' };
 
+let loteSeleccionado = null;
+
+function verDetalleLote(campo, lote) {
+  const key = `${campo}|${lote}`;
+  loteSeleccionado = loteSeleccionado === key ? null : key;
+  renderLotes();
+  if (loteSeleccionado) {
+    document.getElementById('lotes-detalle').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
 function renderLotes() {
   const cont = document.getElementById('lotes-cards');
   if (!cont) return;
@@ -147,10 +158,12 @@ function renderLotes() {
     return;
   }
   cont.innerHTML = lotesData.map(l => {
+    const key = `${l.campo}|${l.lote}`;
     const r = calcularResumenLote(l.campo, l.lote, campania);
     const color = colorPorCampo[l.campo] || 'gray';
     const margenColor = r.margenBruto > 0 ? 'var(--verde)' : (r.margenBruto < 0 ? 'var(--rojo)' : 'var(--texto-suave)');
-    return `<div style="background:var(--${color}-claro,#f5f5f5);border:1px solid var(--gris-borde);border-radius:8px;padding:14px">
+    const seleccionado = loteSeleccionado === key;
+    return `<div onclick="verDetalleLote('${l.campo}', '${l.lote}')" style="cursor:pointer;background:var(--${color}-claro,#f5f5f5);border:2px solid ${seleccionado ? 'var(--' + color + ')' : 'var(--gris-borde)'};border-radius:8px;padding:14px">
       <div style="font-weight:600;font-size:13px;color:var(--${color});margin-bottom:4px">${l.campo} — Lote ${l.lote}</div>
       <div style="font-size:12px;color:var(--texto-suave);margin-bottom:8px">${l.hectareas || '—'} has · ${l.tenencia || '—'}</div>
       <div style="font-size:12px;line-height:1.6">
@@ -163,4 +176,34 @@ function renderLotes() {
       <div style="font-weight:600;font-size:13px;margin-top:8px;color:${margenColor}">Margen bruto estimado: ${fmtMonto(r.margenBruto, 'ARS')}</div>
     </div>`;
   }).join('');
+
+  renderDetalleLote(campania);
+}
+
+function renderDetalleLote(campania) {
+  const cont = document.getElementById('lotes-detalle');
+  if (!cont) return;
+  if (!loteSeleccionado) { cont.innerHTML = ''; return; }
+  const [campo, lote] = loteSeleccionado.split('|');
+  const trabs = trabajosParaLotes
+    .filter(t => t.campo === campo && String(t.lote) === String(lote) && t.campania === campania)
+    .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+  const colors = {Siembra:'green',Pulverización:'blue',Fertilización:'yellow',Cosecha:'tierra',Henificación:'bordo'};
+  cont.innerHTML = `<div class="card">
+    <div class="card-header"><h3>🌾 Trabajos — ${campo}, Lote ${lote} (Campaña ${campania})</h3>
+      <button class="btn btn-secondary" style="padding:4px 10px;font-size:12px" onclick="verDetalleLote('${campo}','${lote}')">✕ Cerrar</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Cultivo</th><th>Contratista</th><th>Insumo</th><th>Dosis</th><th>Consumo total</th><th>Rendimiento</th></tr></thead>
+    <tbody>${trabs.length ? trabs.map(t => `
+      <tr>
+        <td>${fmtFecha(t.fecha)}</td>
+        <td><span class="badge badge-${colors[t.tipo] || 'gray'}">${t.tipo}</span></td>
+        <td>${t.cultivo || '—'}</td>
+        <td>${t.contratista || '—'}</td>
+        <td>${t.descripcion || '—'}</td>
+        <td>${t.dosis || '—'}</td>
+        <td>${t.consumo_total || '—'}</td>
+        <td>${t.rendimiento ? fmtNum(t.rendimiento) + ' ' + (t.rendimiento_unidad || '') : '—'}</td>
+      </tr>`).join('') : `<tr><td colspan="8"><div class="empty-state"><div class="icon">🌾</div><h3>Sin trabajos en este lote para esta campaña</h3></div></td></tr>`}</tbody></table></div>
+  </div>`;
 }
