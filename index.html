@@ -777,6 +777,14 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             </div>
             <button type="button" class="btn btn-secondary" style="margin-top:8px;font-size:12px;padding:6px 10px" onclick="agregarInsumoTrabajo()">+ Agregar insumo</button>
           </div>
+          <div style="margin-top:14px">
+            <label style="font-weight:600;font-size:13px">Rendimiento (solo para Cosecha / Henificación / Enrollado)</label>
+            <div class="form-grid" style="margin-top:6px">
+              <div class="form-group"><label>Cantidad</label><input type="number" id="tr-rend" placeholder="Ej: 4200"></div>
+              <div class="form-group"><label>Unidad</label><select id="tr-rendunidad"><option value="">—</option><option>kg</option><option>kg/ha</option><option>rollos</option><option>rollos/ha</option></select></div>
+              <div class="form-group"><label>Precio estimado por unidad $</label><input type="number" id="tr-rendprecio" placeholder="Ej: 350"></div>
+            </div>
+          </div>
           <div class="form-actions"><button class="btn btn-primary" onclick="guardarTrabajo()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-trab')">Cancelar</button></div>
         </div>
 
@@ -788,30 +796,29 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 
     <!-- LOTES -->
     <div id="section-lotes" class="section">
-      <div class="card">
-        <div class="card-header"><h3>🗺️ Lotes por campo</h3></div>
-        <div class="card-body">
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
-            <div style="background:var(--bordo-claro);border:1px solid var(--bordo-suave);border-radius:8px;padding:14px">
-              <div style="font-weight:600;font-size:13px;color:var(--bordo);margin-bottom:8px">Don Alfredo (Azcona) — Ganadería</div>
-              <div style="font-size:12px;color:var(--texto-suave)">Lote 1 — 12 has | Lote 2 — 19 has | Lote 3 — 34 has</div>
-              <div style="font-size:12px;color:var(--texto-suave)">Lote 4 — 33 has | Lote 5 — 9 has | Lote 6 — 30 has</div>
-              <div style="font-size:12px;color:var(--texto-suave)">Lote 7 — 30 has | Lote 8 — 23 has | Lote 9 — 33 has | Lote 10 — 34 has</div>
-              <div style="font-weight:600;font-size:12px;color:var(--bordo);margin-top:8px">Total: 257 has — Alquilado</div>
-            </div>
-            <div style="background:var(--cielo-claro);border:1px solid #9bb8d4;border-radius:8px;padding:14px">
-              <div style="font-weight:600;font-size:13px;color:var(--cielo);margin-bottom:8px">Doña Vica — Agricultura</div>
-              <div style="font-size:12px;color:var(--texto-suave)">Lote 1 — 78 has | Lote 2 — 72 has | Lote 3 — 60 has</div>
-              <div style="font-weight:600;font-size:12px;color:var(--cielo);margin-top:8px">Total: 210 has — Familiar</div>
-              <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">📌 Arranca registro campaña 25/26</div>
-            </div>
-            <div style="background:var(--tierra-claro);border:1px solid #c49a7a;border-radius:8px;padding:14px">
-              <div style="font-weight:600;font-size:13px;color:var(--tierra);margin-bottom:8px">Sant-Yago — Agricultura</div>
-              <div style="font-size:12px;color:var(--texto-suave)">Lote 1 — 15 has | Lote 2 — 237 has | Lote 3 — 28 has</div>
-              <div style="font-weight:600;font-size:12px;color:var(--tierra);margin-top:8px">Total: 280 has — Familiar</div>
-              <div style="font-size:11px;color:var(--texto-suave);margin-top:4px">📌 Arranca registro campaña 25/26</div>
-            </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header"><h3>💲 Tarifas propias por tipo de trabajo</h3><button class="btn btn-secondary" onclick="toggleForm('form-tarifa')">+ Agregar</button></div>
+        <div id="form-tarifa" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+          <div class="form-grid">
+            <div class="form-group"><label>Tipo de trabajo</label><select id="tar-tipo"><option>Siembra</option><option>Pulverización</option><option>Fertilización</option><option>Cosecha</option><option>Henificación</option><option>Enrollado</option><option>Labranza</option><option>Otro</option></select></div>
+            <div class="form-group"><label>Tarifa $/ha</label><input type="number" id="tar-precio" placeholder="Ej: 5000"></div>
           </div>
+          <div class="form-actions"><button class="btn btn-primary" onclick="guardarTarifaTrabajo()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-tarifa')">Cancelar</button></div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Tipo de trabajo</th><th>Tarifa $/ha</th><th></th></tr></thead>
+        <tbody id="tabla-tarifas"><tr><td colspan="3"><div class="empty-state"><div class="icon">💲</div><h3>Sin tarifas cargadas</h3></div></td></tr></tbody></table></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>🗺️ Lotes por campo</h3>
+          <select id="lotes-campania" onchange="renderLotes()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px">
+            <option value="25/26">Campaña 25/26</option>
+            <option value="24/25">Campaña 24/25</option>
+            <option value="26/27">Campaña 26/27</option>
+          </select>
+        </div>
+        <div class="card-body">
+          <div id="lotes-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px"></div>
         </div>
       </div>
     </div>
@@ -1625,6 +1632,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 <script src="js/ganaderia/alimentacion.js"></script>
 <script src="js/agricultura/trabajos.js"></script>
 <script src="js/agricultura/agro-dashboard.js"></script>
+<script src="js/agricultura/lotes.js"></script>
 <script src="js/agricultura/certificaciones.js"></script>
 <script src="js/maquinaria.js"></script>
 <script src="js/contabilidad/liq-hacienda.js"></script>

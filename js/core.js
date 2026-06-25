@@ -135,6 +135,7 @@ function showSection(id, el) {
   if (id === 'boletas') cargarBoletas();
   if (id === 'precios') cargarHistorialPrecios();
   if (id === 'trabajos_agri') cargarTrabajos();
+  if (id === 'lotes') cargarLotes();
   if (id === 'agro_dash') cargarAgroDashboard();
   if (id === 'liq_granos') { cargarLiqGranos(); cargarResumenGranos(); }
   if (id === 'certificaciones') cargarCertificaciones();

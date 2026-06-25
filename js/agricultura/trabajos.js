@@ -20,7 +20,10 @@ async function guardarTrabajo() {
     hectareas: parseFloat(document.getElementById('tr-has').value) || null,
     cultivo: document.getElementById('tr-cultivo').value,
     contratista: document.getElementById('tr-cont').value || 'Propio',
-    campania: document.getElementById('tr-campania').value
+    campania: document.getElementById('tr-campania').value,
+    rendimiento: parseFloat(document.getElementById('tr-rend').value) || null,
+    rendimiento_unidad: document.getElementById('tr-rendunidad').value,
+    precio_rendimiento: parseFloat(document.getElementById('tr-rendprecio').value) || null
   };
   const filas = [...document.querySelectorAll('#tr-insumos-list .insumo-row')];
   const insumos = filas.map(f => ({
