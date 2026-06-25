@@ -71,19 +71,20 @@ function parseNumeroDeTexto(str) {
   return parseFloat(m[0].replace(/\./g, '').replace(',', '.')) || 0;
 }
 
+function normalizarTexto(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+
 function buscarCostoUnitarioInsumo(descripcion, fecha) {
   if (!descripcion) return null;
-  const palabras = descripcion.toLowerCase().split(/\s+/).filter(p => p.length > 3);
-  if (!palabras.length) return null;
-  const candidatas = boletasParaLotes.filter(b => {
-    const c = (b.concepto || '').toLowerCase();
-    return palabras.some(p => c.includes(p));
-  });
+  const needle = normalizarTexto(descripcion);
+  if (needle.length < 3) return null;
+  const candidatas = boletasParaLotes.filter(b => normalizarTexto(b.concepto).includes(needle));
   if (!candidatas.length) return null;
   candidatas.sort((a, b) => Math.abs(new Date(a.fecha) - new Date(fecha)) - Math.abs(new Date(b.fecha) - new Date(fecha)));
   try {
     const obs = JSON.parse(candidatas[0].observaciones || '{}');
-    return obs.costo_unitario || null;
+    if (!obs.costo_unitario) return null;
+    if (obs.moneda_costo === 'USD') return obs.costo_unitario * (obs.tipo_cambio || 1);
+    return obs.costo_unitario;
   } catch(e) { return null; }
 }
 
