@@ -109,6 +109,38 @@ function buscarCostoUnitarioInsumo(descripcion, campania) {
   return precios.reduce((s, p) => s + p, 0) / precios.length;
 }
 
+function obtenerCampaniaDeBoleta(b, obs) {
+  if (obs.campania) return normalizarCampania(obs.campania);
+  const m = (b.concepto || '').match(/(20)?(\d{2})\s*[\/\-]\s*(20)?(\d{2})/);
+  if (m) return `${m[2]}/${m[4]}`;
+  if (b.fecha) {
+    const f = new Date(b.fecha);
+    const anio = f.getFullYear() % 100;
+    const mes = f.getMonth() + 1;
+    return mes >= 7 ? `${anio}/${anio + 1}` : `${anio - 1}/${anio}`;
+  }
+  return '';
+}
+
+const ARRENDAMIENTO_CFG = {
+  'Don Alfredo (Azcona)': { proveedorMatch: 'azcona', hectareasTotales: 278 }
+};
+
+function costoArrendamientoLote(campo, hectareasLote, campania) {
+  const cfg = ARRENDAMIENTO_CFG[campo];
+  if (!cfg || !hectareasLote) return 0;
+  const campN = normalizarCampania(campania);
+  const total = boletasParaLotes.reduce((s, b) => {
+    if (b.categoria !== 'Arrendamientos Rurales') return s;
+    if (!(b.proveedor || '').toLowerCase().includes(cfg.proveedorMatch)) return s;
+    let obs;
+    try { obs = JSON.parse(b.observaciones || '{}'); } catch(e) { obs = {}; }
+    if (obtenerCampaniaDeBoleta(b, obs) !== campN) return s;
+    return s + (parseFloat(b.monto) || 0);
+  }, 0);
+  return (total / cfg.hectareasTotales) * hectareasLote;
+}
+
 function precioPromedioGrano(grano, campania) {
   const filtradas = liqGranosParaLotes.filter(l => (l.grano || '').toLowerCase() === (grano || '').toLowerCase() && l.campania === campania && l.precio_tt);
   if (!filtradas.length) return null;
@@ -116,8 +148,9 @@ function precioPromedioGrano(grano, campania) {
   return prom / 1000;
 }
 
-function calcularResumenLote(campo, lote, campania) {
+function calcularResumenLote(campo, lote, campania, hectareasLote) {
   const trabs = trabajosParaLotes.filter(t => t.campo === campo && String(t.lote) === String(lote) && t.campania === campania);
+  const costoArrendamiento = costoArrendamientoLote(campo, hectareasLote, campania);
 
   let costoInsumos = 0, sinPrecio = 0;
   const tarifaPorTipo = {};
@@ -147,8 +180,8 @@ function calcularResumenLote(campo, lote, campania) {
     }
   });
 
-  const margenBruto = ingresoRendimiento - costoInsumos - costoTarifas;
-  return { cantTrabajos: trabs.length, costoInsumos, costoTarifas, sinPrecio, ingresoRendimiento, rendimientos, margenBruto };
+  const margenBruto = ingresoRendimiento - costoInsumos - costoTarifas - costoArrendamiento;
+  return { cantTrabajos: trabs.length, costoInsumos, costoTarifas, costoArrendamiento, sinPrecio, ingresoRendimiento, rendimientos, margenBruto };
 }
 
 const colorPorCampo = { 'Don Alfredo (Azcona)': 'bordo', 'Doña Vica': 'cielo', 'Sant-Yago': 'tierra' };
@@ -174,7 +207,7 @@ function renderLotes() {
   }
   cont.innerHTML = lotesData.map(l => {
     const key = `${l.campo}|${l.lote}`;
-    const r = calcularResumenLote(l.campo, l.lote, campania);
+    const r = calcularResumenLote(l.campo, l.lote, campania, l.hectareas);
     const color = colorPorCampo[l.campo] || 'gray';
     const margenColor = r.margenBruto > 0 ? 'var(--verde)' : (r.margenBruto < 0 ? 'var(--rojo)' : 'var(--texto-suave)');
     const seleccionado = loteSeleccionado === key;
@@ -185,6 +218,7 @@ function renderLotes() {
         <div>Trabajos registrados: <strong>${r.cantTrabajos}</strong></div>
         <div>Costo insumos: <strong>${r.costoInsumos ? fmtMonto(r.costoInsumos, 'ARS') : '—'}</strong>${r.sinPrecio ? ` <span style="color:var(--tierra)">(${r.sinPrecio} sin precio)</span>` : ''}</div>
         <div>Costo trabajos propios: <strong>${r.costoTarifas ? fmtMonto(r.costoTarifas, 'ARS') : '—'}</strong></div>
+        <div>Costo arrendamiento: <strong>${r.costoArrendamiento ? fmtMonto(r.costoArrendamiento, 'ARS') : '—'}</strong></div>
         <div>Rendimiento: <strong>${r.rendimientos.length ? r.rendimientos.join(', ') : '—'}</strong></div>
         <div>Ingreso estimado: <strong>${r.ingresoRendimiento ? fmtMonto(r.ingresoRendimiento, 'ARS') : '—'}</strong></div>
       </div>
