@@ -193,8 +193,12 @@ function renderDetalleLote(campania) {
     <div class="card-header"><h3>🌾 Trabajos — ${campo}, Lote ${lote} (Campaña ${campania})</h3>
       <button class="btn btn-secondary" style="padding:4px 10px;font-size:12px" onclick="verDetalleLote('${campo}','${lote}')">✕ Cerrar</button>
     </div>
-    <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Cultivo</th><th>Contratista</th><th>Insumo</th><th>Dosis</th><th>Consumo total</th><th>Rendimiento</th></tr></thead>
-    <tbody>${trabs.length ? trabs.map(t => `
+    <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Cultivo</th><th>Contratista</th><th>Insumo</th><th>Dosis</th><th>Consumo total</th><th>$ Unitario</th><th>$ Total</th></tr></thead>
+    <tbody>${trabs.length ? trabs.map(t => {
+      const cantidad = parseNumeroDeTexto(t.consumo_total) || parseNumeroDeTexto(t.dosis) * (t.hectareas || 0);
+      const costoUnit = t.descripcion ? buscarCostoUnitarioInsumo(t.descripcion, campania) : null;
+      const costoTotal = costoUnit && cantidad ? costoUnit * cantidad : null;
+      return `
       <tr>
         <td>${fmtFecha(t.fecha)}</td>
         <td><span class="badge badge-${colors[t.tipo] || 'gray'}">${t.tipo}</span></td>
@@ -203,7 +207,9 @@ function renderDetalleLote(campania) {
         <td>${t.descripcion || '—'}</td>
         <td>${t.dosis || '—'}</td>
         <td>${t.consumo_total || '—'}</td>
-        <td>${t.rendimiento ? fmtNum(t.rendimiento) + ' ' + (t.rendimiento_unidad || '') : '—'}</td>
-      </tr>`).join('') : `<tr><td colspan="8"><div class="empty-state"><div class="icon">🌾</div><h3>Sin trabajos en este lote para esta campaña</h3></div></td></tr>`}</tbody></table></div>
+        <td>${costoUnit ? fmtMonto(costoUnit, 'ARS') : '—'}</td>
+        <td>${costoTotal ? fmtMonto(costoTotal, 'ARS') : '—'}</td>
+      </tr>`;
+    }).join('') : `<tr><td colspan="9"><div class="empty-state"><div class="icon">🌾</div><h3>Sin trabajos en este lote para esta campaña</h3></div></td></tr>`}</tbody></table></div>
   </div>`;
 }
