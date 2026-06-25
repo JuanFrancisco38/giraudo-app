@@ -73,19 +73,25 @@ function parseNumeroDeTexto(str) {
 
 function normalizarTexto(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
 
-function buscarCostoUnitarioInsumo(descripcion, fecha) {
+function normalizarCampania(c) { return (c || '').split('/').map(p => p.trim().slice(-2)).join('/'); }
+
+function buscarCostoUnitarioInsumo(descripcion, campania) {
   if (!descripcion) return null;
   const needle = normalizarTexto(descripcion);
   if (needle.length < 3) return null;
-  const candidatas = boletasParaLotes.filter(b => normalizarTexto(b.concepto).includes(needle));
-  if (!candidatas.length) return null;
-  candidatas.sort((a, b) => Math.abs(new Date(a.fecha) - new Date(fecha)) - Math.abs(new Date(b.fecha) - new Date(fecha)));
-  try {
-    const obs = JSON.parse(candidatas[0].observaciones || '{}');
-    if (!obs.costo_unitario) return null;
-    if (obs.moneda_costo === 'USD') return obs.costo_unitario * (obs.tipo_cambio || 1);
-    return obs.costo_unitario;
-  } catch(e) { return null; }
+  const campN = normalizarCampania(campania);
+  const precios = [];
+  boletasParaLotes.forEach(b => {
+    if (!normalizarTexto(b.concepto).includes(needle)) return;
+    let obs;
+    try { obs = JSON.parse(b.observaciones || '{}'); } catch(e) { return; }
+    if (normalizarCampania(obs.campania) !== campN) return;
+    if (!obs.costo_unitario) return;
+    const precio = obs.moneda_costo === 'USD' ? obs.costo_unitario * (obs.tipo_cambio || 1) : obs.costo_unitario;
+    precios.push(precio);
+  });
+  if (!precios.length) return null;
+  return precios.reduce((s, p) => s + p, 0) / precios.length;
 }
 
 function precioPromedioGrano(grano, campania) {
@@ -110,7 +116,7 @@ function calcularResumenLote(campo, lote, campania) {
   trabs.forEach(t => {
     if (t.descripcion && (t.dosis || t.consumo_total)) {
       const cantidad = parseNumeroDeTexto(t.consumo_total) || parseNumeroDeTexto(t.dosis) * (t.hectareas || 0);
-      const costoUnit = buscarCostoUnitarioInsumo(t.descripcion, t.fecha);
+      const costoUnit = buscarCostoUnitarioInsumo(t.descripcion, campania);
       if (costoUnit && cantidad) costoInsumos += costoUnit * cantidad;
       else if (t.descripcion) sinPrecio++;
     }
