@@ -90,17 +90,16 @@ function renderTrabajos() {
   const colors = {Siembra:'green',Pulverización:'blue',Fertilización:'yellow',Cosecha:'tierra',Henificación:'bordo'};
   tbody.innerHTML = pagina.map(t => {
     let precioUnit = t.precio_unitario;
-    let costoTotal = t.costo_total;
+    let cantidad = parseNumeroDeTexto(t.consumo_total) || parseNumeroDeTexto(t.dosis) * (t.hectareas || 0);
     if (precioUnit == null && t.descripcion) {
-      let cantidad = parseNumeroDeTexto(t.consumo_total) || parseNumeroDeTexto(t.dosis) * (t.hectareas || 0);
       const unidadTrabajo = parseUnidadDeTexto(t.consumo_total) || parseUnidadDeTexto(t.dosis);
       const r = buscarCostoUnitarioInsumo(t.descripcion, t.campania);
       if (r) {
         if (unidadTrabajo && r.unidad) cantidad = convertirCantidad(cantidad, unidadTrabajo, r.unidad);
         precioUnit = r.precio;
-        if (costoTotal == null && cantidad) costoTotal = r.precio * cantidad;
       }
     }
+    const costoTotal = precioUnit != null && cantidad ? precioUnit * cantidad : null;
     return `
     <tr>
       <td>${fmtFecha(t.fecha)}</td>
@@ -114,7 +113,7 @@ function renderTrabajos() {
       <td>${inputEditableTrabajo(t.id, 'dosis', t.dosis, 70, 'Ej: 3 lt/ha')}</td>
       <td>${inputEditableTrabajo(t.id, 'consumo_total', t.consumo_total, 80, 'Ej: 270 lts')}</td>
       <td>${inputEditableTrabajoNum(t.id, 'precio_unitario', precioUnit, 80)}</td>
-      <td>${inputEditableTrabajoNum(t.id, 'costo_total', costoTotal, 80)}</td>
+      <td>${costoTotal ? fmtMonto(costoTotal, 'ARS') : '—'}</td>
       <td>${inputEditableTrabajo(t.id, 'campania', t.campania, 70, 'Ej: 25/26')}</td>
       <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarTrabajo('${t.id}')">🗑️</button></td>
     </tr>`;
@@ -127,7 +126,7 @@ function inputEditableTrabajo(id, campo, valor, ancho, placeholder) {
 
 function inputEditableTrabajoNum(id, campo, valor, ancho) {
   const v = valor != null ? Math.round(valor * 100) / 100 : '';
-  return `<input type="number" value="${v}" style="width:${ancho}px;border:1px solid var(--gris-borde);border-radius:4px;padding:3px 5px;font-size:12px" onchange="editarCampoTrabajo('${id}', '${campo}', parseFloat(this.value)||null)">`;
+  return `<span style="display:inline-flex;align-items:center;gap:3px"><span style="font-size:12px;color:var(--texto-suave)">$</span><input type="number" value="${v}" style="width:${ancho}px;border:1px solid var(--gris-borde);border-radius:4px;padding:3px 5px;font-size:12px" onchange="editarCampoTrabajo('${id}', '${campo}', parseFloat(this.value)||null)"></span>`;
 }
 
 async function editarCampoTrabajo(id, campo, valor) {
