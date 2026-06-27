@@ -55,7 +55,10 @@ function filtrarTrabajosReset() { trabajosPagina = 1; renderTrabajos(); }
 function irPaginaTrabajos(p) { trabajosPagina = p; renderTrabajos(); window.scrollTo({ top: document.getElementById('section-trabajos_agri').offsetTop, behavior: 'smooth' }); }
 
 async function cargarTrabajos() {
-  const rows = await sb('GET', 'trabajos_agricolas', '', '?tipo=neq.alimentacion&order=fecha.desc');
+  const [rows] = await Promise.all([
+    sb('GET', 'trabajos_agricolas', '', '?tipo=neq.alimentacion&order=fecha.desc'),
+    cargarDatosCostosInsumos()
+  ]);
   trabajosTodos = rows || [];
   renderTrabajos();
 }
@@ -85,7 +88,20 @@ function renderTrabajos() {
   if (pag) pag.innerHTML = htmlPaginador(trabajosPagina, rows.length, 'irPaginaTrabajos');
 
   const colors = {Siembra:'green',Pulverización:'blue',Fertilización:'yellow',Cosecha:'tierra',Henificación:'bordo'};
-  tbody.innerHTML = pagina.map(t => `
+  tbody.innerHTML = pagina.map(t => {
+    let precioUnit = t.precio_unitario;
+    let costoTotal = t.costo_total;
+    if (precioUnit == null && t.descripcion) {
+      let cantidad = parseNumeroDeTexto(t.consumo_total) || parseNumeroDeTexto(t.dosis) * (t.hectareas || 0);
+      const unidadTrabajo = parseUnidadDeTexto(t.consumo_total) || parseUnidadDeTexto(t.dosis);
+      const r = buscarCostoUnitarioInsumo(t.descripcion, t.campania);
+      if (r) {
+        if (unidadTrabajo && r.unidad) cantidad = convertirCantidad(cantidad, unidadTrabajo, r.unidad);
+        precioUnit = r.precio;
+        if (costoTotal == null && cantidad) costoTotal = r.precio * cantidad;
+      }
+    }
+    return `
     <tr>
       <td>${fmtFecha(t.fecha)}</td>
       <td><span class="badge badge-${colors[t.tipo] || 'gray'}">${t.tipo}</span></td>
@@ -97,13 +113,21 @@ function renderTrabajos() {
       <td>${inputEditableTrabajo(t.id, 'descripcion', t.descripcion, 160)}</td>
       <td>${inputEditableTrabajo(t.id, 'dosis', t.dosis, 70, 'Ej: 3 lt/ha')}</td>
       <td>${inputEditableTrabajo(t.id, 'consumo_total', t.consumo_total, 80, 'Ej: 270 lts')}</td>
+      <td>${inputEditableTrabajoNum(t.id, 'precio_unitario', precioUnit, 80)}</td>
+      <td>${inputEditableTrabajoNum(t.id, 'costo_total', costoTotal, 80)}</td>
       <td>${inputEditableTrabajo(t.id, 'campania', t.campania, 70, 'Ej: 25/26')}</td>
       <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarTrabajo('${t.id}')">🗑️</button></td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 function inputEditableTrabajo(id, campo, valor, ancho, placeholder) {
   return `<input type="text" value="${valor || ''}" placeholder="${placeholder || ''}" style="width:${ancho}px;border:1px solid var(--gris-borde);border-radius:4px;padding:3px 5px;font-size:12px" onchange="editarCampoTrabajo('${id}', '${campo}', this.value)">`;
+}
+
+function inputEditableTrabajoNum(id, campo, valor, ancho) {
+  const v = valor != null ? Math.round(valor * 100) / 100 : '';
+  return `<input type="number" value="${v}" style="width:${ancho}px;border:1px solid var(--gris-borde);border-radius:4px;padding:3px 5px;font-size:12px" onchange="editarCampoTrabajo('${id}', '${campo}', parseFloat(this.value)||null)">`;
 }
 
 async function editarCampoTrabajo(id, campo, valor) {

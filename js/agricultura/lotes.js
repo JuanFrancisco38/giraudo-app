@@ -48,6 +48,14 @@ let trabajosParaLotes = [];
 let boletasParaLotes = [];
 let liqGranosParaLotes = [];
 
+async function cargarDatosCostosInsumos() {
+  if (boletasParaLotes.length) return;
+  const boletas = await sb('GET', 'boletas', '');
+  boletasParaLotes = (boletas || []).filter(b => {
+    try { return JSON.parse(b.observaciones || '{}').tipo_factura === 'recibida'; } catch(e) { return false; }
+  });
+}
+
 async function cargarLotes() {
   const [lotes, trabajos, boletas, liqs] = await Promise.all([
     sb('GET', 'lotes', '', '?order=campo,lote'),
