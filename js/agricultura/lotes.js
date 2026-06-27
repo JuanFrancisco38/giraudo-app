@@ -76,7 +76,9 @@ async function cargarLotes() {
 function parseNumeroDeTexto(str) {
   const m = String(str || '').match(/[\d.,]+/);
   if (!m) return 0;
-  return parseFloat(m[0].replace(/\./g, '').replace(',', '.')) || 0;
+  let s = m[0];
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  return parseFloat(s) || 0;
 }
 
 function parseUnidadDeTexto(str) {
