@@ -96,7 +96,7 @@ function renderTrabajos() {
       <td>${inputEditableTrabajo(t.id, 'contratista', t.contratista, 80)}</td>
       <td>${inputEditableTrabajo(t.id, 'descripcion', t.descripcion, 160)}</td>
       <td>${inputEditableTrabajo(t.id, 'dosis', t.dosis, 70, 'Ej: 3 lt/ha')}</td>
-      <td>${t.consumo_total || '—'}</td>
+      <td>${inputEditableTrabajo(t.id, 'consumo_total', t.consumo_total, 80, 'Ej: 270 lts')}</td>
       <td>${inputEditableTrabajo(t.id, 'campania', t.campania, 70, 'Ej: 25/26')}</td>
       <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarTrabajo('${t.id}')">🗑️</button></td>
     </tr>`).join('');
