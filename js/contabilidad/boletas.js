@@ -1,6 +1,14 @@
 const RUBROS_BOLETA = ['Agroquímicos','Semillas','Fertilizantes','Arrendamientos Rurales','Combustibles y Lubricantes','Fletes','Gastos de Comercialización','Insumos Varios','Inversiones Inmobiliarias','Inversiones Mobiliarias','Reparaciones','Repuestos','Seguros','Servicios Profesionales','Servicios Rurales','Servicios Varios','Ponedoras','Servicios de Acondicionamiento de Granos','Insumos Balanceado','Insumos Veterinarios','Servicios Energéticos'];
 
 let bolItemSeq = 0;
+let bolRubroFiltro = null;
+
+function filtrarRubroBoleta(rubro) {
+  bolRubroFiltro = bolRubroFiltro === rubro ? null : rubro;
+  bolPagina = 1;
+  renderBoletas();
+  if (bolRubroFiltro) document.getElementById('bol-resumen-rubro').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
 let bolArchivoActual = null;
 
 function abrirFormBoleta() {
@@ -254,6 +262,7 @@ function renderBoletas() {
     }
     return true;
   });
+  const rowsTabla = bolRubroFiltro ? rows.filter(r => (r.categoria || 'Sin rubro') === bolRubroFiltro) : rows;
   const tbody = document.getElementById('tabla-boletas');
   if (!rows || !rows.length) {
     const hayFiltro = fFirma || fCamp || fBusca;
@@ -298,14 +307,16 @@ function renderBoletas() {
   if (cont) {
     const cards = Object.entries(porRubro).sort((a, b) => b[1].total - a[1].total).map(([rub, v]) => {
       const pct = totalGeneral ? Math.round(v.total / totalGeneral * 100) : 0;
-      return `<div style="background:var(--bordo-claro);border-radius:8px;padding:14px;border:1px solid var(--bordo-suave)">
+      const sel = bolRubroFiltro === rub;
+      return `<div onclick="filtrarRubroBoleta('${rub.replace(/'/g, "\\'")}')" style="cursor:pointer;background:var(--bordo-claro);border-radius:8px;padding:14px;border:2px solid ${sel ? 'var(--bordo)' : 'var(--bordo-suave)'}">
         <div style="font-size:13px;color:var(--bordo);font-weight:600;margin-bottom:6px">${rub}</div>
         <div style="font-size:19px;font-weight:700;color:var(--bordo)">${fmtMonto(v.total, 'ARS')}</div>
         <div style="font-size:12px;color:var(--texto-suave);margin-top:4px">${v.cant} ítem${v.cant !== 1 ? 's' : ''} · ${pct}% del total</div>
       </div>`;
     }).join('');
     cont.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">${cards}</div>
-      <div style="margin-top:12px;font-size:13px;color:var(--texto-suave)">Total general: <strong style="color:var(--bordo)">${fmtMonto(totalGeneral, 'ARS')}</strong> · ${rows.length} ítem${rows.length !== 1 ? 's' : ''}</div>`;
+      <div style="margin-top:12px;font-size:13px;color:var(--texto-suave)">Total general: <strong style="color:var(--bordo)">${fmtMonto(totalGeneral, 'ARS')}</strong> · ${rows.length} ítem${rows.length !== 1 ? 's' : ''}</div>
+      ${bolRubroFiltro ? `<div style="margin-top:10px;font-size:13px;color:var(--bordo)">📌 Mostrando facturas de "${bolRubroFiltro}" — <a href="#" onclick="filtrarRubroBoleta('${bolRubroFiltro.replace(/'/g, "\\'")}');return false" style="color:var(--bordo);text-decoration:underline">ver todas</a></div>` : ''}`;
   }
   const linea = k => {
     const partes = [];
@@ -318,10 +329,10 @@ function renderBoletas() {
   document.getElementById('cant-firma-fj').textContent = acc.FJ.cant + ' ítem' + (acc.FJ.cant !== 1 ? 's' : '');
   document.getElementById('cant-firma-sh').textContent = acc.SH.cant + ' ítem' + (acc.SH.cant !== 1 ? 's' : '');
 
-  const totalPag = Math.ceil(rows.length / FILAS_POR_PAGINA) || 1;
+  const totalPag = Math.ceil(rowsTabla.length / FILAS_POR_PAGINA) || 1;
   if (bolPagina > totalPag) bolPagina = totalPag;
-  const pagina = rows.slice((bolPagina - 1) * FILAS_POR_PAGINA, bolPagina * FILAS_POR_PAGINA);
-  document.getElementById('bol-paginador').innerHTML = htmlPaginador(bolPagina, rows.length, 'irPaginaBoletas');
+  const pagina = rowsTabla.slice((bolPagina - 1) * FILAS_POR_PAGINA, bolPagina * FILAS_POR_PAGINA);
+  document.getElementById('bol-paginador').innerHTML = htmlPaginador(bolPagina, rowsTabla.length, 'irPaginaBoletas');
 
   tbody.innerHTML = pagina.map(r => {
     const e = r.observaciones ? JSON.parse(r.observaciones) : {};
