@@ -96,7 +96,9 @@ function convertirCantidad(cantidad, unidadOrigen, unidadDestino) {
   return cantidad * fo / fd;
 }
 
-function normalizarTexto(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+function normalizarTexto(s) {
+  return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+}
 
 function normalizarCampania(c) { return (c || '').split('/').map(p => p.trim().slice(-2)).join('/'); }
 
