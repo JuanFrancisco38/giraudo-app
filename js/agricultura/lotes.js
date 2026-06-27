@@ -71,6 +71,23 @@ function parseNumeroDeTexto(str) {
   return parseFloat(m[0].replace(/\./g, '').replace(',', '.')) || 0;
 }
 
+function parseUnidadDeTexto(str) {
+  const m = String(str || '').match(/[a-zA-Z]+/);
+  return m ? m[0].toLowerCase() : '';
+}
+
+const EQUIVALENCIAS_UNIDAD = { kg:'kg', kgs:'kg', kilo:'kg', kilos:'kg', gr:'gr', grs:'gr', gramo:'gr', gramos:'gr', g:'gr', lt:'lt', lts:'lt', litro:'lt', litros:'lt', l:'lt', cc:'cc', ml:'cc', tn:'tn', ton:'tn', tonelada:'tn', toneladas:'tn' };
+const FACTORES_A_BASE = { kg: 1, gr: 0.001, tn: 1000, lt: 1, cc: 0.001 };
+
+function convertirCantidad(cantidad, unidadOrigen, unidadDestino) {
+  const uo = EQUIVALENCIAS_UNIDAD[unidadOrigen] || unidadOrigen;
+  const ud = EQUIVALENCIAS_UNIDAD[unidadDestino] || unidadDestino;
+  if (!uo || !ud || uo === ud) return cantidad;
+  const fo = FACTORES_A_BASE[uo], fd = FACTORES_A_BASE[ud];
+  if (!fo || !fd) return cantidad;
+  return cantidad * fo / fd;
+}
+
 function normalizarTexto(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
 
 function normalizarCampania(c) { return (c || '').split('/').map(p => p.trim().slice(-2)).join('/'); }
@@ -87,26 +104,29 @@ function buscarCostoUnitarioInsumo(descripcion, campania) {
     if (!normalizarTexto(b.concepto).includes(needle)) return;
     let obs;
     try { obs = JSON.parse(b.observaciones || '{}'); } catch(e) { return; }
-    if (!obs.costo_unitario || !obs.campania) return;
+    if (!obs.costo_unitario) return;
+    const camp = obtenerCampaniaDeBoleta(b, obs);
+    if (!camp) return;
     const precio = obs.moneda_costo === 'USD' ? obs.costo_unitario * (obs.tipo_cambio || 1) : obs.costo_unitario;
-    const camp = normalizarCampania(obs.campania);
+    const unidad = EQUIVALENCIAS_UNIDAD[(obs.unidad || '').toLowerCase()] || (obs.unidad || '').toLowerCase();
     if (!porCampania[camp]) porCampania[camp] = [];
-    porCampania[camp].push(precio);
+    porCampania[camp].push({ precio, unidad });
+  });
+
+  const promediar = lista => ({
+    precio: lista.reduce((s, x) => s + x.precio, 0) / lista.length,
+    unidad: lista.find(x => x.unidad)?.unidad || ''
   });
 
   const campN = normalizarCampania(campania);
-  if (porCampania[campN]) {
-    const precios = porCampania[campN];
-    return precios.reduce((s, p) => s + p, 0) / precios.length;
-  }
+  if (porCampania[campN]) return promediar(porCampania[campN]);
 
   // Sin facturas de esta campaña: usar el promedio de la campaña anterior más reciente que tenga datos.
   const anioTarget = campaniaAnio(campania);
   const anteriores = Object.keys(porCampania).filter(c => campaniaAnio(c) <= anioTarget).sort((a, b) => campaniaAnio(b) - campaniaAnio(a));
   const candidatas = anteriores.length ? anteriores : Object.keys(porCampania).sort((a, b) => campaniaAnio(a) - campaniaAnio(b));
   if (!candidatas.length) return null;
-  const precios = porCampania[candidatas[0]];
-  return precios.reduce((s, p) => s + p, 0) / precios.length;
+  return promediar(porCampania[candidatas[0]]);
 }
 
 function obtenerCampaniaDeBoleta(b, obs) {
@@ -168,9 +188,11 @@ function calcularResumenLote(campo, lote, campania, hectareasLote) {
 
   trabs.forEach(t => {
     if (t.descripcion && (t.dosis || t.consumo_total)) {
-      const cantidad = parseNumeroDeTexto(t.consumo_total) || parseNumeroDeTexto(t.dosis) * (t.hectareas || 0);
-      const costoUnit = buscarCostoUnitarioInsumo(t.descripcion, campania);
-      if (costoUnit && cantidad) costoInsumos += costoUnit * cantidad;
+      let cantidad = parseNumeroDeTexto(t.consumo_total) || parseNumeroDeTexto(t.dosis) * (t.hectareas || 0);
+      const unidadTrabajo = parseUnidadDeTexto(t.consumo_total) || parseUnidadDeTexto(t.dosis);
+      const r = buscarCostoUnitarioInsumo(t.descripcion, campania);
+      if (r && unidadTrabajo && r.unidad) cantidad = convertirCantidad(cantidad, unidadTrabajo, r.unidad);
+      if (r && cantidad) costoInsumos += r.precio * cantidad;
       else if (t.descripcion) sinPrecio++;
     }
     const headerKey = `${t.fecha}|${t.tipo}`;
@@ -262,9 +284,12 @@ function renderDetalleLote(campania) {
     </div>
     <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Cultivo</th><th>Contratista</th><th>Insumo</th><th>Dosis</th><th>Consumo total</th><th>$ Unitario</th><th>$ Total</th></tr></thead>
     <tbody>${trabs.length ? trabs.map(t => {
-      const cantidad = parseNumeroDeTexto(t.consumo_total) || parseNumeroDeTexto(t.dosis) * (t.hectareas || 0);
-      const costoUnit = t.descripcion ? buscarCostoUnitarioInsumo(t.descripcion, campania) : null;
-      const costoTotal = costoUnit && cantidad ? costoUnit * cantidad : null;
+      let cantidad = parseNumeroDeTexto(t.consumo_total) || parseNumeroDeTexto(t.dosis) * (t.hectareas || 0);
+      const unidadTrabajo = parseUnidadDeTexto(t.consumo_total) || parseUnidadDeTexto(t.dosis);
+      const r = t.descripcion ? buscarCostoUnitarioInsumo(t.descripcion, campania) : null;
+      if (r && unidadTrabajo && r.unidad) cantidad = convertirCantidad(cantidad, unidadTrabajo, r.unidad);
+      const costoUnit = r ? r.precio : null;
+      const costoTotal = r && cantidad ? r.precio * cantidad : null;
       return `
       <tr>
         <td>${fmtFecha(t.fecha)}</td>
