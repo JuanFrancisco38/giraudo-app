@@ -234,6 +234,19 @@ function renderLotes() {
   renderDetalleLote(campania);
 }
 
+function inputEditableLote(id, campo, valor, ancho, placeholder) {
+  return `<input type="text" value="${valor || ''}" placeholder="${placeholder || ''}" style="width:${ancho}px;border:1px solid var(--gris-borde);border-radius:4px;padding:3px 5px;font-size:12px" onchange="editarCampoTrabajoLote('${id}', '${campo}', this.value)">`;
+}
+
+async function editarCampoTrabajoLote(id, campo, valor) {
+  const t = trabajosParaLotes.find(x => x.id === id);
+  if (t) t[campo] = valor;
+  const r = await sb('PATCH', 'trabajos_agricolas', { [campo]: valor }, `?id=eq.${id}`);
+  if (r) toast('✅ Actualizado');
+  else toast('❌ Error al actualizar', 'var(--rojo)');
+  renderLotes();
+}
+
 function renderDetalleLote(campania) {
   const cont = document.getElementById('lotes-detalle');
   if (!cont) return;
@@ -256,11 +269,11 @@ function renderDetalleLote(campania) {
       <tr>
         <td>${fmtFecha(t.fecha)}</td>
         <td><span class="badge badge-${colors[t.tipo] || 'gray'}">${t.tipo}</span></td>
-        <td>${t.cultivo || '—'}</td>
-        <td>${t.contratista || '—'}</td>
-        <td>${t.descripcion || '—'}</td>
-        <td>${t.dosis || '—'}</td>
-        <td>${t.consumo_total || '—'}</td>
+        <td>${inputEditableLote(t.id, 'cultivo', t.cultivo, 70)}</td>
+        <td>${inputEditableLote(t.id, 'contratista', t.contratista, 80)}</td>
+        <td>${inputEditableLote(t.id, 'descripcion', t.descripcion, 130)}</td>
+        <td>${inputEditableLote(t.id, 'dosis', t.dosis, 80, 'Ej: 3 lt/ha')}</td>
+        <td>${inputEditableLote(t.id, 'consumo_total', t.consumo_total, 80, 'Ej: 270 lts')}</td>
         <td>${costoUnit ? fmtMonto(costoUnit, 'ARS') : '—'}</td>
         <td>${costoTotal ? fmtMonto(costoTotal, 'ARS') : '—'}</td>
       </tr>`;
