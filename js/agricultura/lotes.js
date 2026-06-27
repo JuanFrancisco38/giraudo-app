@@ -196,12 +196,19 @@ function calcularResumenLote(campo, lote, campania, hectareasLote) {
 
   trabs.forEach(t => {
     if (t.descripcion && (t.dosis || t.consumo_total)) {
-      let cantidad = parseNumeroDeTexto(t.consumo_total) || parseNumeroDeTexto(t.dosis) * (t.hectareas || 0);
-      const unidadTrabajo = parseUnidadDeTexto(t.consumo_total) || parseUnidadDeTexto(t.dosis);
-      const r = buscarCostoUnitarioInsumo(t.descripcion, campania);
-      if (r && unidadTrabajo && r.unidad) cantidad = convertirCantidad(cantidad, unidadTrabajo, r.unidad);
-      if (r && cantidad) costoInsumos += r.precio * cantidad;
-      else if (t.descripcion) sinPrecio++;
+      if (t.costo_total != null) {
+        costoInsumos += t.costo_total;
+      } else {
+        let cantidad = parseNumeroDeTexto(t.consumo_total) || parseNumeroDeTexto(t.dosis) * (t.hectareas || 0);
+        const unidadTrabajo = parseUnidadDeTexto(t.consumo_total) || parseUnidadDeTexto(t.dosis);
+        const precioUnit = t.precio_unitario != null ? t.precio_unitario : (() => {
+          const r = buscarCostoUnitarioInsumo(t.descripcion, campania);
+          if (r && unidadTrabajo && r.unidad) cantidad = convertirCantidad(cantidad, unidadTrabajo, r.unidad);
+          return r ? r.precio : null;
+        })();
+        if (precioUnit && cantidad) costoInsumos += precioUnit * cantidad;
+        else sinPrecio++;
+      }
     }
     const headerKey = `${t.fecha}|${t.tipo}`;
     if (t.contratista === 'Propio' && tarifaPorTipo[t.tipo] && !headersContados.has(headerKey)) {
@@ -296,8 +303,8 @@ function renderDetalleLote(campania) {
       const unidadTrabajo = parseUnidadDeTexto(t.consumo_total) || parseUnidadDeTexto(t.dosis);
       const r = t.descripcion ? buscarCostoUnitarioInsumo(t.descripcion, campania) : null;
       if (r && unidadTrabajo && r.unidad) cantidad = convertirCantidad(cantidad, unidadTrabajo, r.unidad);
-      const costoUnit = r ? r.precio : null;
-      const costoTotal = r && cantidad ? r.precio * cantidad : null;
+      const costoUnit = t.precio_unitario != null ? t.precio_unitario : (r ? r.precio : null);
+      const costoTotal = t.costo_total != null ? t.costo_total : (costoUnit && cantidad ? costoUnit * cantidad : null);
       return `
       <tr>
         <td>${fmtFecha(t.fecha)}</td>
