@@ -2,8 +2,11 @@ let rodeos = [];
 let trabajosManga = [];
 let animalesRodeo = [];
 let novedadesGanaderas = [];
+let serviciosAnimal = [];
 let rodeoSeleccionado = null;
-let tabRodeoActiva = 'novedades'; // novedades | trabajos | animales
+let animalSeleccionado = null;
+let tabRodeoActiva = 'novedades';
+let tabAnimalActiva = 'datos';
 let paginaManga = 1;
 
 const COLORES_RODEO = {
@@ -12,56 +15,52 @@ const COLORES_RODEO = {
 };
 
 async function cargarManga() {
-  [rodeos, trabajosManga, animalesRodeo, novedadesGanaderas] = await Promise.all([
+  [rodeos, trabajosManga, animalesRodeo, novedadesGanaderas, serviciosAnimal] = await Promise.all([
     sb('GET', 'rodeos', null, '?order=created_at.asc&activo=eq.true'),
     sb('GET', 'trabajos_manga', null, '?order=fecha.desc'),
     sb('GET', 'animales_rodeo', null, '?order=caravana.asc'),
-    sb('GET', 'novedades_ganaderas', null, '?order=fecha.desc')
+    sb('GET', 'novedades_ganaderas', null, '?order=fecha.desc'),
+    sb('GET', 'servicios_animal', null, '?order=fecha.desc')
   ]);
   rodeos = rodeos || [];
   trabajosManga = trabajosManga || [];
   animalesRodeo = animalesRodeo || [];
   novedadesGanaderas = novedadesGanaderas || [];
+  serviciosAnimal = serviciosAnimal || [];
 
   const sel = document.getElementById('tm-rodeo');
   if (sel) sel.innerHTML = '<option value="">— Seleccionar rodeo —</option>' +
-    rodeos.map(r => `<option value="${r.id}">${r.nombre}</option>`).join('');
-  const selNov = document.getElementById('nov-rodeo');
-  if (selNov) selNov.innerHTML = '<option value="">— Seleccionar rodeo —</option>' +
     rodeos.map(r => `<option value="${r.id}">${r.nombre}</option>`).join('');
 
   renderEstadisticasManga();
   renderRodeosManga();
 }
 
+// ── Stats ─────────────────────────────────────────────────
+
 function renderEstadisticasManga() {
   const el = document.getElementById('manga-stats');
   if (!el) return;
   const total = rodeos.reduce((s, r) => s + (r.cantidad || 0), 0);
   const porCat = {};
-  rodeos.forEach(r => {
-    const c = r.categoria || 'Otro';
-    porCat[c] = (porCat[c] || 0) + (r.cantidad || 0);
-  });
+  rodeos.forEach(r => { const c = r.categoria || 'Otro'; porCat[c] = (porCat[c] || 0) + (r.cantidad || 0); });
   const orden = ['Vacas', 'Vaquillonas', 'Terneros', 'Terneras', 'Toros'];
-  const extras = Object.keys(porCat).filter(k => !orden.includes(k));
-  const cats = [...orden, ...extras].filter(k => porCat[k]);
-
-  el.innerHTML = `
-    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
-      <div class="stat-card" style="min-width:110px">
-        <div class="label">Total hacienda</div>
-        <div class="value" style="color:var(--bordo)">${total}</div>
-        <div class="sub">animales</div>
-      </div>
-      ${cats.map(c => `
-        <div class="stat-card" style="min-width:110px">
-          <div class="label">${c}</div>
-          <div class="value" style="color:var(--${COLORES_RODEO[c] || 'texto-suave'})">${porCat[c]}</div>
-          <div class="sub">${rodeos.filter(r => r.categoria === c).length} rodeo${rodeos.filter(r => r.categoria === c).length !== 1 ? 's' : ''}</div>
-        </div>`).join('')}
-    </div>`;
+  const cats = [...orden, ...Object.keys(porCat).filter(k => !orden.includes(k))].filter(k => porCat[k]);
+  el.innerHTML = `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+    <div class="stat-card" style="min-width:110px">
+      <div class="label">Total hacienda</div>
+      <div class="value" style="color:var(--bordo)">${total}</div>
+      <div class="sub">animales</div>
+    </div>
+    ${cats.map(c => `<div class="stat-card" style="min-width:110px">
+      <div class="label">${c}</div>
+      <div class="value" style="color:var(--${COLORES_RODEO[c] || 'texto-suave'})">${porCat[c]}</div>
+      <div class="sub">${rodeos.filter(r => r.categoria === c).length} rodeo${rodeos.filter(r => r.categoria === c).length !== 1 ? 's' : ''}</div>
+    </div>`).join('')}
+  </div>`;
 }
+
+// ── Rodeos ────────────────────────────────────────────────
 
 function renderRodeosManga() {
   const container = document.getElementById('manga-rodeos-cards');
@@ -93,24 +92,19 @@ function renderRodeosManga() {
 }
 
 function seleccionarRodeoManga(id) {
-  if (rodeoSeleccionado === id) {
-    rodeoSeleccionado = null;
-  } else {
-    rodeoSeleccionado = id;
-    tabRodeoActiva = 'novedades';
-  }
+  if (rodeoSeleccionado === id) { rodeoSeleccionado = null; animalSeleccionado = null; }
+  else { rodeoSeleccionado = id; animalSeleccionado = null; tabRodeoActiva = 'novedades'; }
   renderRodeosManga();
   if (rodeoSeleccionado) setTimeout(() => document.getElementById('manga-detalle')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
 }
 
 function switchTabRodeo(tab) {
   tabRodeoActiva = tab;
-  document.querySelectorAll('.tab-rodeo').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll(`[data-tab="${tab}"]`).forEach(t => t.classList.add('active'));
-  document.getElementById('tab-rodeo-novedades').style.display = tab === 'novedades' ? '' : 'none';
-  document.getElementById('tab-rodeo-trabajos').style.display = tab === 'trabajos' ? '' : 'none';
-  document.getElementById('tab-rodeo-animales').style.display = tab === 'animales' ? '' : 'none';
+  animalSeleccionado = null;
+  renderDetalleManga();
 }
+
+// ── Detalle rodeo ─────────────────────────────────────────
 
 function renderDetalleManga() {
   const detalle = document.getElementById('manga-detalle');
@@ -131,117 +125,224 @@ function renderDetalleManga() {
         </h3>
         <button class="btn btn-secondary" style="font-size:12px" onclick="editarRodeo('${rodeo.id}')">✏️ Editar rodeo</button>
       </div>
-
-      <!-- Pestañas -->
-      <div class="tabs" style="border-bottom:1px solid var(--borde);margin:0 0 0 0">
-        <div class="tab tab-rodeo${tabRodeoActiva === 'novedades' ? ' active' : ''}" data-tab="novedades" onclick="switchTabRodeo('novedades')">
-          Novedades <span style="font-size:11px;color:var(--texto-suave)">(${novedades.length})</span>
-        </div>
-        <div class="tab tab-rodeo${tabRodeoActiva === 'trabajos' ? ' active' : ''}" data-tab="trabajos" onclick="switchTabRodeo('trabajos')">
-          Trabajos <span style="font-size:11px;color:var(--texto-suave)">(${trabajos.length})</span>
-        </div>
-        <div class="tab tab-rodeo${tabRodeoActiva === 'animales' ? ' active' : ''}" data-tab="animales" onclick="switchTabRodeo('animales')">
-          Animales <span style="font-size:11px;color:var(--texto-suave)">(${animales.length})</span>
-        </div>
+      <div class="tabs" style="border-bottom:1px solid var(--borde)">
+        <div class="tab${tabRodeoActiva === 'novedades' ? ' active' : ''}" onclick="switchTabRodeo('novedades')">Novedades <span style="font-size:11px;color:var(--texto-suave)">(${novedades.length})</span></div>
+        <div class="tab${tabRodeoActiva === 'trabajos' ? ' active' : ''}" onclick="switchTabRodeo('trabajos')">Trabajos <span style="font-size:11px;color:var(--texto-suave)">(${trabajos.length})</span></div>
+        <div class="tab${tabRodeoActiva === 'animales' ? ' active' : ''}" onclick="switchTabRodeo('animales')">Animales <span style="font-size:11px;color:var(--texto-suave)">(${animales.length})</span></div>
       </div>
 
-      <!-- Tab Novedades -->
-      <div id="tab-rodeo-novedades" style="display:${tabRodeoActiva === 'novedades' ? '' : 'none'}">
-        <div class="card-body" style="padding-top:12px">
-          <button class="btn btn-secondary" style="font-size:12px;margin-bottom:12px" onclick="toggleFormNovedadManga('${rodeo.id}')">+ Registrar novedad</button>
-          <div id="form-novedad-${rodeo.id}" style="display:none;background:var(--fondo);border-radius:8px;padding:12px;margin-bottom:16px">
-            <div class="form-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
-              <div class="form-group"><label>Fecha</label><input type="date" id="nov-fecha-${rodeo.id}"></div>
-              <div class="form-group"><label>Tipo</label><select id="nov-tipo-${rodeo.id}">
-                <option>Nacimiento</option><option>Muerte</option><option>Traslado</option>
-                <option>Tratamiento individual</option><option>Pérdida / Robo</option><option>Otro</option>
-              </select></div>
-              <div class="form-group"><label>Cantidad</label><input type="number" id="nov-cant-${rodeo.id}" placeholder="Ej: 2"></div>
-              <div class="form-group"><label>Descripción</label><input type="text" id="nov-desc-${rodeo.id}" placeholder="Ej: ternero raza Angus, madre 123"></div>
-            </div>
-            <button class="btn btn-primary" style="font-size:13px" onclick="guardarNovedadManga('${rodeo.id}')">Guardar</button>
-            <button class="btn btn-secondary" style="font-size:13px;margin-left:8px" onclick="toggleFormNovedadManga('${rodeo.id}')">Cancelar</button>
-          </div>
-          ${novedades.length ? `
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>Fecha</th><th>Tipo</th><th>Cant.</th><th>Descripción</th><th></th></tr></thead>
-                <tbody>
-                  ${novedades.map(n => {
-                    const iconos = { 'Nacimiento':'🐣', 'Muerte':'💀', 'Traslado':'🔄', 'Tratamiento individual':'💉', 'Pérdida / Robo':'⚠️' };
-                    return `<tr>
-                      <td>${fmtFecha(n.fecha)}</td>
-                      <td>${iconos[n.tipo] || '📝'} ${n.tipo || '—'}</td>
-                      <td>${n.cantidad ?? '—'}</td>
-                      <td>${n.descripcion || '—'}</td>
-                      <td><button class="btn btn-danger" style="padding:2px 8px;font-size:11px" onclick="borrarNovedadManga('${n.id}')">🗑️</button></td>
-                    </tr>`;
-                  }).join('')}
-                </tbody>
-              </table>
-            </div>` : `<div class="empty-state" style="padding:24px"><div class="icon">📋</div><p>Sin novedades registradas</p></div>`}
-        </div>
-      </div>
-
-      <!-- Tab Trabajos -->
-      <div id="tab-rodeo-trabajos" style="display:${tabRodeoActiva === 'trabajos' ? '' : 'none'}">
-        <div class="card-body" style="padding-top:12px">
-          ${trabajos.length ? `
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>Fecha</th><th>Tipo</th><th>Producto</th><th>Dosis</th><th>Cant. tratados</th><th>Veterinario</th><th>$ Unitario</th><th>$ Total</th><th>Obs.</th><th></th></tr></thead>
-                <tbody>
-                  ${trabajos.map(t => `<tr>
-                    <td>${fmtFecha(t.fecha)}</td>
-                    <td><span class="badge badge-bordo">${t.tipo || '—'}</span></td>
-                    <td>${t.producto || '—'}</td>
-                    <td>${t.dosis || '—'}</td>
-                    <td>${t.cantidad_animales || '—'}</td>
-                    <td>${t.veterinario || '—'}</td>
-                    <td>${t.precio_unitario != null ? '$ ' + fmtNum(t.precio_unitario, 2) : '—'}</td>
-                    <td>${t.costo_total != null ? fmtMonto(t.costo_total, 'ARS') : '—'}</td>
-                    <td>${t.observaciones || '—'}</td>
-                    <td><button class="btn btn-danger" style="padding:2px 8px;font-size:11px" onclick="borrarTrabajoManga('${t.id}')">🗑️</button></td>
-                  </tr>`).join('')}
-                </tbody>
-              </table>
-            </div>` : `<div class="empty-state" style="padding:24px"><div class="icon">📋</div><p>Sin trabajos para este rodeo</p></div>`}
-        </div>
-      </div>
-
-      <!-- Tab Animales -->
-      <div id="tab-rodeo-animales" style="display:${tabRodeoActiva === 'animales' ? '' : 'none'}">
-        <div class="card-body" style="padding-top:12px">
-          <button class="btn btn-secondary" style="font-size:12px;margin-bottom:12px" onclick="toggleFormAnimalManga('${rodeo.id}')">+ Agregar animal</button>
-          <div id="form-animal-${rodeo.id}" style="display:none;background:var(--fondo);border-radius:8px;padding:12px;margin-bottom:16px">
-            <div class="form-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
-              <div class="form-group"><label>Caravana</label><input type="text" id="an-caravana" placeholder="Ej: 1234"></div>
-              <div class="form-group"><label>Sexo</label><select id="an-sexo"><option>Hembra</option><option>Macho</option></select></div>
-              <div class="form-group"><label>Fecha nac.</label><input type="date" id="an-nacimiento"></div>
-              <div class="form-group"><label>Observaciones</label><input type="text" id="an-obs" placeholder="Ej: madre 456"></div>
-            </div>
-            <button class="btn btn-primary" style="font-size:13px" onclick="guardarAnimalManga('${rodeo.id}')">Guardar</button>
-            <button class="btn btn-secondary" style="font-size:13px;margin-left:8px" onclick="toggleFormAnimalManga('${rodeo.id}')">Cancelar</button>
-          </div>
-          ${animales.length ? `
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>Caravana</th><th>Sexo</th><th>Fecha nac.</th><th>Observaciones</th><th></th></tr></thead>
-                <tbody>
-                  ${animales.map(a => `<tr>
-                    <td><strong>${a.caravana || 'S/N'}</strong></td>
-                    <td>${a.sexo || '—'}</td>
-                    <td>${fmtFecha(a.fecha_nacimiento)}</td>
-                    <td>${a.observaciones || '—'}</td>
-                    <td><button class="btn btn-danger" style="padding:2px 8px;font-size:11px" onclick="borrarAnimalManga('${a.id}')">🗑️</button></td>
-                  </tr>`).join('')}
-                </tbody>
-              </table>
-            </div>` : `<div class="empty-state" style="padding:24px"><div class="icon">🐄</div><p>Sin animales identificados individualmente</p></div>`}
-        </div>
-      </div>
-    </div>`;
+      ${tabRodeoActiva === 'novedades' ? renderTabNovedades(rodeo.id, novedades) : ''}
+      ${tabRodeoActiva === 'trabajos' ? renderTabTrabajos(trabajos) : ''}
+      ${tabRodeoActiva === 'animales' ? renderTabAnimales(rodeo.id, animales) : ''}
+    </div>
+    ${animalSeleccionado ? renderFichaAnimal(animalSeleccionado) : ''}`;
 }
+
+// ── Tab Novedades ─────────────────────────────────────────
+
+function renderTabNovedades(rodeoId, novedades) {
+  return `<div class="card-body" style="padding-top:12px">
+    <button class="btn btn-secondary" style="font-size:12px;margin-bottom:12px" onclick="toggleFormNovedadManga('${rodeoId}')">+ Registrar novedad</button>
+    <div id="form-novedad-${rodeoId}" style="display:none;background:var(--fondo);border-radius:8px;padding:12px;margin-bottom:16px">
+      <div class="form-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+        <div class="form-group"><label>Fecha</label><input type="date" id="nov-fecha-${rodeoId}"></div>
+        <div class="form-group"><label>Tipo</label><select id="nov-tipo-${rodeoId}">
+          <option>Nacimiento</option><option>Muerte</option><option>Traslado</option>
+          <option>Tratamiento individual</option><option>Pérdida / Robo</option><option>Otro</option>
+        </select></div>
+        <div class="form-group"><label>Cantidad</label><input type="number" id="nov-cant-${rodeoId}" placeholder="Ej: 2"></div>
+        <div class="form-group"><label>Descripción</label><input type="text" id="nov-desc-${rodeoId}" placeholder="Ej: ternero Angus, madre 123"></div>
+      </div>
+      <button class="btn btn-primary" style="font-size:13px" onclick="guardarNovedadManga('${rodeoId}')">Guardar</button>
+      <button class="btn btn-secondary" style="font-size:13px;margin-left:8px" onclick="toggleFormNovedadManga('${rodeoId}')">Cancelar</button>
+    </div>
+    ${novedades.length ? `<div class="table-wrap"><table>
+      <thead><tr><th>Fecha</th><th>Tipo</th><th>Cant.</th><th>Descripción</th><th></th></tr></thead>
+      <tbody>${novedades.map(n => {
+        const ico = { 'Nacimiento':'🐣','Muerte':'💀','Traslado':'🔄','Tratamiento individual':'💉','Pérdida / Robo':'⚠️' };
+        return `<tr><td>${fmtFecha(n.fecha)}</td><td>${ico[n.tipo]||'📝'} ${n.tipo||'—'}</td><td>${n.cantidad??'—'}</td><td>${n.descripcion||'—'}</td>
+          <td><button class="btn btn-danger" style="padding:2px 8px;font-size:11px" onclick="borrarNovedadManga('${n.id}')">🗑️</button></td></tr>`;
+      }).join('')}</tbody>
+    </table></div>` : `<div class="empty-state" style="padding:24px"><div class="icon">📋</div><p>Sin novedades registradas</p></div>`}
+  </div>`;
+}
+
+// ── Tab Trabajos ──────────────────────────────────────────
+
+function renderTabTrabajos(trabajos) {
+  return `<div class="card-body" style="padding-top:12px">
+    ${trabajos.length ? `<div class="table-wrap"><table>
+      <thead><tr><th>Fecha</th><th>Tipo</th><th>Producto</th><th>Dosis</th><th>Cant. tratados</th><th>Veterinario</th><th>$ Unitario</th><th>$ Total</th><th>Obs.</th><th></th></tr></thead>
+      <tbody>${trabajos.map(t => `<tr>
+        <td>${fmtFecha(t.fecha)}</td>
+        <td><span class="badge badge-bordo">${t.tipo||'—'}</span></td>
+        <td>${t.producto||'—'}</td><td>${t.dosis||'—'}</td>
+        <td>${t.cantidad_animales||'—'}</td><td>${t.veterinario||'—'}</td>
+        <td>${t.precio_unitario!=null?'$ '+fmtNum(t.precio_unitario,2):'—'}</td>
+        <td>${t.costo_total!=null?fmtMonto(t.costo_total,'ARS'):'—'}</td>
+        <td>${t.observaciones||'—'}</td>
+        <td><button class="btn btn-danger" style="padding:2px 8px;font-size:11px" onclick="borrarTrabajoManga('${t.id}')">🗑️</button></td>
+      </tr>`).join('')}</tbody>
+    </table></div>` : `<div class="empty-state" style="padding:24px"><div class="icon">📋</div><p>Sin trabajos para este rodeo</p></div>`}
+  </div>`;
+}
+
+// ── Tab Animales ──────────────────────────────────────────
+
+function renderTabAnimales(rodeoId, animales) {
+  return `<div class="card-body" style="padding-top:12px">
+    <button class="btn btn-secondary" style="font-size:12px;margin-bottom:12px" onclick="toggleFormAnimalManga('${rodeoId}')">+ Agregar animal</button>
+    <div id="form-animal-${rodeoId}" style="display:none;background:var(--fondo);border-radius:8px;padding:12px;margin-bottom:16px">
+      <div class="form-grid">
+        <div class="form-group"><label>Caravana</label><input type="text" id="an-caravana" placeholder="Ej: 1234"></div>
+        <div class="form-group"><label>Sexo</label><select id="an-sexo"><option>Hembra</option><option>Macho</option></select></div>
+        <div class="form-group"><label>Categoría</label><select id="an-cat">
+          <option>Ternera</option><option>Ternero</option><option>Vaquillona</option>
+          <option>Vaca</option><option>Toro</option><option>Novillo</option>
+        </select></div>
+        <div class="form-group"><label>Raza</label><input type="text" id="an-raza" placeholder="Ej: Angus, Hereford"></div>
+        <div class="form-group"><label>Fecha nac.</label><input type="date" id="an-nacimiento"></div>
+        <div class="form-group"><label>Caravana madre</label><input type="text" id="an-madre" placeholder="Ej: 456"></div>
+        <div class="form-group"><label>Padre (toro/semen)</label><input type="text" id="an-padre" placeholder="Ej: Tornado, ABS-1234"></div>
+        <div class="form-group"><label>Observaciones</label><input type="text" id="an-obs" placeholder="Opcional"></div>
+      </div>
+      <button class="btn btn-primary" style="font-size:13px" onclick="guardarAnimalManga('${rodeoId}')">Guardar</button>
+      <button class="btn btn-secondary" style="font-size:13px;margin-left:8px" onclick="toggleFormAnimalManga('${rodeoId}')">Cancelar</button>
+    </div>
+    ${animales.length ? `<div class="table-wrap"><table>
+      <thead><tr><th>Caravana</th><th>Sexo</th><th>Categoría</th><th>Raza</th><th>Fecha nac.</th><th>Madre</th><th>Padre</th><th></th></tr></thead>
+      <tbody>${animales.map(a => `<tr style="cursor:pointer" onclick="seleccionarAnimal('${a.id}')">
+        <td><strong style="color:var(--bordo)">${a.caravana||'S/N'}</strong></td>
+        <td>${a.sexo||'—'}</td><td>${a.categoria||'—'}</td><td>${a.raza||'—'}</td>
+        <td>${fmtFecha(a.fecha_nacimiento)}</td>
+        <td>${a.caravana_madre||'—'}</td><td>${a.caravana_padre||'—'}</td>
+        <td><button class="btn btn-danger" style="padding:2px 8px;font-size:11px" onclick="event.stopPropagation();borrarAnimalManga('${a.id}')">🗑️</button></td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+    <div style="font-size:12px;color:var(--texto-suave);margin-top:8px">Tocá una fila para ver la ficha del animal</div>`
+    : `<div class="empty-state" style="padding:24px"><div class="icon">🐄</div><p>Sin animales identificados individualmente</p></div>`}
+  </div>`;
+}
+
+// ── Ficha animal ──────────────────────────────────────────
+
+function seleccionarAnimal(id) {
+  animalSeleccionado = animalSeleccionado === id ? null : id;
+  tabAnimalActiva = 'datos';
+  renderDetalleManga();
+  if (animalSeleccionado) setTimeout(() => document.getElementById('ficha-animal')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+}
+
+function switchTabAnimal(tab) {
+  tabAnimalActiva = tab;
+  document.getElementById('ficha-animal-body').innerHTML = renderContenidoFicha(tab);
+}
+
+function renderFichaAnimal(animalId) {
+  const a = animalesRodeo.find(x => x.id === animalId);
+  if (!a) return '';
+  const esHembra = a.sexo === 'Hembra';
+  const madre = animalesRodeo.find(x => x.caravana === a.caravana_madre);
+  const crias = animalesRodeo.filter(x => x.caravana_madre === a.caravana);
+  const servicios = serviciosAnimal.filter(s => s.animal_id === animalId);
+  const trabajosAnimal = trabajosManga.filter(t => t.rodeo_id === a.rodeo_id);
+
+  window._fichaAnimal = { a, madre, crias, servicios, trabajosAnimal, esHembra };
+
+  return `<div id="ficha-animal" class="card" style="margin-top:12px;border-top:3px solid var(--cielo)">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <h3>🐄 Caravana ${a.caravana||'S/N'} <span class="badge badge-${a.sexo==='Hembra'?'bordo':'cielo'}" style="font-size:12px">${a.categoria||a.sexo||''}</span></h3>
+      <button class="btn btn-secondary" style="font-size:12px" onclick="animalSeleccionado=null;renderDetalleManga()">✕ Cerrar</button>
+    </div>
+    <div class="tabs" style="border-bottom:1px solid var(--borde)">
+      <div class="tab${tabAnimalActiva==='datos'?' active':''}" onclick="switchTabAnimal('datos')">Datos</div>
+      ${esHembra ? `<div class="tab${tabAnimalActiva==='reproductivo'?' active':''}" onclick="switchTabAnimal('reproductivo')">Reproductivo <span style="font-size:11px;color:var(--texto-suave)">(${servicios.length})</span></div>` : ''}
+      <div class="tab${tabAnimalActiva==='medico'?' active':''}" onclick="switchTabAnimal('medico')">Historial médico <span style="font-size:11px;color:var(--texto-suave)">(${trabajosAnimal.length})</span></div>
+    </div>
+    <div id="ficha-animal-body">${renderContenidoFicha(tabAnimalActiva)}</div>
+  </div>`;
+}
+
+function renderContenidoFicha(tab) {
+  const { a, madre, crias, servicios, trabajosAnimal, esHembra } = window._fichaAnimal || {};
+  if (!a) return '';
+
+  if (tab === 'datos') {
+    return `<div class="card-body">
+      <div class="form-grid">
+        <div class="form-group"><label style="font-size:11px;color:var(--texto-suave)">Caravana</label><div style="font-weight:600;font-size:15px">${a.caravana||'—'}</div></div>
+        <div class="form-group"><label style="font-size:11px;color:var(--texto-suave)">Sexo</label><div>${a.sexo||'—'}</div></div>
+        <div class="form-group"><label style="font-size:11px;color:var(--texto-suave)">Categoría</label><div>${a.categoria||'—'}</div></div>
+        <div class="form-group"><label style="font-size:11px;color:var(--texto-suave)">Raza</label><div>${a.raza||'—'}</div></div>
+        <div class="form-group"><label style="font-size:11px;color:var(--texto-suave)">Fecha de nacimiento</label><div>${fmtFecha(a.fecha_nacimiento)}</div></div>
+        <div class="form-group"><label style="font-size:11px;color:var(--texto-suave)">Madre</label>
+          <div>${a.caravana_madre ? `<strong>${a.caravana_madre}</strong>${madre ? ` · ${madre.raza||''}` : ''}` : '—'}</div>
+        </div>
+        <div class="form-group"><label style="font-size:11px;color:var(--texto-suave)">Padre (toro/semen)</label><div>${a.caravana_padre||'—'}</div></div>
+        ${a.observaciones ? `<div class="form-group full"><label style="font-size:11px;color:var(--texto-suave)">Observaciones</label><div>${a.observaciones}</div></div>` : ''}
+      </div>
+      ${crias.length ? `<div style="margin-top:16px">
+        <div style="font-size:12px;font-weight:600;color:var(--texto-suave);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Crías (${crias.length})</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${crias.map(c => `<span class="badge badge-${c.sexo==='Hembra'?'tierra':'cielo'}" style="cursor:pointer" onclick="seleccionarAnimal('${c.id}')">${c.caravana||'S/N'} ${c.sexo==='Hembra'?'♀':'♂'} ${fmtFecha(c.fecha_nacimiento)}</span>`).join('')}
+        </div>
+      </div>` : ''}
+    </div>`;
+  }
+
+  if (tab === 'reproductivo' && esHembra) {
+    return `<div class="card-body" style="padding-top:12px">
+      <button class="btn btn-secondary" style="font-size:12px;margin-bottom:12px" onclick="toggleFormServicio()">+ Registrar servicio</button>
+      <div id="form-servicio" style="display:none;background:var(--fondo);border-radius:8px;padding:12px;margin-bottom:16px">
+        <div class="form-grid">
+          <div class="form-group"><label>Fecha servicio</label><input type="date" id="srv-fecha"></div>
+          <div class="form-group"><label>Método</label><select id="srv-metodo"><option>IATF</option><option>Toro</option></select></div>
+          <div class="form-group"><label>Toro / Semen</label><input type="text" id="srv-toro" placeholder="Ej: Tornado, ABS-1234"></div>
+          <div class="form-group"><label>Resultado tacto</label><select id="srv-resultado">
+            <option>Pendiente</option><option>Preñada</option><option>Vacía</option><option>Repetidora</option>
+          </select></div>
+          <div class="form-group"><label>Fecha tacto</label><input type="date" id="srv-fecha-tacto"></div>
+          <div class="form-group"><label>Observaciones</label><input type="text" id="srv-obs" placeholder="Opcional"></div>
+        </div>
+        <button class="btn btn-primary" style="font-size:13px" onclick="guardarServicio('${a.id}')">Guardar</button>
+        <button class="btn btn-secondary" style="font-size:13px;margin-left:8px" onclick="toggleFormServicio()">Cancelar</button>
+      </div>
+      ${servicios.length ? `<div class="table-wrap"><table>
+        <thead><tr><th>Fecha</th><th>Método</th><th>Toro / Semen</th><th>Resultado</th><th>Fecha tacto</th><th>Obs.</th><th></th></tr></thead>
+        <tbody>${servicios.map(s => {
+          const colRes = { 'Preñada':'verde', 'Vacía':'rojo', 'Repetidora':'tierra', 'Pendiente':'gray' };
+          return `<tr>
+            <td>${fmtFecha(s.fecha)}</td>
+            <td><span class="badge badge-cielo">${s.metodo||'—'}</span></td>
+            <td>${s.toro||'—'}</td>
+            <td><span class="badge badge-${colRes[s.resultado]||'gray'}">${s.resultado||'—'}</span></td>
+            <td>${fmtFecha(s.fecha_tacto)}</td>
+            <td>${s.observaciones||'—'}</td>
+            <td><button class="btn btn-danger" style="padding:2px 8px;font-size:11px" onclick="borrarServicio('${s.id}')">🗑️</button></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>` : `<div class="empty-state" style="padding:24px"><div class="icon">🐄</div><p>Sin servicios registrados</p></div>`}
+    </div>`;
+  }
+
+  if (tab === 'medico') {
+    return `<div class="card-body" style="padding-top:12px">
+      <div style="font-size:12px;color:var(--texto-suave);margin-bottom:12px">Trabajos realizados en el rodeo de este animal</div>
+      ${trabajosAnimal.length ? `<div class="table-wrap"><table>
+        <thead><tr><th>Fecha</th><th>Tipo</th><th>Producto</th><th>Dosis</th><th>Veterinario</th><th>Obs.</th></tr></thead>
+        <tbody>${trabajosAnimal.map(t => `<tr>
+          <td>${fmtFecha(t.fecha)}</td>
+          <td><span class="badge badge-bordo">${t.tipo||'—'}</span></td>
+          <td>${t.producto||'—'}</td><td>${t.dosis||'—'}</td>
+          <td>${t.veterinario||'—'}</td><td>${t.observaciones||'—'}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>` : `<div class="empty-state" style="padding:24px"><div class="icon">💉</div><p>Sin tratamientos registrados</p></div>`}
+    </div>`;
+  }
+  return '';
+}
+
+// ── Tabla general ─────────────────────────────────────────
 
 function renderTablaManga(rows) {
   const detalle = document.getElementById('manga-detalle');
@@ -254,36 +355,28 @@ function renderTablaManga(rows) {
   const desde = (paginaManga - 1) * FILAS_POR_PAGINA;
   const pag = rows.slice(desde, desde + FILAS_POR_PAGINA);
   const getNombre = id => (rodeos.find(r => r.id === id) || {}).nombre || '—';
-  detalle.innerHTML = `
-    <div class="card" style="margin-top:16px">
-      <div class="card-header"><h3>Todos los trabajos de manga</h3></div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Fecha</th><th>Rodeo</th><th>Tipo</th><th>Producto</th><th>Dosis</th><th>Cant.</th><th>Veterinario</th><th>$ Unitario</th><th>$ Total</th><th>Obs.</th><th></th></tr></thead>
-          <tbody>
-            ${pag.map(t => `<tr>
-              <td>${fmtFecha(t.fecha)}</td>
-              <td>${getNombre(t.rodeo_id)}</td>
-              <td><span class="badge badge-bordo">${t.tipo || '—'}</span></td>
-              <td>${t.producto || '—'}</td>
-              <td>${t.dosis || '—'}</td>
-              <td>${t.cantidad_animales || '—'}</td>
-              <td>${t.veterinario || '—'}</td>
-              <td>${t.precio_unitario != null ? '$ ' + fmtNum(t.precio_unitario, 2) : '—'}</td>
-              <td>${t.costo_total != null ? fmtMonto(t.costo_total, 'ARS') : '—'}</td>
-              <td>${t.observaciones || '—'}</td>
-              <td><button class="btn btn-danger" style="padding:2px 8px;font-size:11px" onclick="borrarTrabajoManga('${t.id}')">🗑️</button></td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
-      ${htmlPaginador(paginaManga, total, 'cambiarPaginaManga')}
-    </div>`;
+  detalle.innerHTML = `<div class="card" style="margin-top:16px">
+    <div class="card-header"><h3>Todos los trabajos de manga</h3></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Fecha</th><th>Rodeo</th><th>Tipo</th><th>Producto</th><th>Dosis</th><th>Cant.</th><th>Veterinario</th><th>$ Unitario</th><th>$ Total</th><th>Obs.</th><th></th></tr></thead>
+      <tbody>${pag.map(t => `<tr>
+        <td>${fmtFecha(t.fecha)}</td><td>${getNombre(t.rodeo_id)}</td>
+        <td><span class="badge badge-bordo">${t.tipo||'—'}</span></td>
+        <td>${t.producto||'—'}</td><td>${t.dosis||'—'}</td>
+        <td>${t.cantidad_animales||'—'}</td><td>${t.veterinario||'—'}</td>
+        <td>${t.precio_unitario!=null?'$ '+fmtNum(t.precio_unitario,2):'—'}</td>
+        <td>${t.costo_total!=null?fmtMonto(t.costo_total,'ARS'):'—'}</td>
+        <td>${t.observaciones||'—'}</td>
+        <td><button class="btn btn-danger" style="padding:2px 8px;font-size:11px" onclick="borrarTrabajoManga('${t.id}')">🗑️</button></td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+    ${htmlPaginador(paginaManga, total, 'cambiarPaginaManga')}
+  </div>`;
 }
 
 function cambiarPaginaManga(p) { paginaManga = p; renderTablaManga(trabajosManga); }
 
-// ── Toggles ──────────────────────────────────────────────
+// ── Formularios toggle ────────────────────────────────────
 
 function toggleFormManga() {
   const f = document.getElementById('form-manga-wrap');
@@ -305,11 +398,10 @@ function toggleFormRodeo() {
 
 function toggleFormNovedadManga(rodeoId) {
   const f = document.getElementById('form-novedad-' + rodeoId);
-  if (f) {
-    f.style.display = f.style.display === 'none' ? '' : 'none';
-    const fd = document.getElementById('nov-fecha-' + rodeoId);
-    if (fd && !fd.value) fd.value = new Date().toISOString().split('T')[0];
-  }
+  if (!f) return;
+  f.style.display = f.style.display === 'none' ? '' : 'none';
+  const fd = document.getElementById('nov-fecha-' + rodeoId);
+  if (fd && !fd.value) fd.value = new Date().toISOString().split('T')[0];
 }
 
 function toggleFormAnimalManga(rodeoId) {
@@ -317,7 +409,15 @@ function toggleFormAnimalManga(rodeoId) {
   if (f) f.style.display = f.style.display === 'none' ? '' : 'none';
 }
 
-// ── Editar rodeo ──────────────────────────────────────────
+function toggleFormServicio() {
+  const f = document.getElementById('form-servicio');
+  if (!f) return;
+  f.style.display = f.style.display === 'none' ? '' : 'none';
+  const fd = document.getElementById('srv-fecha');
+  if (fd && !fd.value) fd.value = new Date().toISOString().split('T')[0];
+}
+
+// ── Guardar rodeo ─────────────────────────────────────────
 
 function editarRodeo(id) {
   const r = rodeos.find(x => x.id === id);
@@ -345,14 +445,12 @@ async function guardarRodeo() {
     observaciones: document.getElementById('rodeo-obs').value.trim()
   };
   if (!data.nombre) { toast('Ingresá un nombre para el rodeo', 'var(--rojo)'); return; }
-  const r = id
-    ? await sb('PATCH', 'rodeos', data, `?id=eq.${id}`)
-    : await sb('POST', 'rodeos', data);
+  const r = id ? await sb('PATCH', 'rodeos', data, `?id=eq.${id}`) : await sb('POST', 'rodeos', data);
   if (r) { toast('✅ Rodeo guardado'); toggleFormRodeo(); await cargarManga(); }
   else toast('❌ Error', 'var(--rojo)');
 }
 
-// ── Novedades ─────────────────────────────────────────────
+// ── Guardar novedades ─────────────────────────────────────
 
 async function guardarNovedadManga(rodeoId) {
   const data = {
@@ -372,17 +470,20 @@ async function borrarNovedadManga(id) {
   await sb('DELETE', 'novedades_ganaderas', null, `?id=eq.${id}`);
   novedadesGanaderas = novedadesGanaderas.filter(n => n.id !== id);
   renderDetalleManga();
-  renderEstadisticasManga();
 }
 
-// ── Animales ──────────────────────────────────────────────
+// ── Guardar animales ──────────────────────────────────────
 
 async function guardarAnimalManga(rodeoId) {
   const data = {
     rodeo_id: rodeoId,
     caravana: document.getElementById('an-caravana').value.trim(),
     sexo: document.getElementById('an-sexo').value,
+    categoria: document.getElementById('an-cat').value,
+    raza: document.getElementById('an-raza').value.trim(),
     fecha_nacimiento: document.getElementById('an-nacimiento').value || null,
+    caravana_madre: document.getElementById('an-madre').value.trim(),
+    caravana_padre: document.getElementById('an-padre').value.trim(),
     observaciones: document.getElementById('an-obs').value.trim()
   };
   const r = await sb('POST', 'animales_rodeo', data);
@@ -394,10 +495,35 @@ async function borrarAnimalManga(id) {
   if (!confirm('¿Borrar este animal?')) return;
   await sb('DELETE', 'animales_rodeo', null, `?id=eq.${id}`);
   animalesRodeo = animalesRodeo.filter(a => a.id !== id);
+  if (animalSeleccionado === id) animalSeleccionado = null;
   renderDetalleManga();
 }
 
-// ── Trabajos ──────────────────────────────────────────────
+// ── Guardar servicios ─────────────────────────────────────
+
+async function guardarServicio(animalId) {
+  const data = {
+    animal_id: animalId,
+    fecha: document.getElementById('srv-fecha').value,
+    metodo: document.getElementById('srv-metodo').value,
+    toro: document.getElementById('srv-toro').value.trim(),
+    resultado: document.getElementById('srv-resultado').value,
+    fecha_tacto: document.getElementById('srv-fecha-tacto').value || null,
+    observaciones: document.getElementById('srv-obs').value.trim()
+  };
+  const r = await sb('POST', 'servicios_animal', data);
+  if (r) { toast('✅ Servicio registrado'); await cargarManga(); }
+  else toast('❌ Error', 'var(--rojo)');
+}
+
+async function borrarServicio(id) {
+  if (!confirm('¿Borrar este servicio?')) return;
+  await sb('DELETE', 'servicios_animal', null, `?id=eq.${id}`);
+  serviciosAnimal = serviciosAnimal.filter(s => s.id !== id);
+  renderDetalleManga();
+}
+
+// ── Trabajos manga ────────────────────────────────────────
 
 function agregarInsumoManga() {
   const list = document.getElementById('tm-insumos-list');
