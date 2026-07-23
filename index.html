@@ -163,7 +163,7 @@ tr:hover td{background:var(--gris)}
   <div class="sidebar-section" onclick="toggleNav(this)">Carga de trabajos <span class="nav-chevron">▾</span></div>
   <div class="sidebar-group">
     <div class="nav-item" onclick="showSection('trabajos_agri',this)">🌾 Trabajos lotes</div>
-    <div class="nav-item" onclick="showSection('eventos',this)">💉 Trabajos manga</div>
+    <div class="nav-item" onclick="showSection('manga',this)">💉 Trabajos manga</div>
     <div class="nav-item" onclick="showSection('mantenimiento',this)">🔧 Mantenimiento maquinarias</div>
     <div class="nav-item" onclick="showSection('importar',this)">📥 Importar jornada (IA)</div>
   </div>
@@ -189,7 +189,7 @@ tr:hover td{background:var(--gris)}
     <div class="nav-item" onclick="showSection('lotes',this)">🗺️ Historial lotes</div>
     <div class="nav-item" onclick="showSection('agro_dash',this)">📊 Análisis económicos</div>
     <div class="sidebar-subsection">Ganadería</div>
-    <div class="nav-item" onclick="showSection('eventos',this)">💉 Trabajos manga</div>
+    <div class="nav-item" onclick="showSection('manga',this)">💉 Trabajos manga</div>
     <div class="nav-item" onclick="showSection('animales',this)">🐄 Stock</div>
     <div class="nav-item" onclick="proximamente('Historial de madres',this)">👪 Historial madres</div>
     <div class="nav-item" onclick="showSection('pesadas',this)">⚖️ Pesadas</div>
@@ -408,6 +408,73 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
           <tbody id="tabla-animales"><tr><td colspan="6"><div class="empty-state"><div class="icon">🐄</div><h3>Sin animales registrados</h3></div></td></tr></tbody></table></div>
         </div>
       </div>
+    </div>
+
+    <!-- MANGA -->
+    <div id="section-manga" class="section">
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="toggleFormManga()">+ Nuevo trabajo</button>
+        <button class="btn btn-secondary" onclick="toggleFormRodeo()">+ Nuevo rodeo</button>
+      </div>
+
+      <!-- Form nuevo rodeo -->
+      <div id="form-rodeo-wrap" style="display:none">
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header"><h3 id="rodeo-form-titulo">Nuevo rodeo</h3></div>
+          <div class="card-body">
+            <input type="hidden" id="rodeo-id-edit">
+            <div class="form-grid">
+              <div class="form-group"><label>Nombre</label><input type="text" id="rodeo-nombre" placeholder="Ej: Vacas CUT, Terneros destete"></div>
+              <div class="form-group"><label>Categoría</label><select id="rodeo-cat"><option>Vacas</option><option>Vaquillonas</option><option>Terneros</option><option>Terneras</option><option>Toros</option><option>Otro</option></select></div>
+              <div class="form-group"><label>Campo</label><select id="rodeo-campo"><option>Don Alfredo (Azcona)</option><option>Doña Vica</option><option>Sant-Yago</option></select></div>
+              <div class="form-group"><label>Ubicación actual</label><input type="text" id="rodeo-ubi" placeholder="Ej: Lote 3, Corral norte"></div>
+              <div class="form-group"><label>Cantidad de animales</label><input type="number" id="rodeo-cant" placeholder="Ej: 50"></div>
+              <div class="form-group"><label>Observaciones</label><input type="text" id="rodeo-obs" placeholder="Opcional"></div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-primary" onclick="guardarRodeo()">Guardar rodeo</button>
+              <button class="btn btn-secondary" onclick="toggleFormRodeo()">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form nuevo trabajo -->
+      <div id="form-manga-wrap" style="display:none">
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header"><h3>Nuevo trabajo de manga</h3></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group"><label>Fecha</label><input type="date" id="tm-fecha"></div>
+              <div class="form-group"><label>Rodeo</label><select id="tm-rodeo"><option value="">— Seleccionar —</option></select></div>
+              <div class="form-group"><label>Tipo</label><select id="tm-tipo">
+                <option>Vacunación</option><option>Desparasitación</option><option>Tacto / Preñez</option>
+                <option>Inseminación (IATF)</option><option>Tratamiento</option><option>Servicio</option>
+                <option>Caravana electrónica</option><option>Otro</option>
+              </select></div>
+              <div class="form-group"><label>Veterinario</label><input type="text" id="tm-vet" placeholder="Ej: Dr. García"></div>
+              <div class="form-group"><label>Cantidad tratados</label><input type="number" id="tm-cant" placeholder="Ej: 48"></div>
+              <div class="form-group"><label>Campaña</label><input type="text" id="tm-campania" placeholder="Ej: 25/26"></div>
+              <div class="form-group full"><label>Observaciones</label><input type="text" id="tm-obs-trab" placeholder="Opcional"></div>
+            </div>
+            <div style="margin-top:12px">
+              <div style="font-size:13px;font-weight:600;margin-bottom:8px">Productos / Vacunas</div>
+              <div id="tm-insumos-list"></div>
+              <button type="button" class="btn btn-secondary" style="font-size:12px" onclick="agregarInsumoManga()">+ Agregar producto</button>
+            </div>
+            <div class="form-actions" style="margin-top:16px">
+              <button class="btn btn-primary" onclick="guardarTrabajoManga()">Registrar trabajo</button>
+              <button class="btn btn-secondary" onclick="document.getElementById('form-manga-wrap').style.display='none'">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tarjetas de rodeos -->
+      <div id="manga-rodeos-cards" class="lotes-grid" style="margin-bottom:8px"></div>
+
+      <!-- Detalle / tabla completa -->
+      <div id="manga-detalle"></div>
     </div>
 
     <!-- EVENTOS -->
@@ -1627,6 +1694,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 
 <script src="js/core.js"></script>
 <script src="js/ganaderia/animales.js"></script>
+<script src="js/ganaderia/manga.js"></script>
 <script src="js/ganaderia/eventos.js"></script>
 <script src="js/ganaderia/pesadas.js"></script>
 <script src="js/ganaderia/hoteleria.js"></script>

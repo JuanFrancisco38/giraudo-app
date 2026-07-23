@@ -125,7 +125,7 @@ function showSection(id, el) {
     hoteleria:'Hotelería', alimentacion:'Alimentación',
     liq_hacienda:'Liquidaciones hacienda', trabajos_agri:'Trabajos de campo',
     agro_dash:'Resumen agrícola',
-    lotes:'Lotes / Historia', liq_granos:'Liquidaciones granos',
+    lotes:'Lotes / Historia', manga:'Trabajos manga', liq_granos:'Liquidaciones granos',
     certificaciones:'Certificaciones', maquinaria:'Maquinaria',
     mantenimiento:'Mantenimiento', precios:'Precios relativos',
     boletas:'Facturas recibidas', facturas_emitidas:'Facturas emitidas',
@@ -136,6 +136,7 @@ function showSection(id, el) {
   if (id === 'precios') cargarHistorialPrecios();
   if (id === 'trabajos_agri') cargarTrabajos();
   if (id === 'lotes') cargarLotes();
+  if (id === 'manga') cargarManga();
   if (id === 'agro_dash') cargarAgroDashboard();
   if (id === 'liq_granos') { cargarLiqGranos(); cargarResumenGranos(); }
   if (id === 'certificaciones') cargarCertificaciones();
