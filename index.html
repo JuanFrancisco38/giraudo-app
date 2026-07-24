@@ -91,6 +91,13 @@ tr:hover td{background:var(--gris)}
 .badge-yellow{background:var(--amarillo-claro);color:var(--amarillo)}
 .badge-tierra{background:var(--tierra-claro);color:var(--tierra)}
 .badge-gray{background:#f0f0ee;color:var(--texto-suave)}
+.badge-gris{background:#f0f0ee;color:var(--texto-suave)}
+.maq-item{padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--gris-borde);transition:background 0.15s}
+.maq-item:hover{background:var(--gris-fondo)}
+.maq-item.activa{background:var(--bordo-claro,#f5eef0);border-left:3px solid var(--bordo)}
+.ficha-dato{display:flex;flex-direction:column;gap:3px}
+.ficha-label{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--texto-suave);font-weight:600}
+.ficha-val{font-size:14px;font-weight:500}
 .tabs{display:flex;gap:4px;border-bottom:2px solid var(--gris-borde);margin-bottom:20px}
 .tab{padding:8px 16px;font-size:13px;cursor:pointer;color:var(--texto-suave);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.15s}
 .tab:hover{color:var(--texto)}
@@ -164,7 +171,7 @@ tr:hover td{background:var(--gris)}
   <div class="sidebar-group">
     <div class="nav-item" onclick="showSection('trabajos_agri',this)">🌾 Trabajos lotes</div>
     <div class="nav-item" onclick="showSection('manga',this)">🐄 Ganadería</div>
-    <div class="nav-item" onclick="showSection('mantenimiento',this)">🔧 Mantenimiento maquinarias</div>
+    <div class="nav-item" onclick="showSection('maquinaria',this)">🔧 Mantenimiento maquinarias</div>
     <div class="nav-item" onclick="showSection('importar',this)">📥 Importar jornada (IA)</div>
   </div>
 
@@ -184,17 +191,13 @@ tr:hover td{background:var(--gris)}
 
   <div class="sidebar-section" onclick="toggleNav(this)">Ver / Analizar <span class="nav-chevron">▾</span></div>
   <div class="sidebar-group">
-    <div class="sidebar-subsection">Agricultura</div>
     <div class="nav-item" onclick="showSection('trabajos_agri',this)">🌾 Trabajos lotes</div>
     <div class="nav-item" onclick="showSection('lotes',this)">🗺️ Historial lotes</div>
     <div class="nav-item" onclick="showSection('agro_dash',this)">📊 Análisis económicos</div>
-    <div class="sidebar-subsection">Ganadería</div>
     <div class="nav-item" onclick="showSection('manga',this)">🐄 Ganadería</div>
-    <div class="sidebar-subsection">Maquinaria</div>
     <div class="nav-item" onclick="showSection('maquinaria',this)">🚜 Inventario</div>
-    <div class="nav-item" onclick="showSection('mantenimiento',this)">🔧 Mantenimientos</div>
+    <div class="nav-item" onclick="showSection('maquinaria',this)">🔧 Mantenimientos</div>
     <div class="nav-item" onclick="proximamente('Trabajos por maquinaria',this)">🛠️ Trabajos maquinaria</div>
-    <div class="sidebar-subsection">General</div>
     <div class="nav-item" onclick="showSection('precios',this)">📈 Precios relativos</div>
     <div class="nav-item" onclick="showSection('balance',this)">📊 Balance mensual</div>
   </div>
@@ -1051,55 +1054,68 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 
     <!-- MAQUINARIA -->
     <div id="section-maquinaria" class="section">
-      <div class="card">
-        <div class="card-header"><h3>🚜 Inventario de maquinaria — Grupo Giraudo</h3><button class="btn btn-primary" onclick="toggleForm('form-maq')">+ Agregar</button></div>
-        <div id="form-maq" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
-          <div class="form-grid">
-            <div class="form-group"><label>Descripción</label><input type="text" id="maq-nombre"></div>
-            <div class="form-group"><label>Marca</label><input type="text" id="maq-marca"></div>
-            <div class="form-group"><label>Año</label><input type="number" id="maq-anio"></div>
-            <div class="form-group"><label>Valor compra</label><input type="text" id="maq-valor"></div>
-            <div class="form-group"><label>Hs/km/has actuales</label><input type="number" id="maq-horas"></div>
-            <div class="form-group"><label>Categoría</label><select id="maq-cat"><option>Tractor</option><option>Cosecha</option><option>Siembra</option><option>Henificación/Silaje</option><option>Movilidad</option><option>Herramienta</option><option>Otro</option></select></div>
+      <div style="display:flex;gap:16px;align-items:flex-start">
+
+        <!-- Lista izquierda -->
+        <div class="card" style="width:260px;min-width:220px;flex-shrink:0">
+          <div class="card-header" style="padding:14px 16px">
+            <h3 style="font-size:14px">🚜 Maquinaria</h3>
+            <button class="btn btn-primary" style="font-size:12px;padding:5px 10px" onclick="toggleForm('form-maq-nuevo')">+ Agregar</button>
           </div>
-          <div class="form-actions"><button class="btn btn-primary" onclick="guardarMaquina()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-maq')">Cancelar</button></div>
+          <div id="form-maq-nuevo" style="display:none;padding:14px;border-bottom:1px solid var(--gris-borde)">
+            <div class="form-group"><label>Nombre</label><input type="text" id="maq-nombre" placeholder="Ej: Case IH Puma 190"></div>
+            <div class="form-group"><label>Categoría</label>
+              <select id="maq-cat">
+                <option>Tractor</option><option>Cosecha</option><option>Siembra</option>
+                <option>Henificación</option><option>Movilidad</option><option>Herramienta</option><option>Otro</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Año</label><input type="number" id="maq-anio" placeholder="2024"></div>
+            <div class="form-group"><label>Valor compra</label><input type="number" id="maq-valor" placeholder="0"></div>
+            <div class="form-group"><label>Moneda</label>
+              <select id="maq-moneda"><option>USD</option><option>ARS</option></select>
+            </div>
+            <div class="form-group"><label>Uso actual</label><input type="number" id="maq-horas" placeholder="0"></div>
+            <div class="form-group"><label>Unidad</label>
+              <select id="maq-unidad"><option>hs</option><option>km</option><option>has</option><option>rollos</option></select>
+            </div>
+            <div class="form-actions" style="margin-top:8px">
+              <button class="btn btn-primary" style="font-size:12px" onclick="guardarMaquina()">Guardar</button>
+              <button class="btn btn-secondary" style="font-size:12px" onclick="toggleForm('form-maq-nuevo')">Cancelar</button>
+            </div>
+          </div>
+          <div id="maq-lista" style="overflow-y:auto;max-height:calc(100vh - 200px)"></div>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>Máquina</th><th>Categoría</th><th>Año</th><th>Valor compra</th><th>Hs/km actuales</th></tr></thead>
-        <tbody>
-          <tr><td><strong>Case IH Puma 190</strong></td><td><span class="badge badge-bordo">Tractor</span></td><td>2015</td><td>USD 125.000</td><td>—</td></tr>
-          <tr><td><strong>Case IH Puma 140</strong></td><td><span class="badge badge-bordo">Tractor</span></td><td>2018</td><td>USD 110.000</td><td>4.580 hs</td></tr>
-          <tr><td><strong>AGCO-Allis 6.125</strong></td><td><span class="badge badge-bordo">Tractor</span></td><td>2005</td><td>USD 32.000</td><td>8.620 hs</td></tr>
-          <tr><td><strong>Deutz AX80</strong></td><td><span class="badge badge-bordo">Tractor</span></td><td>1985</td><td>USD 28.000</td><td>—</td></tr>
-          <tr><td><strong>Deutz 50</strong></td><td><span class="badge badge-bordo">Tractor</span></td><td>1962</td><td>USD 5.500</td><td>—</td></tr>
-          <tr><td><strong>Case IH 2388</strong></td><td><span class="badge badge-yellow">Cosecha</span></td><td>2008</td><td>USD 220.000</td><td>—</td></tr>
-          <tr><td><strong>Super Walter 630 WG</strong></td><td><span class="badge badge-green">Siembra</span></td><td>2012</td><td>USD 15.500</td><td>—</td></tr>
-          <tr><td><strong>New Holland RB460C</strong></td><td><span class="badge badge-tierra">Henificación</span></td><td>2018</td><td>USD 48.500</td><td>19.339 rollos</td></tr>
-          <tr><td><strong>Segadora NH 313</strong></td><td><span class="badge badge-tierra">Henificación</span></td><td>2023</td><td>USD 50.000</td><td>1.945 has</td></tr>
-          <tr><td><strong>Picadora Mainero 4751</strong></td><td><span class="badge badge-tierra">Henificación</span></td><td>2025</td><td>USD 11.000</td><td>—</td></tr>
-          <tr><td><strong>Amarok Highline 2.0 TDI</strong></td><td><span class="badge badge-blue">Movilidad</span></td><td>2018</td><td>—</td><td>—</td></tr>
-          <tr><td><strong>Toyota Hilux 4x4</strong></td><td><span class="badge badge-blue">Movilidad</span></td><td>2019</td><td>—</td><td>—</td></tr>
-        </tbody></table></div>
-        <div style="padding:8px 16px;font-size:11px;color:var(--texto-suave)">Mostrando principales. Total inventario: 47 equipos.</div>
+
+        <!-- Ficha derecha -->
+        <div style="flex:1;min-width:0">
+          <div id="maq-empty" class="card" style="padding:48px;text-align:center;color:var(--texto-suave)">
+            <div style="font-size:40px;margin-bottom:12px">🚜</div>
+            <div style="font-size:14px">Seleccioná una máquina para ver su ficha</div>
+          </div>
+          <div id="maq-ficha-wrap" style="display:none">
+            <div class="card" style="margin-bottom:0">
+              <div class="card-header" style="padding:16px 20px">
+                <div>
+                  <h3 id="maq-ficha-titulo" style="font-size:16px;margin-bottom:4px"></h3>
+                  <div id="maq-ficha-sub" style="font-size:12px;color:var(--texto-suave)"></div>
+                </div>
+              </div>
+              <div class="tabs" style="padding:0 20px;border-bottom:1px solid var(--gris-borde)">
+                <div id="maq-tab-datos" class="tab active" onclick="switchTabMaq('datos')">Datos</div>
+                <div id="maq-tab-mantenimiento" class="tab" onclick="switchTabMaq('mantenimiento')">🔧 Mantenimiento</div>
+                <div id="maq-tab-trabajos" class="tab" onclick="switchTabMaq('trabajos')">🌾 Trabajos</div>
+              </div>
+              <div id="maq-ficha-contenido"></div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
-    <!-- MANTENIMIENTO -->
+    <!-- MANTENIMIENTO (redirige a maquinaria) -->
     <div id="section-mantenimiento" class="section">
-      <div class="card">
-        <div class="card-header"><h3>🔧 Mantenimiento</h3><button class="btn btn-primary" onclick="toggleForm('form-mant')">+ Registrar</button></div>
-        <div id="form-mant" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
-          <div class="form-grid">
-            <div class="form-group"><label>Fecha</label><input type="date" id="mant-fecha"></div>
-            <div class="form-group"><label>Máquina</label><select id="mant-maq"><option>Case Puma 190</option><option>Case Puma 140</option><option>AGCO 6.125</option><option>Deutz AX80</option><option>Segadora NH313</option><option>Enrolladora RB460C</option><option>Picadora 4751</option><option>Amarok</option><option>Hilux</option><option>Otra</option></select></div>
-            <div class="form-group"><label>Hs/km al momento</label><input type="number" id="mant-horas"></div>
-            <div class="form-group"><label>Costo $</label><input type="number" id="mant-costo"></div>
-            <div class="form-group full"><label>Descripción</label><textarea id="mant-desc" placeholder="Ej: Cambio aceite motor y filtros..."></textarea></div>
-          </div>
-          <div class="form-actions"><button class="btn btn-primary" onclick="guardarMantenimiento()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-mant')">Cancelar</button></div>
-        </div>
-        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Máquina</th><th>Hs/km</th><th>Descripción</th><th>Costo</th></tr></thead>
-        <tbody id="tabla-mant"><tr><td colspan="5"><div class="empty-state"><div class="icon">🔧</div><h3>Sin registros</h3></div></td></tr></tbody></table></div>
-      </div>
     </div>
 
     <!-- PRECIOS RELATIVOS -->
