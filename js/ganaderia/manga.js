@@ -47,9 +47,13 @@ async function cargarManga() {
 function renderEstadisticasManga() {
   const el = document.getElementById('manga-stats');
   if (!el) return;
-  const total = rodeos.reduce((s, r) => s + (r.cantidad || 0), 0);
+  const total = animalesRodeo.length;
   const porCat = {};
-  rodeos.forEach(r => { const c = r.categoria || 'Otro'; porCat[c] = (porCat[c] || 0) + (r.cantidad || 0); });
+  animalesRodeo.forEach(a => {
+    const rodeo = rodeos.find(r => r.id === a.rodeo_id);
+    const c = rodeo?.categoria || 'Otro';
+    porCat[c] = (porCat[c] || 0) + 1;
+  });
   const orden = ['Vacas', 'Vaquillonas', 'Terneros', 'Terneras', 'Toros'];
   const cats = [...orden, ...Object.keys(porCat).filter(k => !orden.includes(k))].filter(k => porCat[k]);
   el.innerHTML = `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
@@ -78,6 +82,7 @@ function renderRodeosManga() {
       const color = COLORES_RODEO[r.categoria] || 'gray';
       const nTrab = trabajosManga.filter(t => t.rodeo_id === r.id).length;
       const nNov = novedadesGanaderas.filter(n => n.rodeo_id === r.id).length;
+      const nAnimales = animalesRodeo.filter(a => a.rodeo_id === r.id).length;
       const sel = rodeoSeleccionado === r.id;
       return `<div class="lote-card${sel ? ' selected' : ''}" onclick="seleccionarRodeoManga('${r.id}')" style="cursor:pointer">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
@@ -87,7 +92,7 @@ function renderRodeosManga() {
         <div style="font-size:15px;font-weight:600;margin-bottom:4px">${r.nombre}</div>
         ${r.ubicacion ? `<div style="font-size:12px;color:var(--texto-suave);margin-bottom:6px">📍 ${r.ubicacion}</div>` : ''}
         <div style="display:flex;gap:12px;font-size:13px;margin-top:auto;flex-wrap:wrap">
-          <span><strong>${r.cantidad ?? '—'}</strong> animales</span>
+          <span><strong>${nAnimales}</strong> identificados</span>
           <span style="color:var(--texto-suave)">${nTrab} trabajo${nTrab !== 1 ? 's' : ''}</span>
           <span style="color:var(--texto-suave)">${nNov} novedad${nNov !== 1 ? 'es' : ''}</span>
         </div>
