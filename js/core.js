@@ -218,6 +218,24 @@ function closeSidebar() {
   document.getElementById('overlay').classList.remove('show');
 }
 
+// Acceso veterinario por link
+(function() {
+  const vet = new URLSearchParams(window.location.search).get('vet');
+  if (vet === 'vetmaxi') {
+    window.addEventListener('DOMContentLoaded', () => {
+      // Ocultar sidebar y topbar, mostrar solo ganadería
+      document.getElementById('sidebar')?.remove();
+      document.getElementById('overlay')?.remove();
+      const topbar = document.getElementById('topbar');
+      if (topbar) {
+        topbar.querySelector('.hamburger')?.remove();
+        document.getElementById('topbar-title').textContent = 'Ganadería — Grupo Giraudo';
+      }
+      showSection('manga', null);
+    });
+  }
+})();
+
 function toast(msg, color='var(--bordo)') {
   const t = document.getElementById('toast');
   t.textContent = msg;
