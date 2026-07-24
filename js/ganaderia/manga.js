@@ -13,6 +13,21 @@ let tabRodeoActiva = 'novedades';
 let tabAnimalActiva = 'datos';
 let paginaManga = 1;
 
+const CATS_MACHO = ['Ternero', 'Novillito', 'Novillo', 'Torito', 'Toro'];
+const CATS_HEMBRA = ['Ternera', 'Vaquillona', 'Vaca'];
+
+function catsPorSexo(sexo) {
+  return sexo === 'Macho' ? CATS_MACHO : CATS_HEMBRA;
+}
+
+function actualizarCats(sexoId, catId) {
+  const sexo = document.getElementById(sexoId)?.value;
+  const catEl = document.getElementById(catId);
+  if (!catEl) return;
+  const cats = catsPorSexo(sexo);
+  catEl.innerHTML = cats.map(c => `<option>${c}</option>`).join('');
+}
+
 const COLORES_RODEO = {
   'Vacas': 'bordo', 'Vaquillonas': 'tierra',
   'Terneros': 'verde', 'Terneras': 'verde', 'Toros': 'cielo'
@@ -219,10 +234,9 @@ function renderTabAnimales(rodeoId, animales) {
     <div id="form-animal-${rodeoId}" style="display:none;background:var(--fondo);border-radius:8px;padding:12px;margin-bottom:16px">
       <div class="form-grid">
         <div class="form-group"><label>Caravana</label><input type="text" id="an-caravana" placeholder="Ej: 1234"></div>
-        <div class="form-group"><label>Sexo</label><select id="an-sexo"><option>Hembra</option><option>Macho</option></select></div>
+        <div class="form-group"><label>Sexo</label><select id="an-sexo" onchange="actualizarCats('an-sexo','an-cat')"><option>Hembra</option><option>Macho</option></select></div>
         <div class="form-group"><label>Categoría</label><select id="an-cat">
-          <option>Ternera</option><option>Ternero</option><option>Vaquillona</option>
-          <option>Vaca</option><option>Toro</option><option>Novillo</option>
+          <option>Ternera</option><option>Vaquillona</option><option>Vaca</option>
         </select></div>
         <div class="form-group"><label>Raza</label><input type="text" id="an-raza" placeholder="Ej: Angus, Hereford"></div>
         <div class="form-group"><label>Fecha nac.</label><input type="date" id="an-nacimiento"></div>
@@ -344,12 +358,12 @@ function renderContenidoFicha(tab) {
       <div id="ficha-editar-${a.id}" style="display:none;background:var(--fondo);border-radius:8px;padding:12px;margin-bottom:16px">
         <div class="form-grid">
           <div class="form-group"><label>Caravana</label><input type="text" id="edit-caravana" value="${a.caravana || ''}"></div>
-          <div class="form-group"><label>Sexo</label><select id="edit-sexo">
+          <div class="form-group"><label>Sexo</label><select id="edit-sexo" onchange="actualizarCats('edit-sexo','edit-cat')">
             <option${a.sexo === 'Hembra' ? ' selected' : ''}>Hembra</option>
             <option${a.sexo === 'Macho' ? ' selected' : ''}>Macho</option>
           </select></div>
           <div class="form-group"><label>Categoría</label><select id="edit-cat">
-            ${['Ternera','Ternero','Vaquillona','Vaca','Toro','Novillo','Otro'].map(c => `<option${a.categoria === c ? ' selected' : ''}>${c}</option>`).join('')}
+            ${catsPorSexo(a.sexo || 'Hembra').map(c => `<option${a.categoria === c ? ' selected' : ''}>${c}</option>`).join('')}
           </select></div>
           <div class="form-group"><label>Raza</label><input type="text" id="edit-raza" value="${a.raza || ''}"></div>
           <div class="form-group"><label>Fecha nac.</label><input type="date" id="edit-nacimiento" value="${a.fecha_nacimiento || ''}"></div>
@@ -572,7 +586,8 @@ function agregarNacimientoRow() {
   div.className = 'nacimiento-row';
   div.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;background:var(--fondo);padding:8px;border-radius:6px';
   div.innerHTML = `
-    <div class="form-group" style="margin:0"><label>Sexo</label><select class="nac-sexo"><option>Macho</option><option>Hembra</option></select></div>
+    <div class="form-group" style="margin:0"><label>Sexo</label><select class="nac-sexo" onchange="this.closest('.nacimiento-row').querySelector('.nac-cat').innerHTML=catsPorSexo(this.value).map(c=>'<option>'+c+'</option>').join('')"><option>Macho</option><option>Hembra</option></select></div>
+    <div class="form-group" style="margin:0"><label>Categoría</label><select class="nac-cat">${CATS_MACHO.map(c=>`<option>${c}</option>`).join('')}</select></div>
     <div class="form-group" style="margin:0"><label>Caravana (opc.)</label><input type="text" class="nac-caravana" placeholder="Ej: 06"></div>
     <div class="form-group" style="margin:0"><label>Caravana madre</label><input type="text" class="nac-madre" placeholder="Ej: 01"></div>
     <div class="form-group" style="margin:0"><label>Padre (opc.)</label><input type="text" class="nac-padre" placeholder="Se infiere del servicio"></div>
@@ -704,7 +719,7 @@ async function procesarNovNacimientos(rodeoId, fecha) {
       }
     }
 
-    const categoria = sexo === 'Macho' ? 'Ternero' : 'Ternera';
+    const categoria = fila.querySelector('.nac-cat')?.value || (sexo === 'Macho' ? 'Ternero' : 'Ternera');
     nacimientos.push({ sexo, caravana, caravana_madre, caravana_padre, categoria });
 
     await sb('POST', 'animales_rodeo', {

@@ -522,8 +522,8 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             <div id="nov-panel-ingreso" style="display:none;margin-top:12px">
               <div class="form-grid">
                 <div class="form-group"><label>Cantidad</label><input type="number" id="ing-cantidad" placeholder="Ej: 5"></div>
-                <div class="form-group"><label>Categoría</label><select id="ing-categoria"><option>Vacas</option><option>Vaquillonas</option><option>Terneros</option><option>Terneras</option><option>Toros</option><option>Otro</option></select></div>
-                <div class="form-group"><label>Sexo</label><select id="ing-sexo"><option>Hembra</option><option>Macho</option></select></div>
+                <div class="form-group"><label>Sexo</label><select id="ing-sexo" onchange="actualizarCats('ing-sexo','ing-categoria')"><option>Hembra</option><option>Macho</option></select></div>
+                <div class="form-group"><label>Categoría</label><select id="ing-categoria"><option>Ternera</option><option>Vaquillona</option><option>Vaca</option></select></div>
                 <div class="form-group"><label>Raza</label><input type="text" id="ing-raza" placeholder="Ej: Angus"></div>
                 <div class="form-group"><label>Procedencia</label><input type="text" id="ing-procedencia" placeholder="Ej: Establecimiento X"></div>
                 <div class="form-group full"><label>Caravanas (opcional, separadas por coma)</label><input type="text" id="ing-caravanas" placeholder="Ej: 10, 11, 12 — si no ponés se crean sin identificar"></div>
