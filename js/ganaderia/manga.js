@@ -16,6 +16,10 @@ let paginaManga = 1;
 const CATS_MACHO = ['Ternero', 'Novillito', 'Novillo', 'Torito', 'Toro'];
 const CATS_HEMBRA = ['Ternera', 'Vaquillona', 'Vaca'];
 
+function caravanaDisplay(a) {
+  return a.caravana_interna || a.caravana_electronica || 'S/N';
+}
+
 function catsPorSexo(sexo) {
   return sexo === 'Macho' ? CATS_MACHO : CATS_HEMBRA;
 }
@@ -37,7 +41,7 @@ async function cargarManga() {
   [rodeos, trabajosManga, animalesRodeo, novedadesGanaderas, serviciosAnimal, sanidadAnimal] = await Promise.all([
     sb('GET', 'rodeos', null, '?order=created_at.asc&activo=eq.true'),
     sb('GET', 'trabajos_manga', null, '?order=fecha.desc'),
-    sb('GET', 'animales_rodeo', null, '?activo=eq.true&order=caravana.asc'),
+    sb('GET', 'animales_rodeo', null, '?activo=eq.true&order=caravana_interna.asc.nullslast'),
     sb('GET', 'novedades_ganaderas', null, '?order=fecha.desc'),
     sb('GET', 'servicios_animal', null, '?order=fecha.desc'),
     sb('GET', 'sanidad_animal', null, '?order=fecha.desc')
@@ -233,7 +237,8 @@ function renderTabAnimales(rodeoId, animales) {
     <button class="btn btn-secondary" style="font-size:12px;margin-bottom:12px" onclick="toggleFormAnimalManga('${rodeoId}')">+ Agregar animal</button>
     <div id="form-animal-${rodeoId}" style="display:none;background:var(--fondo);border-radius:8px;padding:12px;margin-bottom:16px">
       <div class="form-grid">
-        <div class="form-group"><label>Caravana</label><input type="text" id="an-caravana" placeholder="Ej: 1234"></div>
+        <div class="form-group"><label>Caravana interna</label><input type="text" id="an-caravana-interna" placeholder="Ej: 12"></div>
+        <div class="form-group"><label>Caravana electrónica</label><input type="text" id="an-caravana-electronica" placeholder="Ej: 982000123456789"></div>
         <div class="form-group"><label>Sexo</label><select id="an-sexo" onchange="actualizarCats('an-sexo','an-cat')"><option>Hembra</option><option>Macho</option></select></div>
         <div class="form-group"><label>Categoría</label><select id="an-cat">
           <option>Ternera</option><option>Vaquillona</option><option>Vaca</option>
@@ -252,13 +257,15 @@ function renderTabAnimales(rodeoId, animales) {
           const color = a.sexo === 'Hembra' ? 'bordo' : 'cielo';
           const servicios = serviciosAnimal.filter(s => s.animal_id === a.id);
           const ultimoSrv = servicios[0];
-          const crias = animalesRodeo.filter(x => x.caravana_madre === a.caravana && a.caravana).length;
+          const _ref = a.caravana_interna || a.caravana_electronica;
+          const crias = _ref ? animalesRodeo.filter(x => x.caravana_madre === _ref).length : 0;
           return `<div style="${cardStyle}" onclick="seleccionarAnimal('${a.id}')">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
               <span class="badge badge-${color}">${a.categoria || a.sexo || '—'}</span>
               <button class="btn btn-danger" style="padding:1px 6px;font-size:11px" onclick="event.stopPropagation();borrarAnimalManga('${a.id}')">🗑️</button>
             </div>
-            <div style="font-size:18px;font-weight:700;color:var(--${color});margin-bottom:2px">${a.caravana ? '#' + a.caravana : 'S/N'}</div>
+            <div style="font-size:18px;font-weight:700;color:var(--${color});margin-bottom:2px">#${caravanaDisplay(a)}</div>
+            ${a.caravana_interna && a.caravana_electronica ? `<div style="font-size:11px;color:var(--texto-suave)">E: ${a.caravana_electronica}</div>` : ''}
             <div style="font-size:12px;color:var(--texto-suave)">${a.raza || ''}</div>
             ${a.caravana_madre ? `<div style="font-size:11px;color:var(--texto-suave);margin-top:4px">Madre: ${a.caravana_madre}</div>` : ''}
             ${ultimoSrv ? `<div style="font-size:11px;margin-top:4px">
@@ -326,7 +333,8 @@ function renderFichaAnimal(animalId) {
   if (!a) return '';
   const esHembra = a.sexo === 'Hembra';
   const madre = animalesRodeo.find(x => x.caravana === a.caravana_madre);
-  const crias = animalesRodeo.filter(x => x.caravana_madre === a.caravana && a.caravana);
+  const cria_ref = a.caravana_interna || a.caravana_electronica;
+  const crias = cria_ref ? animalesRodeo.filter(x => x.caravana_madre === cria_ref) : [];
   const servicios = serviciosAnimal.filter(s => s.animal_id === animalId);
   const sanidadDelAnimal = sanidadAnimal.filter(s => s.animal_id === animalId);
 
@@ -334,7 +342,7 @@ function renderFichaAnimal(animalId) {
 
   return `<div id="ficha-animal" class="card" style="margin-top:12px;border-top:3px solid var(--cielo)">
     <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <h3>🐄 ${a.caravana ? '#' + a.caravana : 'Sin caravana'} <span class="badge badge-${a.sexo === 'Hembra' ? 'bordo' : 'cielo'}" style="font-size:12px">${a.categoria || a.sexo || ''}</span></h3>
+      <h3>🐄 #${caravanaDisplay(a)} <span class="badge badge-${a.sexo === 'Hembra' ? 'bordo' : 'cielo'}" style="font-size:12px">${a.categoria || a.sexo || ''}</span></h3>
       <div style="display:flex;gap:8px">
         <button class="btn btn-secondary" style="font-size:12px" onclick="toggleEditarAnimal('${a.id}')">✏️ Editar</button>
         <button class="btn btn-secondary" style="font-size:12px" onclick="animalSeleccionado=null;renderDetalleManga()">✕ Cerrar</button>
@@ -357,7 +365,8 @@ function renderContenidoFicha(tab) {
     return `<div class="card-body">
       <div id="ficha-editar-${a.id}" style="display:none;background:var(--fondo);border-radius:8px;padding:12px;margin-bottom:16px">
         <div class="form-grid">
-          <div class="form-group"><label>Caravana</label><input type="text" id="edit-caravana" value="${a.caravana || ''}"></div>
+          <div class="form-group"><label>Caravana interna</label><input type="text" id="edit-caravana-interna" value="${a.caravana_interna || ''}"></div>
+          <div class="form-group"><label>Caravana electrónica</label><input type="text" id="edit-caravana-electronica" value="${a.caravana_electronica || ''}"></div>
           <div class="form-group"><label>Sexo</label><select id="edit-sexo" onchange="actualizarCats('edit-sexo','edit-cat')">
             <option${a.sexo === 'Hembra' ? ' selected' : ''}>Hembra</option>
             <option${a.sexo === 'Macho' ? ' selected' : ''}>Macho</option>
@@ -375,7 +384,8 @@ function renderContenidoFicha(tab) {
         <button class="btn btn-secondary" style="font-size:13px;margin-left:8px" onclick="toggleEditarAnimal('${a.id}')">Cancelar</button>
       </div>
       <div class="form-grid">
-        <div class="form-group"><label style="font-size:11px;color:var(--texto-suave)">Caravana</label><div style="font-weight:600;font-size:15px">${a.caravana || '—'}</div></div>
+        <div class="form-group"><label style="font-size:11px;color:var(--texto-suave)">Caravana interna</label><div style="font-weight:600;font-size:15px">${a.caravana_interna || '—'}</div></div>
+        <div class="form-group"><label style="font-size:11px;color:var(--texto-suave)">Caravana electrónica</label><div>${a.caravana_electronica || '—'}</div></div>
         <div class="form-group"><label style="font-size:11px;color:var(--texto-suave)">Sexo</label><div>${a.sexo || '—'}</div></div>
         <div class="form-group"><label style="font-size:11px;color:var(--texto-suave)">Categoría</label><div>${a.categoria || '—'}</div></div>
         <div class="form-group"><label style="font-size:11px;color:var(--texto-suave)">Raza</label><div>${a.raza || '—'}</div></div>
@@ -389,7 +399,7 @@ function renderContenidoFicha(tab) {
       ${crias.length ? `<div style="margin-top:16px">
         <div style="font-size:12px;font-weight:600;color:var(--texto-suave);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Crías (${crias.length})</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px">
-          ${crias.map(c => `<span class="badge badge-${c.sexo === 'Hembra' ? 'tierra' : 'cielo'}" style="cursor:pointer" onclick="seleccionarAnimal('${c.id}')">${c.caravana || 'S/N'} ${c.sexo === 'Hembra' ? '♀' : '♂'} ${fmtFecha(c.fecha_nacimiento)}</span>`).join('')}
+          ${crias.map(c => `<span class="badge badge-${c.sexo === 'Hembra' ? 'tierra' : 'cielo'}" style="cursor:pointer" onclick="seleccionarAnimal('${c.id}')">${caravanaDisplay(c)} ${c.sexo === 'Hembra' ? '♀' : '♂'} ${fmtFecha(c.fecha_nacimiento)}</span>`).join('')}
         </div>
       </div>` : ''}
     </div>`;
@@ -527,7 +537,7 @@ function renderListaTactoNov(rodeoId) {
     <tbody>${hembras.map(a => {
       const ultimoSrv = serviciosAnimal.filter(s => s.animal_id === a.id).sort((x, y) => new Date(y.fecha) - new Date(x.fecha))[0];
       return `<tr>
-        <td><strong>${a.caravana || 'S/N'}</strong></td>
+        <td><strong>${caravanaDisplay(a)}</strong></td>
         <td>${a.categoria || '—'}</td>
         <td>${ultimoSrv ? fmtFecha(ultimoSrv.fecha) + ' · ' + (ultimoSrv.toro || '—') : '—'}</td>
         <td><select data-animal-id="${a.id}" data-srv-id="${ultimoSrv?.id || ''}" class="tacto-resultado-nov" style="font-size:13px;padding:4px 8px">
@@ -705,7 +715,7 @@ async function procesarNovNacimientos(rodeoId, fecha) {
   const nacimientos = [];
   for (const fila of filas) {
     const sexo = fila.querySelector('.nac-sexo').value;
-    const caravana = fila.querySelector('.nac-caravana').value.trim();
+    const caravana = fila.querySelector('.nac-caravana').value.trim(); // se guarda como caravana_electronica
     const caravana_madre = fila.querySelector('.nac-madre').value.trim();
     let caravana_padre = fila.querySelector('.nac-padre').value.trim();
 
@@ -723,7 +733,7 @@ async function procesarNovNacimientos(rodeoId, fecha) {
     nacimientos.push({ sexo, caravana, caravana_madre, caravana_padre, categoria });
 
     await sb('POST', 'animales_rodeo', {
-      rodeo_id: rodeoId, caravana: caravana || null, sexo, categoria,
+      rodeo_id: rodeoId, caravana_electronica: caravana || null, sexo, categoria,
       raza: rodeo?.raza || null, fecha_nacimiento: fecha,
       caravana_madre: caravana_madre || null, caravana_padre: caravana_padre || null,
       activo: true
@@ -759,7 +769,7 @@ async function procesarNovIngreso(rodeoId, fecha) {
   for (let i = 0; i < n; i++) {
     const r = await sb('POST', 'animales_rodeo', {
       rodeo_id: rodeoId, fecha_nacimiento: null,
-      caravana: caravanas[i] || null, sexo, categoria, raza: raza || null, activo: true
+      caravana_electronica: caravanas[i] || null, sexo, categoria, raza: raza || null, activo: true
     });
     if (!r) ok = false;
   }
@@ -787,7 +797,7 @@ async function procesarNovDestete(rodeoId, fecha) {
   const caravanas = caravanasRaw.split(',').map(s => s.trim()).filter(Boolean);
   let terneros = animalesRodeo.filter(a => a.rodeo_id === rodeoId &&
     ['Ternero', 'Ternera', 'Terneros', 'Terneras'].includes(a.categoria));
-  if (caravanas.length) terneros = terneros.filter(a => caravanas.includes(a.caravana));
+  if (caravanas.length) terneros = terneros.filter(a => caravanas.includes(a.caravana_interna) || caravanas.includes(a.caravana_electronica));
 
   if (!terneros.length) { toast('No se encontraron terneros en este rodeo', 'var(--tierra)'); return; }
 
@@ -818,7 +828,7 @@ async function procesarNovBaja(rodeoId, fecha, tipo) {
   const caravanas = caravanasRaw.split(',').map(s => s.trim()).filter(Boolean);
 
   let animalesAfectados = animalesRodeo.filter(a => a.rodeo_id === rodeoId);
-  if (caravanas.length) animalesAfectados = animalesAfectados.filter(a => caravanas.includes(a.caravana));
+  if (caravanas.length) animalesAfectados = animalesAfectados.filter(a => caravanas.includes(a.caravana_interna) || caravanas.includes(a.caravana_electronica));
 
   if (!animalesAfectados.length) { toast('No se encontraron animales con esas caravanas', 'var(--tierra)'); return; }
 
@@ -845,7 +855,7 @@ async function procesarNovTraslado(rodeoId, fecha) {
 
   const caravanas = caravanasRaw.split(',').map(s => s.trim()).filter(Boolean);
   let animalesAfectados = animalesRodeo.filter(a => a.rodeo_id === rodeoId);
-  if (caravanas.length) animalesAfectados = animalesAfectados.filter(a => caravanas.includes(a.caravana));
+  if (caravanas.length) animalesAfectados = animalesAfectados.filter(a => caravanas.includes(a.caravana_interna) || caravanas.includes(a.caravana_electronica));
 
   if (!animalesAfectados.length) { toast('No se encontraron animales', 'var(--tierra)'); return; }
 
@@ -873,7 +883,7 @@ async function procesarNovCambioCategoria(rodeoId, fecha) {
 
   const caravanas = caravanasRaw.split(',').map(s => s.trim()).filter(Boolean);
   let animalesAfectados = animalesRodeo.filter(a => a.rodeo_id === rodeoId);
-  if (caravanas.length) animalesAfectados = animalesAfectados.filter(a => caravanas.includes(a.caravana));
+  if (caravanas.length) animalesAfectados = animalesAfectados.filter(a => caravanas.includes(a.caravana_interna) || caravanas.includes(a.caravana_electronica));
 
   if (!animalesAfectados.length) { toast('No se encontraron animales', 'var(--tierra)'); return; }
 
@@ -973,7 +983,8 @@ async function borrarTrabajoManga(id) {
 async function guardarAnimalManga(rodeoId) {
   const data = {
     rodeo_id: rodeoId, activo: true,
-    caravana: document.getElementById('an-caravana').value.trim() || null,
+    caravana_interna: document.getElementById('an-caravana-interna').value.trim() || null,
+    caravana_electronica: document.getElementById('an-caravana-electronica').value.trim() || null,
     sexo: document.getElementById('an-sexo').value,
     categoria: document.getElementById('an-cat').value,
     raza: document.getElementById('an-raza').value.trim() || null,
@@ -994,7 +1005,8 @@ function toggleEditarAnimal(id) {
 
 async function guardarEdicionAnimal(id) {
   const data = {
-    caravana: document.getElementById('edit-caravana').value.trim() || null,
+    caravana_interna: document.getElementById('edit-caravana-interna').value.trim() || null,
+    caravana_electronica: document.getElementById('edit-caravana-electronica').value.trim() || null,
     sexo: document.getElementById('edit-sexo').value,
     categoria: document.getElementById('edit-cat').value,
     raza: document.getElementById('edit-raza').value.trim() || null,
