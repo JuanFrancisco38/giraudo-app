@@ -565,7 +565,7 @@ function resetFormNovedad() {
   ['nov-subtipo','nov-vet','nov-campania','nov-obs-trab',
    'ing-cantidad','ing-raza','ing-procedencia','ing-caravanas',
    'baja-caravanas','baja-motivo','traslado-caravanas','cat-caravanas',
-   'destete-caravanas'].forEach(id => {
+   'destete-caravanas','destete-cantidad'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -762,9 +762,10 @@ async function procesarNovDestete(rodeoId, fecha) {
   }
 
   const destino = rodeos.find(r => r.id === destinoId);
-  const desc = `${terneros.length} ternero${terneros.length !== 1 ? 's' : ''} → ${destino?.nombre || destinoId}${nuevaCat ? ' como ' + nuevaCat : ''}${caravanasRaw ? ' · ' + caravanasRaw : ''}`;
+  const cantIngresada = parseInt(document.getElementById('destete-cantidad').value) || terneros.length;
+  const desc = `${cantIngresada} ternero${cantIngresada !== 1 ? 's' : ''} → ${destino?.nombre || destinoId}${nuevaCat ? ' como ' + nuevaCat : ''}${caravanasRaw ? ' · ' + caravanasRaw : ''}`;
   await sb('POST', 'novedades_ganaderas', {
-    rodeo_id: rodeoId, fecha, tipo: 'Destete', cantidad: terneros.length, descripcion: desc
+    rodeo_id: rodeoId, fecha, tipo: 'Destete', cantidad: cantIngresada, descripcion: desc
   });
 
   toast(`✅ Destete registrado · ${terneros.length} ternero${terneros.length !== 1 ? 's' : ''} trasladados`);
