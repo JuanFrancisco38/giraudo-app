@@ -148,26 +148,62 @@ function _poblarSelectsRodeo() {
 function renderEstadisticasManga() {
   const el = document.getElementById('manga-stats');
   if (!el) return;
-  const total = animalesRodeo.length;
-  const porCat = {};
-  animalesRodeo.forEach(a => {
-    const rodeo = rodeos.find(r => r.id === a.rodeo_id);
-    const c = rodeo?.categoria || 'Otro';
-    porCat[c] = (porCat[c] || 0) + 1;
+
+  // Último servicio por animal
+  const ultimoSrvPorAnimal = {};
+  serviciosAnimal.forEach(s => {
+    const prev = ultimoSrvPorAnimal[s.animal_id];
+    if (!prev || new Date(s.fecha) > new Date(prev.fecha)) ultimoSrvPorAnimal[s.animal_id] = s;
   });
-  const orden = ['Vacas', 'Vaquillonas', 'Terneros', 'Terneras', 'Toros'];
-  const cats = [...orden, ...Object.keys(porCat).filter(k => !orden.includes(k))].filter(k => porCat[k]);
+
+  // Conteo por categoría de animal (no de rodeo)
+  const porCat = {};
+  animalesRodeo.forEach(a => { porCat[a.categoria] = (porCat[a.categoria] || 0) + 1; });
+
+  const vacasPreñadas = animalesRodeo.filter(a => a.categoria === 'Vaca' && ultimoSrvPorAnimal[a.id]?.resultado === 'Preñada').length;
+  const vacasVacias = animalesRodeo.filter(a => a.categoria === 'Vaca' && ultimoSrvPorAnimal[a.id]?.resultado === 'Vacía').length;
+
+  // Sub-texto RENSPA para un grupo de animales
+  function subRenspa(lista) {
+    if (!renspas.length) return `${lista.length} animal${lista.length !== 1 ? 'es' : ''}`;
+    const porRenspa = {};
+    lista.forEach(a => {
+      const key = a.renspa_id ? (renspas.find(r => r.id === a.renspa_id)?.propietario || 'Otro') : 'Propio';
+      porRenspa[key] = (porRenspa[key] || 0) + 1;
+    });
+    return Object.entries(porRenspa).map(([k, v]) => `${v} ${k}`).join(' · ');
+  }
+
+  const ORDEN_CATS = [
+    { label: 'Vacas preñadas', filtro: a => a.categoria === 'Vaca' && ultimoSrvPorAnimal[a.id]?.resultado === 'Preñada', color: 'verde' },
+    { label: 'Vacas vacías', filtro: a => a.categoria === 'Vaca' && ultimoSrvPorAnimal[a.id]?.resultado === 'Vacía', color: 'rojo' },
+    { label: 'Vacas s/dato', filtro: a => a.categoria === 'Vaca' && !['Preñada','Vacía'].includes(ultimoSrvPorAnimal[a.id]?.resultado), color: 'bordo' },
+    { label: 'Vaquillonas', filtro: a => a.categoria === 'Vaquillona', color: 'tierra' },
+    { label: 'Terneras', filtro: a => a.categoria === 'Ternera', color: 'verde' },
+    { label: 'Terneros', filtro: a => a.categoria === 'Ternero', color: 'verde' },
+    { label: 'Novillitos', filtro: a => a.categoria === 'Novillito', color: 'cielo' },
+    { label: 'Novillos', filtro: a => a.categoria === 'Novillo', color: 'cielo' },
+    { label: 'Toritos', filtro: a => a.categoria === 'Torito', color: 'cielo' },
+    { label: 'Toros', filtro: a => a.categoria === 'Toro', color: 'cielo' },
+  ];
+
+  const cards = ORDEN_CATS.map(({ label, filtro, color }) => {
+    const lista = animalesRodeo.filter(filtro);
+    if (!lista.length) return '';
+    return `<div class="stat-card" style="min-width:120px">
+      <div class="label">${label}</div>
+      <div class="value" style="color:var(--${color})">${lista.length}</div>
+      <div class="sub" style="font-size:10px;line-height:1.4">${subRenspa(lista)}</div>
+    </div>`;
+  }).join('');
+
   el.innerHTML = `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
-    <div class="stat-card" style="min-width:110px">
+    <div class="stat-card" style="min-width:120px">
       <div class="label">Total hacienda</div>
-      <div class="value" style="color:var(--bordo)">${total}</div>
-      <div class="sub">animales</div>
+      <div class="value" style="color:var(--bordo)">${animalesRodeo.length}</div>
+      <div class="sub" style="font-size:10px;line-height:1.4">${subRenspa(animalesRodeo)}</div>
     </div>
-    ${cats.map(c => `<div class="stat-card" style="min-width:110px">
-      <div class="label">${c}</div>
-      <div class="value" style="color:var(--${COLORES_RODEO[c] || 'texto-suave'})">${porCat[c]}</div>
-      <div class="sub">${rodeos.filter(r => r.categoria === c).length} rodeo${rodeos.filter(r => r.categoria === c).length !== 1 ? 's' : ''}</div>
-    </div>`).join('')}
+    ${cards}
   </div>`;
 }
 
