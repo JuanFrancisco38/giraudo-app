@@ -321,7 +321,10 @@ function renderFichaAnimal(animalId) {
   return `<div id="ficha-animal" class="card" style="margin-top:12px;border-top:3px solid var(--cielo)">
     <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <h3>🐄 ${a.caravana ? '#' + a.caravana : 'Sin caravana'} <span class="badge badge-${a.sexo === 'Hembra' ? 'bordo' : 'cielo'}" style="font-size:12px">${a.categoria || a.sexo || ''}</span></h3>
-      <button class="btn btn-secondary" style="font-size:12px" onclick="animalSeleccionado=null;renderDetalleManga()">✕ Cerrar</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary" style="font-size:12px" onclick="toggleEditarAnimal('${a.id}')">✏️ Editar</button>
+        <button class="btn btn-secondary" style="font-size:12px" onclick="animalSeleccionado=null;renderDetalleManga()">✕ Cerrar</button>
+      </div>
     </div>
     <div class="tabs" style="border-bottom:1px solid var(--borde)">
       <div class="tab${tabAnimalActiva === 'datos' ? ' active' : ''}" onclick="switchTabAnimal('datos')">Datos</div>
@@ -338,6 +341,25 @@ function renderContenidoFicha(tab) {
 
   if (tab === 'datos') {
     return `<div class="card-body">
+      <div id="ficha-editar-${a.id}" style="display:none;background:var(--fondo);border-radius:8px;padding:12px;margin-bottom:16px">
+        <div class="form-grid">
+          <div class="form-group"><label>Caravana</label><input type="text" id="edit-caravana" value="${a.caravana || ''}"></div>
+          <div class="form-group"><label>Sexo</label><select id="edit-sexo">
+            <option${a.sexo === 'Hembra' ? ' selected' : ''}>Hembra</option>
+            <option${a.sexo === 'Macho' ? ' selected' : ''}>Macho</option>
+          </select></div>
+          <div class="form-group"><label>Categoría</label><select id="edit-cat">
+            ${['Ternera','Ternero','Vaquillona','Vaca','Toro','Novillo','Otro'].map(c => `<option${a.categoria === c ? ' selected' : ''}>${c}</option>`).join('')}
+          </select></div>
+          <div class="form-group"><label>Raza</label><input type="text" id="edit-raza" value="${a.raza || ''}"></div>
+          <div class="form-group"><label>Fecha nac.</label><input type="date" id="edit-nacimiento" value="${a.fecha_nacimiento || ''}"></div>
+          <div class="form-group"><label>Caravana madre</label><input type="text" id="edit-madre" value="${a.caravana_madre || ''}"></div>
+          <div class="form-group"><label>Padre (toro/semen)</label><input type="text" id="edit-padre" value="${a.caravana_padre || ''}"></div>
+          <div class="form-group"><label>Observaciones</label><input type="text" id="edit-obs" value="${a.observaciones || ''}"></div>
+        </div>
+        <button class="btn btn-primary" style="font-size:13px" onclick="guardarEdicionAnimal('${a.id}')">Guardar cambios</button>
+        <button class="btn btn-secondary" style="font-size:13px;margin-left:8px" onclick="toggleEditarAnimal('${a.id}')">Cancelar</button>
+      </div>
       <div class="form-grid">
         <div class="form-group"><label style="font-size:11px;color:var(--texto-suave)">Caravana</label><div style="font-weight:600;font-size:15px">${a.caravana || '—'}</div></div>
         <div class="form-group"><label style="font-size:11px;color:var(--texto-suave)">Sexo</label><div>${a.sexo || '—'}</div></div>
@@ -947,6 +969,27 @@ async function guardarAnimalManga(rodeoId) {
   };
   const r = await sb('POST', 'animales_rodeo', data);
   if (r) { toast('✅ Animal registrado'); await cargarManga(); }
+  else toast('❌ Error', 'var(--rojo)');
+}
+
+function toggleEditarAnimal(id) {
+  const f = document.getElementById('ficha-editar-' + id);
+  if (f) f.style.display = f.style.display === 'none' ? '' : 'none';
+}
+
+async function guardarEdicionAnimal(id) {
+  const data = {
+    caravana: document.getElementById('edit-caravana').value.trim() || null,
+    sexo: document.getElementById('edit-sexo').value,
+    categoria: document.getElementById('edit-cat').value,
+    raza: document.getElementById('edit-raza').value.trim() || null,
+    fecha_nacimiento: document.getElementById('edit-nacimiento').value || null,
+    caravana_madre: document.getElementById('edit-madre').value.trim() || null,
+    caravana_padre: document.getElementById('edit-padre').value.trim() || null,
+    observaciones: document.getElementById('edit-obs').value.trim() || null
+  };
+  const r = await sb('PATCH', 'animales_rodeo', data, `?id=eq.${id}`);
+  if (r) { toast('✅ Animal actualizado'); await cargarManga(); }
   else toast('❌ Error', 'var(--rojo)');
 }
 
