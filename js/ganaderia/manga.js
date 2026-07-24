@@ -3,6 +3,10 @@ let trabajosManga = [];
 let animalesRodeo = [];
 let novedadesGanaderas = [];
 let serviciosAnimal = [];
+let sanidadAnimal = [];
+
+const TIPOS_REPRODUCTIVO = ['Inseminación (IATF)', 'Servicio'];
+const TIPOS_SANIDAD = ['Vacunación', 'Desparasitación', 'Tratamiento', 'Caravana electrónica', 'Tacto / Preñez', 'Otro'];
 let rodeoSeleccionado = null;
 let animalSeleccionado = null;
 let tabRodeoActiva = 'novedades';
@@ -15,18 +19,20 @@ const COLORES_RODEO = {
 };
 
 async function cargarManga() {
-  [rodeos, trabajosManga, animalesRodeo, novedadesGanaderas, serviciosAnimal] = await Promise.all([
+  [rodeos, trabajosManga, animalesRodeo, novedadesGanaderas, serviciosAnimal, sanidadAnimal] = await Promise.all([
     sb('GET', 'rodeos', null, '?order=created_at.asc&activo=eq.true'),
     sb('GET', 'trabajos_manga', null, '?order=fecha.desc'),
     sb('GET', 'animales_rodeo', null, '?order=caravana.asc'),
     sb('GET', 'novedades_ganaderas', null, '?order=fecha.desc'),
-    sb('GET', 'servicios_animal', null, '?order=fecha.desc')
+    sb('GET', 'servicios_animal', null, '?order=fecha.desc'),
+    sb('GET', 'sanidad_animal', null, '?order=fecha.desc')
   ]);
   rodeos = rodeos || [];
   trabajosManga = trabajosManga || [];
   animalesRodeo = animalesRodeo || [];
   novedadesGanaderas = novedadesGanaderas || [];
   serviciosAnimal = serviciosAnimal || [];
+  sanidadAnimal = sanidadAnimal || [];
 
   const sel = document.getElementById('tm-rodeo');
   if (sel) sel.innerHTML = '<option value="">— Seleccionar rodeo —</option>' +
@@ -245,9 +251,9 @@ function renderFichaAnimal(animalId) {
   const madre = animalesRodeo.find(x => x.caravana === a.caravana_madre);
   const crias = animalesRodeo.filter(x => x.caravana_madre === a.caravana);
   const servicios = serviciosAnimal.filter(s => s.animal_id === animalId);
-  const trabajosAnimal = trabajosManga.filter(t => t.rodeo_id === a.rodeo_id);
+  const sanidadDelAnimal = sanidadAnimal.filter(s => s.animal_id === animalId);
 
-  window._fichaAnimal = { a, madre, crias, servicios, trabajosAnimal, esHembra };
+  window._fichaAnimal = { a, madre, crias, servicios, sanidadDelAnimal, esHembra };
 
   return `<div id="ficha-animal" class="card" style="margin-top:12px;border-top:3px solid var(--cielo)">
     <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
@@ -257,14 +263,14 @@ function renderFichaAnimal(animalId) {
     <div class="tabs" style="border-bottom:1px solid var(--borde)">
       <div class="tab${tabAnimalActiva==='datos'?' active':''}" onclick="switchTabAnimal('datos')">Datos</div>
       ${esHembra ? `<div class="tab${tabAnimalActiva==='reproductivo'?' active':''}" onclick="switchTabAnimal('reproductivo')">Reproductivo <span style="font-size:11px;color:var(--texto-suave)">(${servicios.length})</span></div>` : ''}
-      <div class="tab${tabAnimalActiva==='medico'?' active':''}" onclick="switchTabAnimal('medico')">Historial médico <span style="font-size:11px;color:var(--texto-suave)">(${trabajosAnimal.length})</span></div>
+      <div class="tab${tabAnimalActiva==='medico'?' active':''}" onclick="switchTabAnimal('medico')">Historial médico <span style="font-size:11px;color:var(--texto-suave)">(${sanidadDelAnimal.length})</span></div>
     </div>
     <div id="ficha-animal-body">${renderContenidoFicha(tabAnimalActiva)}</div>
   </div>`;
 }
 
 function renderContenidoFicha(tab) {
-  const { a, madre, crias, servicios, trabajosAnimal, esHembra } = window._fichaAnimal || {};
+  const { a, madre, crias, servicios, sanidadDelAnimal, esHembra } = window._fichaAnimal || {};
   if (!a) return '';
 
   if (tab === 'datos') {
@@ -327,14 +333,14 @@ function renderContenidoFicha(tab) {
 
   if (tab === 'medico') {
     return `<div class="card-body" style="padding-top:12px">
-      <div style="font-size:12px;color:var(--texto-suave);margin-bottom:12px">Trabajos realizados en el rodeo de este animal</div>
-      ${trabajosAnimal.length ? `<div class="table-wrap"><table>
-        <thead><tr><th>Fecha</th><th>Tipo</th><th>Producto</th><th>Dosis</th><th>Veterinario</th><th>Obs.</th></tr></thead>
-        <tbody>${trabajosAnimal.map(t => `<tr>
-          <td>${fmtFecha(t.fecha)}</td>
-          <td><span class="badge badge-bordo">${t.tipo||'—'}</span></td>
-          <td>${t.producto||'—'}</td><td>${t.dosis||'—'}</td>
-          <td>${t.veterinario||'—'}</td><td>${t.observaciones||'—'}</td>
+      ${sanidadDelAnimal.length ? `<div class="table-wrap"><table>
+        <thead><tr><th>Fecha</th><th>Tipo</th><th>Producto</th><th>Dosis</th><th>Veterinario</th><th>Obs.</th><th></th></tr></thead>
+        <tbody>${sanidadDelAnimal.map(s => `<tr>
+          <td>${fmtFecha(s.fecha)}</td>
+          <td><span class="badge badge-bordo">${s.tipo||'—'}</span></td>
+          <td>${s.producto||'—'}</td><td>${s.dosis||'—'}</td>
+          <td>${s.veterinario||'—'}</td><td>${s.observaciones||'—'}</td>
+          <td><button class="btn btn-danger" style="padding:2px 8px;font-size:11px" onclick="borrarSanidadAnimal('${s.id}')">🗑️</button></td>
         </tr>`).join('')}</tbody>
       </table></div>` : `<div class="empty-state" style="padding:24px"><div class="icon">💉</div><p>Sin tratamientos registrados</p></div>`}
     </div>`;
@@ -516,6 +522,13 @@ async function guardarServicio(animalId) {
   else toast('❌ Error', 'var(--rojo)');
 }
 
+async function borrarSanidadAnimal(id) {
+  if (!confirm('¿Borrar este registro?')) return;
+  await sb('DELETE', 'sanidad_animal', null, `?id=eq.${id}`);
+  sanidadAnimal = sanidadAnimal.filter(s => s.id !== id);
+  renderDetalleManga();
+}
+
 async function borrarServicio(id) {
   if (!confirm('¿Borrar este servicio?')) return;
   await sb('DELETE', 'servicios_animal', null, `?id=eq.${id}`);
@@ -561,12 +574,19 @@ async function guardarTrabajoManga() {
   if (!items.length) items = [{ producto: '', dosis: '', consumo_total: '' }];
 
   let ok = true;
+  const trabajosGuardados = [];
   for (const item of items) {
     const r = await sb('POST', 'trabajos_manga', { ...cabecera, ...item });
-    if (!r) ok = false;
+    if (r && r[0]) trabajosGuardados.push({ ...r[0], ...item });
+    else ok = false;
   }
+
+  if (ok && trabajosGuardados.length) {
+    await distribuirTrabajoAAnimales(cabecera, trabajosGuardados, rodeoId);
+  }
+
   if (ok) {
-    toast('✅ Trabajo registrado');
+    toast('✅ Trabajo registrado y distribuido a los animales del rodeo');
     document.getElementById('tm-obs-trab').value = '';
     document.getElementById('tm-cant').value = '';
     document.getElementById('tm-vet').value = '';
@@ -575,6 +595,44 @@ async function guardarTrabajoManga() {
     tabRodeoActiva = 'trabajos';
     await cargarManga();
   } else toast('❌ Error al guardar', 'var(--rojo)');
+}
+
+async function distribuirTrabajoAAnimales(cabecera, trabajosGuardados, rodeoId) {
+  const animalesDelRodeo = animalesRodeo.filter(a => a.rodeo_id === rodeoId);
+  if (!animalesDelRodeo.length) return;
+
+  const esReproductivo = TIPOS_REPRODUCTIVO.includes(cabecera.tipo);
+  const esSanidad = TIPOS_SANIDAD.includes(cabecera.tipo);
+
+  for (const animal of animalesDelRodeo) {
+    if (esReproductivo && animal.sexo === 'Hembra') {
+      // Un servicio por animal (toma el primer producto/toro)
+      const toro = trabajosGuardados[0]?.producto || '';
+      await sb('POST', 'servicios_animal', {
+        animal_id: animal.id,
+        fecha: cabecera.fecha,
+        metodo: cabecera.tipo === 'Inseminación (IATF)' ? 'IATF' : 'Toro',
+        toro,
+        resultado: 'Pendiente',
+        observaciones: cabecera.observaciones || ''
+      });
+    }
+    if (esSanidad) {
+      // Un registro por producto por animal
+      for (const trab of trabajosGuardados) {
+        await sb('POST', 'sanidad_animal', {
+          animal_id: animal.id,
+          trabajo_manga_id: trab.id,
+          fecha: cabecera.fecha,
+          tipo: cabecera.tipo,
+          producto: trab.producto || '',
+          dosis: trab.dosis || '',
+          veterinario: cabecera.veterinario || '',
+          observaciones: cabecera.observaciones || ''
+        });
+      }
+    }
+  }
 }
 
 async function borrarTrabajoManga(id) {
