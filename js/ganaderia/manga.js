@@ -641,14 +641,42 @@ function onChangeTipoNovedad() {
 function onChangeSubtipoNovedad() {
   const subtipo = document.getElementById('nov-subtipo')?.value;
   const esTacto = subtipo === 'Tacto / Preñez';
+  const esInseminacion = subtipo === 'Inseminación (IATF)' || subtipo === 'Servicio';
   const pp = document.getElementById('nov-panel-productos');
   const pt = document.getElementById('nov-panel-tacto');
-  if (pp) pp.style.display = esTacto ? 'none' : '';
+  const pi = document.getElementById('nov-panel-inseminacion');
+  if (pp) pp.style.display = (esTacto || esInseminacion) ? 'none' : '';
   if (pt) pt.style.display = esTacto ? '' : 'none';
-  if (esTacto) {
-    const rodeoId = document.getElementById('nov-rodeo-main')?.value;
-    if (rodeoId) renderListaTactoNov(rodeoId);
+  if (pi) pi.style.display = esInseminacion ? '' : 'none';
+  const rodeoId = document.getElementById('nov-rodeo-main')?.value;
+  if (esTacto && rodeoId) renderListaTactoNov(rodeoId);
+  if (esInseminacion && rodeoId) renderListaInseminacion(rodeoId, subtipo);
+}
+
+function renderListaInseminacion(rodeoId, subtipo) {
+  const lista = document.getElementById('nov-inseminacion-lista');
+  if (!lista) return;
+  const hembras = animalesRodeo.filter(a => a.rodeo_id === rodeoId && a.sexo === 'Hembra');
+  if (!hembras.length) {
+    lista.innerHTML = '<div style="color:var(--texto-suave);font-size:13px">No hay hembras identificadas en este rodeo.</div>';
+    return;
   }
+  const metodo = subtipo === 'Inseminación (IATF)' ? 'IATF' : 'Toro';
+  lista.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Caravana</th><th>Categoría</th><th>Último servicio</th><th>Incluir</th><th>Toro / Semen</th><th>Observaciones</th></tr></thead>
+    <tbody>${hembras.map(a => {
+      const ultimoSrv = serviciosAnimal.filter(s => s.animal_id === a.id).sort((x,y) => new Date(y.fecha)-new Date(x.fecha))[0];
+      return `<tr>
+        <td><strong>${caravanaDisplay(a)}</strong></td>
+        <td>${a.categoria || '—'}</td>
+        <td>${ultimoSrv ? fmtFecha(ultimoSrv.fecha) + ' · ' + (ultimoSrv.resultado || '—') : '—'}</td>
+        <td><input type="checkbox" class="ins-check" data-animal-id="${a.id}" checked style="width:18px;height:18px;cursor:pointer"></td>
+        <td><input type="text" class="ins-toro" data-animal-id="${a.id}" placeholder="Ej: Tornado, ABS-123" style="font-size:12px;padding:4px 6px;width:140px"></td>
+        <td><input type="text" class="ins-obs" data-animal-id="${a.id}" placeholder="Opcional" style="font-size:12px;padding:4px 6px;width:140px"></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>
+  <div style="margin-top:8px;font-size:12px;color:var(--texto-suave)">Podés completar un toro/semen global arriba en "Observaciones" y sobreescribir individualmente acá. Destildá las que no fueron inseminadas.</div>`;
 }
 
 function onChangeRodeoNovedad() {
@@ -829,16 +857,20 @@ async function procesarNovTrabajoManga(rodeoId, fecha) {
     else ok = false;
   }
 
+  const esInseminacion = subtipo === 'Inseminación (IATF)' || subtipo === 'Servicio';
+
   const desc = items.map(i => i.producto).filter(Boolean).join(', ') || observaciones || subtipo;
   const novRes = await sb('POST', 'novedades_ganaderas', { ...novData, descripcion: desc });
   const novedadId = novRes?.[0]?.id || null;
 
-  if (ok && trabajosGuardados.length) {
+  if (ok && esInseminacion) {
+    await guardarInseminacion(cabecera, novedadId, subtipo);
+  } else if (ok && trabajosGuardados.length) {
     await distribuirTrabajoAAnimales(cabecera, trabajosGuardados, rodeoId, caravanasFiltro, novedadId);
   }
 
   if (ok) {
-    toast('✅ Trabajo registrado y distribuido');
+    toast(esInseminacion ? '✅ Inseminación registrada en las fichas seleccionadas' : '✅ Trabajo registrado y distribuido');
     resetFormNovedad();
     document.getElementById('form-novedad-wrap').style.display = 'none';
     tabRodeoActiva = 'novedades';
@@ -1241,6 +1273,25 @@ async function borrarServicio(id) {
 }
 
 // ── Distribuir trabajo a animales ─────────────────────────
+
+async function guardarInseminacion(cabecera, novedadId, subtipo) {
+  const checks = document.querySelectorAll('.ins-check');
+  const metodo = subtipo === 'Inseminación (IATF)' ? 'IATF' : 'Toro';
+  let guardados = 0;
+  for (const chk of checks) {
+    if (!chk.checked) continue;
+    const animalId = chk.dataset.animalId;
+    const toro = document.querySelector(`.ins-toro[data-animal-id="${animalId}"]`)?.value.trim() || cabecera.observaciones || '';
+    const obs = document.querySelector(`.ins-obs[data-animal-id="${animalId}"]`)?.value.trim() || '';
+    await sb('POST', 'servicios_animal', {
+      animal_id: animalId, fecha: cabecera.fecha,
+      metodo, toro, resultado: 'Pendiente',
+      observaciones: obs, novedad_id: novedadId
+    });
+    guardados++;
+  }
+  return guardados;
+}
 
 async function distribuirTrabajoAAnimales(cabecera, trabajosGuardados, rodeoId, caravanasFiltro = [], novedadId = null) {
   let animalesDelRodeo = animalesRodeo.filter(a => a.rodeo_id === rodeoId);
