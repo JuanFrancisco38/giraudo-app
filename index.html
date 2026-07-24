@@ -410,7 +410,26 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
       <div id="manga-stats"></div>
       <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="toggleFormManga()">+ Nuevo trabajo</button>
+        <button class="btn btn-secondary" onclick="toggleImportarManga()">📷 Cargar desde imagen</button>
         <button class="btn btn-secondary" onclick="toggleFormRodeo()">+ Nuevo rodeo</button>
+      </div>
+
+      <!-- Importar desde imagen -->
+      <div id="form-importar-manga" style="display:none">
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header"><h3>Importar trabajo desde imagen</h3></div>
+          <div class="card-body">
+            <div id="manga-dropzone" ondragover="event.preventDefault()" ondrop="onDropManga(event)"
+              style="border:2px dashed var(--borde);border-radius:10px;padding:32px;text-align:center;cursor:pointer;color:var(--texto-suave)"
+              onclick="document.getElementById('manga-file-input').click()">
+              <div style="font-size:32px;margin-bottom:8px">📷</div>
+              <div style="font-weight:600;margin-bottom:4px">Arrastrá la foto o tocá para seleccionar</div>
+              <div style="font-size:12px">Fotos de planillas de campo, partes de trabajo</div>
+            </div>
+            <input type="file" id="manga-file-input" accept="image/*" style="display:none" onchange="procesarImagenManga(this.files[0])">
+            <div id="manga-ia-status" style="display:none;margin-top:12px;padding:10px;background:var(--fondo);border-radius:8px;font-size:13px;color:var(--texto-suave)">Analizando imagen...</div>
+          </div>
+        </div>
       </div>
 
       <!-- Form nuevo rodeo -->

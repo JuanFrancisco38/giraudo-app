@@ -538,6 +538,101 @@ async function borrarServicio(id) {
 
 // ── Trabajos manga ────────────────────────────────────────
 
+// ── Importar desde imagen ─────────────────────────────────
+
+function toggleImportarManga() {
+  const f = document.getElementById('form-importar-manga');
+  f.style.display = f.style.display === 'none' ? '' : 'none';
+}
+
+function onDropManga(event) {
+  event.preventDefault();
+  const file = event.dataTransfer.files[0];
+  if (file) procesarImagenManga(file);
+}
+
+async function procesarImagenManga(file) {
+  if (!file) return;
+  const status = document.getElementById('manga-ia-status');
+  const dropzone = document.getElementById('manga-dropzone');
+  status.style.display = '';
+  status.textContent = '🔍 Analizando planilla...';
+  dropzone.style.opacity = '0.5';
+
+  const rodesNombres = rodeos.map(r => r.nombre).join(', ');
+
+  try {
+    const datos = await extraerDocIA(file,
+      `Sos un asistente que extrae datos de planillas de campo ganaderas escritas a mano.
+Devolvés SOLO un JSON válido, sin texto adicional.
+Los rodeos disponibles son: ${rodesNombres || 'no hay rodeos cargados'}.`,
+      `Extraé los datos de esta planilla de trabajo ganadero y devolvé este JSON exacto:
+{
+  "fecha": "DD/MM/AAAA o vacío",
+  "rodeo": "nombre del rodeo más parecido a los disponibles, o vacío",
+  "tipo": "Vacunación | Desparasitación | Tacto / Preñez | Inseminación (IATF) | Tratamiento | Servicio | Caravana electrónica | Otro",
+  "veterinario": "nombre del veterinario o vacío",
+  "cantidad_animales": número o null,
+  "campania": "campaña si aparece, ej 25/26, o vacío",
+  "observaciones": "observaciones generales o vacío",
+  "productos": [
+    { "producto": "nombre del producto/vacuna", "dosis": "dosis por animal", "consumo_total": "total usado" }
+  ]
+}
+Si hay varios productos, incluí uno por elemento en el array.
+Si no se lee bien algún campo, dejalo vacío.`
+    );
+
+    status.textContent = '✅ Listo — revisá los datos y confirmá';
+    status.style.color = 'var(--verde)';
+
+    // Abrir el form y prellenar con los datos extraídos
+    document.getElementById('form-manga-wrap').style.display = '';
+    document.getElementById('form-importar-manga').style.display = 'none';
+
+    if (datos.fecha) document.getElementById('tm-fecha').value = parseFechaIA(datos.fecha);
+    if (datos.tipo) document.getElementById('tm-tipo').value = datos.tipo;
+    if (datos.veterinario) document.getElementById('tm-vet').value = datos.veterinario;
+    if (datos.cantidad_animales) document.getElementById('tm-cant').value = datos.cantidad_animales;
+    if (datos.campania) document.getElementById('tm-campania').value = datos.campania;
+    if (datos.observaciones) document.getElementById('tm-obs-trab').value = datos.observaciones;
+
+    // Buscar rodeo por nombre
+    if (datos.rodeo) {
+      const rodeoEncontrado = rodeos.find(r =>
+        r.nombre.toLowerCase().includes(datos.rodeo.toLowerCase()) ||
+        datos.rodeo.toLowerCase().includes(r.nombre.toLowerCase())
+      );
+      if (rodeoEncontrado) document.getElementById('tm-rodeo').value = rodeoEncontrado.id;
+    }
+
+    // Cargar productos
+    const lista = document.getElementById('tm-insumos-list');
+    lista.innerHTML = '';
+    const prods = datos.productos?.length ? datos.productos : [{ producto: '', dosis: '', consumo_total: '' }];
+    prods.forEach(p => {
+      agregarInsumoManga();
+      const filas = lista.querySelectorAll('.insumo-row');
+      const ultima = filas[filas.length - 1];
+      if (ultima) {
+        ultima.querySelector('.tm-producto').value = p.producto || '';
+        ultima.querySelector('.tm-dosis').value = p.dosis || '';
+        ultima.querySelector('.tm-consumo').value = p.consumo_total || '';
+      }
+    });
+
+    onChangeTipoTrabajo();
+    document.getElementById('form-manga-wrap').scrollIntoView({ behavior: 'smooth' });
+
+  } catch (e) {
+    status.textContent = '❌ Error: ' + e.message;
+    status.style.color = 'var(--rojo)';
+  } finally {
+    dropzone.style.opacity = '1';
+    document.getElementById('manga-file-input').value = '';
+  }
+}
+
 function onChangeTipoTrabajo() {
   const tipo = document.getElementById('tm-tipo')?.value;
   const rodeoId = document.getElementById('tm-rodeo')?.value;
