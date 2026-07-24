@@ -251,24 +251,38 @@ function renderLotes() {
     cont.innerHTML = '<div class="empty-state"><div class="icon">🗺️</div><h3>Sin lotes cargados</h3></div>';
     return;
   }
-  cont.innerHTML = lotesData.map(l => {
-    const key = `${l.campo}|${l.lote}`;
-    const r = calcularResumenLote(l.campo, l.lote, campania, l.hectareas);
-    const color = colorPorCampo[l.campo] || 'gray';
-    const margenColor = r.margenBruto > 0 ? 'var(--verde)' : (r.margenBruto < 0 ? 'var(--rojo)' : 'var(--texto-suave)');
-    const seleccionado = loteSeleccionado === key;
-    return `<div onclick="verDetalleLote('${l.campo}', '${l.lote}')" style="cursor:pointer;background:var(--${color}-claro,#f5f5f5);border:2px solid ${seleccionado ? 'var(--' + color + ')' : 'var(--gris-borde)'};border-radius:8px;padding:14px">
-      <div style="font-weight:600;font-size:13px;color:var(--${color});margin-bottom:4px">${l.campo} — Lote ${l.lote}</div>
-      <div style="font-size:12px;color:var(--texto-suave);margin-bottom:8px">${l.hectareas || '—'} has · ${l.tenencia || '—'}</div>
-      <div style="font-size:12px;line-height:1.6">
-        <div>Trabajos registrados: <strong>${r.cantTrabajos}</strong></div>
-        <div>Costo insumos: <strong>${r.costoInsumos ? fmtMonto(r.costoInsumos, 'ARS') : '—'}</strong>${r.sinPrecio ? ` <span style="color:var(--tierra)">(${r.sinPrecio} sin precio)</span>` : ''}</div>
-        <div>Costo trabajos propios: <strong>${r.costoTarifas ? fmtMonto(r.costoTarifas, 'ARS') : '—'}</strong></div>
-        <div>Costo arrendamiento: <strong>${r.costoArrendamiento ? fmtMonto(r.costoArrendamiento, 'ARS') : '—'}</strong></div>
-        <div>Rendimiento: <strong>${r.rendimientos.length ? r.rendimientos.join(', ') : '—'}</strong></div>
-        <div>Ingreso estimado: <strong>${r.ingresoRendimiento ? fmtMonto(r.ingresoRendimiento, 'ARS') : '—'}</strong></div>
-      </div>
-      <div style="font-weight:600;font-size:13px;margin-top:8px;color:${margenColor}">Margen bruto estimado: ${fmtMonto(r.margenBruto, 'ARS')}</div>
+  // Agrupar por campo
+  const grupos = {};
+  lotesData.forEach(l => {
+    if (!grupos[l.campo]) grupos[l.campo] = [];
+    grupos[l.campo].push(l);
+  });
+
+  cont.innerHTML = Object.entries(grupos).map(([campo, lotes]) => {
+    const color = colorPorCampo[campo] || 'gray';
+    const cards = lotes.map(l => {
+      const key = `${l.campo}|${l.lote}`;
+      const r = calcularResumenLote(l.campo, l.lote, campania, l.hectareas);
+      const margenColor = r.margenBruto > 0 ? 'var(--verde)' : (r.margenBruto < 0 ? 'var(--rojo)' : 'var(--texto-suave)');
+      const seleccionado = loteSeleccionado === key;
+      return `<div onclick="verDetalleLote('${l.campo}', '${l.lote}')" style="cursor:pointer;background:var(--${color}-claro,#f5f5f5);border:2px solid ${seleccionado ? 'var(--' + color + ')' : 'var(--gris-borde)'};border-radius:8px;padding:14px;min-width:0">
+        <div style="font-weight:600;font-size:13px;color:var(--${color});margin-bottom:4px">Lote ${l.lote}</div>
+        <div style="font-size:12px;color:var(--texto-suave);margin-bottom:8px">${l.hectareas || '—'} has · ${l.tenencia || '—'}</div>
+        <div style="font-size:12px;line-height:1.6">
+          <div>Trabajos registrados: <strong>${r.cantTrabajos}</strong></div>
+          <div>Costo insumos: <strong>${r.costoInsumos ? fmtMonto(r.costoInsumos, 'ARS') : '—'}</strong>${r.sinPrecio ? ` <span style="color:var(--tierra)">(${r.sinPrecio} sin precio)</span>` : ''}</div>
+          <div>Costo trabajos propios: <strong>${r.costoTarifas ? fmtMonto(r.costoTarifas, 'ARS') : '—'}</strong></div>
+          <div>Costo arrendamiento: <strong>${r.costoArrendamiento ? fmtMonto(r.costoArrendamiento, 'ARS') : '—'}</strong></div>
+          <div>Rendimiento: <strong>${r.rendimientos.length ? r.rendimientos.join(', ') : '—'}</strong></div>
+          <div>Ingreso estimado: <strong>${r.ingresoRendimiento ? fmtMonto(r.ingresoRendimiento, 'ARS') : '—'}</strong></div>
+        </div>
+        <div style="font-weight:600;font-size:13px;margin-top:8px;color:${margenColor}">Margen bruto estimado: ${fmtMonto(r.margenBruto, 'ARS')}</div>
+      </div>`;
+    }).join('');
+
+    return `<div style="margin-bottom:20px">
+      <div style="font-weight:700;font-size:13px;color:var(--${color});margin-bottom:8px;padding-left:2px;text-transform:uppercase;letter-spacing:0.5px">📍 ${campo}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">${cards}</div>
     </div>`;
   }).join('');
 
