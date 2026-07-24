@@ -409,36 +409,34 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
     <div id="section-manga" class="section">
       <div id="manga-stats"></div>
       <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="toggleFormManga()">+ Nuevo trabajo</button>
-        <button class="btn btn-secondary" onclick="toggleImportarManga()">📷 Cargar desde imagen</button>
+        <button class="btn btn-primary" onclick="toggleFormNovedad()">+ Registrar novedad</button>
+        <button class="btn btn-secondary" onclick="toggleImportarManga()">📷 Cargar desde imagen / texto</button>
         <button class="btn btn-secondary" onclick="toggleFormRodeo()">+ Nuevo rodeo</button>
       </div>
 
       <!-- Importar desde imagen o texto -->
       <div id="form-importar-manga" style="display:none">
         <div class="card" style="margin-bottom:16px">
-          <div class="card-header"><h3>Importar trabajo</h3></div>
+          <div class="card-header"><h3>Importar novedad</h3></div>
           <div class="tabs" style="border-bottom:1px solid var(--borde)">
             <div class="tab active" onclick="switchTabImportarManga(this,'manga-imp-imagen')">📷 Imagen</div>
             <div class="tab" onclick="switchTabImportarManga(this,'manga-imp-texto')">💬 Texto / WhatsApp</div>
           </div>
-          <!-- Tab imagen -->
           <div id="manga-imp-imagen" class="card-body">
             <div id="manga-dropzone" ondragover="event.preventDefault()" ondrop="onDropManga(event)"
               style="border:2px dashed var(--borde);border-radius:10px;padding:32px;text-align:center;cursor:pointer;color:var(--texto-suave)"
               onclick="document.getElementById('manga-file-input').click()">
               <div style="font-size:32px;margin-bottom:8px">📷</div>
               <div style="font-weight:600;margin-bottom:4px">Arrastrá la foto o tocá para seleccionar</div>
-              <div style="font-size:12px">Fotos de planillas de campo, partes de trabajo</div>
+              <div style="font-size:12px">Planillas de campo, partes de trabajo, cualquier anotación</div>
             </div>
             <input type="file" id="manga-file-input" accept="image/*" style="display:none" onchange="procesarImagenManga(this.files[0])">
-            <div id="manga-ia-status" style="display:none;margin-top:12px;padding:10px;background:var(--fondo);border-radius:8px;font-size:13px;color:var(--texto-suave)">Analizando imagen...</div>
+            <div id="manga-ia-status" style="display:none;margin-top:12px;padding:10px;background:var(--fondo);border-radius:8px;font-size:13px;color:var(--texto-suave)">Analizando...</div>
           </div>
-          <!-- Tab texto -->
           <div id="manga-imp-texto" class="card-body" style="display:none">
             <div class="form-group">
-              <label>Pegá el texto del WhatsApp o describí el trabajo</label>
-              <textarea id="manga-texto-ia" rows="5" placeholder="Ej: Hoy vacunamos las 48 vacas CUT con Glipondin 4 (5cc/animal) y Bovigen 2cc. Dr. García. Campo Don Alfredo."></textarea>
+              <label>Pegá el texto del WhatsApp o describí la novedad</label>
+              <textarea id="manga-texto-ia" rows="5" placeholder="Ej: Hoy vacunamos las 48 vacas con Glipondin 4 (5cc/animal). Dr. García.&#10;Nacieron: macho 06 madre 01, hembra 05 madre 09."></textarea>
             </div>
             <button class="btn btn-primary" id="btn-manga-texto" onclick="procesarTextoManga()">Interpretar con IA</button>
             <div id="manga-texto-status" style="display:none;margin-top:10px;font-size:13px;color:var(--texto-suave)"></div>
@@ -457,7 +455,6 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
               <div class="form-group"><label>Categoría</label><select id="rodeo-cat"><option>Vacas</option><option>Vaquillonas</option><option>Terneros</option><option>Terneras</option><option>Toros</option><option>Otro</option></select></div>
               <div class="form-group"><label>Campo</label><select id="rodeo-campo"><option>Don Alfredo (Azcona)</option><option>Doña Vica</option><option>Sant-Yago</option></select></div>
               <div class="form-group"><label>Ubicación actual</label><input type="text" id="rodeo-ubi" placeholder="Ej: Lote 3, Corral norte"></div>
-              <div class="form-group"><label>Cantidad de animales</label><input type="number" id="rodeo-cant" placeholder="Ej: 50"></div>
               <div class="form-group"><label>Observaciones</label><input type="text" id="rodeo-obs" placeholder="Opcional"></div>
             </div>
             <div class="form-actions">
@@ -468,39 +465,98 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
         </div>
       </div>
 
-      <!-- Form nuevo trabajo -->
-      <div id="form-manga-wrap" style="display:none">
+      <!-- Form principal: Registrar novedad -->
+      <div id="form-novedad-wrap" style="display:none">
         <div class="card" style="margin-bottom:16px">
-          <div class="card-header"><h3>Nuevo trabajo de manga</h3></div>
+          <div class="card-header"><h3>Registrar novedad</h3></div>
           <div class="card-body">
             <div class="form-grid">
-              <div class="form-group"><label>Fecha</label><input type="date" id="tm-fecha"></div>
-              <div class="form-group"><label>Rodeo</label><select id="tm-rodeo" onchange="onChangeTipoTrabajo()"><option value="">— Seleccionar —</option></select></div>
-              <div class="form-group"><label>Tipo</label><select id="tm-tipo" onchange="onChangeTipoTrabajo()">
-                <option>Vacunación</option><option>Desparasitación</option><option>Tacto / Preñez</option>
-                <option>Inseminación (IATF)</option><option>Tratamiento</option><option>Servicio</option>
-                <option>Caravana electrónica</option><option>Otro</option>
+              <div class="form-group"><label>Fecha</label><input type="date" id="nov-fecha-main"></div>
+              <div class="form-group"><label>Rodeo</label><select id="nov-rodeo-main" onchange="onChangeRodeoNovedad()"><option value="">— Seleccionar —</option></select></div>
+              <div class="form-group"><label>Tipo</label><select id="nov-tipo-main" onchange="onChangeTipoNovedad()">
+                <option>Trabajo de manga</option>
+                <option>Nacimiento</option>
+                <option>Ingreso</option>
+                <option>Muerte</option>
+                <option>Venta / Salida</option>
+                <option>Traslado</option>
+                <option>Cambio de categoría</option>
               </select></div>
-              <div class="form-group"><label>Veterinario</label><input type="text" id="tm-vet" placeholder="Ej: Dr. García"></div>
-              <div class="form-group"><label>Cantidad tratados</label><input type="number" id="tm-cant" placeholder="Ej: 48"></div>
-              <div class="form-group"><label>Campaña</label><input type="text" id="tm-campania" placeholder="Ej: 25/26"></div>
-              <div class="form-group full"><label>Observaciones</label><input type="text" id="tm-obs-trab" placeholder="Opcional"></div>
             </div>
-            <!-- Panel normal: productos/vacunas -->
-            <div id="tm-panel-normal" style="margin-top:12px">
-              <div style="font-size:13px;font-weight:600;margin-bottom:8px">Productos / Vacunas</div>
-              <div id="tm-insumos-list"></div>
-              <button type="button" class="btn btn-secondary" style="font-size:12px" onclick="agregarInsumoManga()">+ Agregar producto</button>
+
+            <!-- Panel: Trabajo de manga -->
+            <div id="nov-panel-trabajo" style="margin-top:12px">
+              <div class="form-grid">
+                <div class="form-group"><label>Subtipo</label><select id="nov-subtipo" onchange="onChangeSubtipoNovedad()">
+                  <option>Vacunación</option><option>Desparasitación</option>
+                  <option>Inseminación (IATF)</option><option>Tacto / Preñez</option>
+                  <option>Tratamiento</option><option>Servicio</option>
+                  <option>Caravana electrónica</option><option>Otro</option>
+                </select></div>
+                <div class="form-group"><label>Veterinario</label><input type="text" id="nov-vet" placeholder="Ej: Dr. García"></div>
+                <div class="form-group"><label>Cantidad tratados</label><input type="number" id="nov-cant-trab" placeholder="Ej: 48"></div>
+                <div class="form-group"><label>Campaña</label><input type="text" id="nov-campania" placeholder="Ej: 25/26"></div>
+                <div class="form-group full"><label>Observaciones</label><input type="text" id="nov-obs-trab" placeholder="Opcional"></div>
+              </div>
+              <div id="nov-panel-productos" style="margin-top:8px">
+                <div style="font-size:13px;font-weight:600;margin-bottom:8px">Productos / Vacunas</div>
+                <div id="nov-insumos-list"></div>
+                <button type="button" class="btn btn-secondary" style="font-size:12px" onclick="agregarInsumoManga()">+ Agregar producto</button>
+              </div>
+              <div id="nov-panel-tacto" style="display:none;margin-top:8px">
+                <div style="font-size:13px;font-weight:600;margin-bottom:4px">Resultado por hembra</div>
+                <div style="font-size:12px;color:var(--texto-suave);margin-bottom:10px">Seleccioná el resultado para cada hembra del rodeo</div>
+                <div id="nov-tacto-lista"></div>
+              </div>
             </div>
-            <!-- Panel especial: tacto individual por hembra -->
-            <div id="tm-panel-tacto" style="display:none;margin-top:12px">
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px">Resultado por animal</div>
-              <div style="font-size:12px;color:var(--texto-suave);margin-bottom:10px">Seleccioná el resultado para cada hembra del rodeo</div>
-              <div id="tm-tacto-lista"></div>
+
+            <!-- Panel: Nacimiento -->
+            <div id="nov-panel-nacimiento" style="display:none;margin-top:12px">
+              <div style="font-size:13px;font-weight:600;margin-bottom:8px">Nacimientos</div>
+              <div id="nov-nacimientos-list"></div>
+              <button type="button" class="btn btn-secondary" style="font-size:12px" onclick="agregarNacimientoRow()">+ Agregar nacimiento</button>
             </div>
+
+            <!-- Panel: Ingreso -->
+            <div id="nov-panel-ingreso" style="display:none;margin-top:12px">
+              <div class="form-grid">
+                <div class="form-group"><label>Cantidad</label><input type="number" id="ing-cantidad" placeholder="Ej: 5"></div>
+                <div class="form-group"><label>Categoría</label><select id="ing-categoria"><option>Vacas</option><option>Vaquillonas</option><option>Terneros</option><option>Terneras</option><option>Toros</option><option>Otro</option></select></div>
+                <div class="form-group"><label>Sexo</label><select id="ing-sexo"><option>Hembra</option><option>Macho</option></select></div>
+                <div class="form-group"><label>Raza</label><input type="text" id="ing-raza" placeholder="Ej: Angus"></div>
+                <div class="form-group"><label>Procedencia</label><input type="text" id="ing-procedencia" placeholder="Ej: Establecimiento X"></div>
+                <div class="form-group full"><label>Caravanas (opcional, separadas por coma)</label><input type="text" id="ing-caravanas" placeholder="Ej: 10, 11, 12 — si no ponés se crean sin identificar"></div>
+              </div>
+            </div>
+
+            <!-- Panel: Muerte / Venta -->
+            <div id="nov-panel-baja" style="display:none;margin-top:12px">
+              <div class="form-grid">
+                <div class="form-group"><label>Caravanas (separadas por coma)</label><input type="text" id="baja-caravanas" placeholder="Ej: 01, 05, 12"></div>
+                <div class="form-group"><label>Causa / Destino</label><input type="text" id="baja-motivo" placeholder="Ej: Neumonía / Frigorífico X"></div>
+              </div>
+            </div>
+
+            <!-- Panel: Traslado -->
+            <div id="nov-panel-traslado" style="display:none;margin-top:12px">
+              <div class="form-grid">
+                <div class="form-group"><label>Caravanas (vacío = todo el rodeo)</label><input type="text" id="traslado-caravanas" placeholder="Ej: 01, 05, 12"></div>
+                <div class="form-group"><label>Rodeo destino</label><select id="traslado-rodeo-destino"><option value="">—</option></select></div>
+              </div>
+            </div>
+
+            <!-- Panel: Cambio de categoría -->
+            <div id="nov-panel-categoria" style="display:none;margin-top:12px">
+              <div class="form-grid">
+                <div class="form-group"><label>Caravanas (vacío = todo el rodeo)</label><input type="text" id="cat-caravanas" placeholder="Ej: 01, 05, 12"></div>
+                <div class="form-group"><label>Nueva categoría</label><select id="cat-nueva"><option>Vacas</option><option>Vaquillonas</option><option>Terneros</option><option>Terneras</option><option>Toros</option><option>Otro</option></select></div>
+                <div class="form-group"><label>Rodeo destino (opcional)</label><select id="cat-rodeo-destino"><option value="">— Mismo rodeo —</option></select></div>
+              </div>
+            </div>
+
             <div class="form-actions" style="margin-top:16px">
-              <button class="btn btn-primary" onclick="guardarTrabajoManga()">Registrar trabajo</button>
-              <button class="btn btn-secondary" onclick="document.getElementById('form-manga-wrap').style.display='none'">Cancelar</button>
+              <button class="btn btn-primary" onclick="guardarNovedad()">Registrar</button>
+              <button class="btn btn-secondary" onclick="toggleFormNovedad()">Cancelar</button>
             </div>
           </div>
         </div>
