@@ -538,6 +538,66 @@ async function borrarServicio(id) {
 
 // ── Trabajos manga ────────────────────────────────────────
 
+function onChangeTipoTrabajo() {
+  const tipo = document.getElementById('tm-tipo')?.value;
+  const rodeoId = document.getElementById('tm-rodeo')?.value;
+  const esTacto = tipo === 'Tacto / Preñez';
+  document.getElementById('tm-panel-normal').style.display = esTacto ? 'none' : '';
+  document.getElementById('tm-panel-tacto').style.display = esTacto ? '' : 'none';
+  if (esTacto && rodeoId) renderListaTacto(rodeoId);
+}
+
+function renderListaTacto(rodeoId) {
+  const lista = document.getElementById('tm-tacto-lista');
+  if (!lista) return;
+  const hembras = animalesRodeo.filter(a => a.rodeo_id === rodeoId && a.sexo === 'Hembra');
+  if (!hembras.length) {
+    lista.innerHTML = '<div style="color:var(--texto-suave);font-size:13px">No hay hembras identificadas en este rodeo. Agregá animales primero.</div>';
+    return;
+  }
+  lista.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Caravana</th><th>Categoría</th><th>Último servicio</th><th>Resultado</th><th>Fecha tacto</th></tr></thead>
+    <tbody>${hembras.map(a => {
+      const ultimoSrv = serviciosAnimal.filter(s => s.animal_id === a.id).sort((x,y) => new Date(y.fecha) - new Date(x.fecha))[0];
+      return `<tr>
+        <td><strong>${a.caravana || 'S/N'}</strong></td>
+        <td>${a.categoria || '—'}</td>
+        <td>${ultimoSrv ? fmtFecha(ultimoSrv.fecha) + ' · ' + (ultimoSrv.toro || '—') : '—'}</td>
+        <td><select data-animal-id="${a.id}" data-srv-id="${ultimoSrv?.id || ''}" class="tacto-resultado" style="font-size:13px;padding:4px 8px">
+          <option value="Pendiente">— Sin cambio —</option>
+          <option value="Preñada">Preñada</option>
+          <option value="Vacía">Vacía</option>
+          <option value="Repetidora">Repetidora</option>
+        </select></td>
+        <td><input type="date" class="tacto-fecha" data-animal-id="${a.id}" style="font-size:13px;padding:4px 8px"></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+async function guardarTacto(cabecera) {
+  const filas = document.querySelectorAll('.tacto-resultado');
+  let actualizados = 0;
+  for (const sel of filas) {
+    const resultado = sel.value;
+    if (resultado === 'Pendiente') continue;
+    const srvId = sel.dataset.srvId;
+    const animalId = sel.dataset.animalId;
+    const fechaTacto = document.querySelector(`.tacto-fecha[data-animal-id="${animalId}"]`)?.value || cabecera.fecha;
+    if (srvId) {
+      await sb('PATCH', 'servicios_animal', { resultado, fecha_tacto: fechaTacto }, `?id=eq.${srvId}`);
+    } else {
+      await sb('POST', 'servicios_animal', {
+        animal_id: animalId, fecha: cabecera.fecha,
+        metodo: 'Tacto', toro: '', resultado, fecha_tacto: fechaTacto,
+        observaciones: cabecera.observaciones || ''
+      });
+    }
+    actualizados++;
+  }
+  return actualizados;
+}
+
 function agregarInsumoManga() {
   const list = document.getElementById('tm-insumos-list');
   if (!list) return;
@@ -574,6 +634,27 @@ async function guardarTrabajoManga() {
   if (!items.length) items = [{ producto: '', dosis: '', consumo_total: '' }];
 
   let ok = true;
+  const esTacto = cabecera.tipo === 'Tacto / Preñez';
+
+  // Guardar el trabajo en la planilla siempre
+  const rTrab = await sb('POST', 'trabajos_manga', { ...cabecera, producto: '', dosis: '', consumo_total: '' });
+  if (!rTrab) ok = false;
+
+  if (ok && esTacto) {
+    const actualizados = await guardarTacto(cabecera);
+    if (ok) {
+      toast(`✅ Tacto registrado · ${actualizados} animal${actualizados !== 1 ? 'es' : ''} actualizado${actualizados !== 1 ? 's' : ''}`);
+      document.getElementById('tm-obs-trab').value = '';
+      document.getElementById('tm-cant').value = '';
+      document.getElementById('tm-vet').value = '';
+      document.getElementById('tm-tacto-lista').innerHTML = '';
+      document.getElementById('form-manga-wrap').style.display = 'none';
+      tabRodeoActiva = 'trabajos';
+      await cargarManga();
+    }
+    return;
+  }
+
   const trabajosGuardados = [];
   for (const item of items) {
     const r = await sb('POST', 'trabajos_manga', { ...cabecera, ...item });
