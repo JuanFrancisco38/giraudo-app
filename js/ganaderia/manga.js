@@ -846,7 +846,16 @@ async function procesarNovTrabajoManga(rodeoId, fecha) {
   const caravanasRaw = document.getElementById('nov-caravanas-trab').value.trim();
   const caravanasFiltro = caravanasRaw.split(',').map(s => s.trim()).filter(Boolean);
 
-  const cabecera = { fecha, rodeo_id: rodeoId, tipo: subtipo, veterinario, cantidad_animales: cant, campania, observaciones,
+  // Si no se especificó cantidad, calcularla automáticamente
+  let cantFinal = cant;
+  if (!cantFinal) {
+    let animalesDelRodeo = animalesRodeo.filter(a => a.rodeo_id === rodeoId);
+    if (caravanasFiltro.length) animalesDelRodeo = animalesDelRodeo.filter(a =>
+      caravanasFiltro.includes(a.caravana_interna) || caravanasFiltro.includes(a.caravana_electronica));
+    cantFinal = animalesDelRodeo.length || null;
+  }
+
+  const cabecera = { fecha, rodeo_id: rodeoId, tipo: subtipo, veterinario, cantidad_animales: cantFinal, campania, observaciones,
     campo: (rodeos.find(r => r.id === rodeoId) || {}).campo || null };
 
   let ok = true;
