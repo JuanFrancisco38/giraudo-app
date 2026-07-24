@@ -185,7 +185,7 @@ function renderDetalleManga() {
 
 const ICONOS_NOV = {
   'Trabajo de manga': '💉', 'Nacimiento': '🐣', 'Ingreso': '⬇️',
-  'Destete': '🐂', 'Muerte': '💀', 'Venta / Salida': '🚛', 'Traslado': '🔄',
+  'Destete': '🐂', 'Aborto': '⚠️', 'Muerte': '💀', 'Venta / Salida': '🚛', 'Traslado': '🔄',
   'Cambio de categoría': '🔀'
 };
 
@@ -414,7 +414,7 @@ function renderContenidoFicha(tab) {
           <div class="form-group"><label>Método</label><select id="srv-metodo"><option>IATF</option><option>Toro</option></select></div>
           <div class="form-group"><label>Toro / Semen</label><input type="text" id="srv-toro" placeholder="Ej: Tornado, ABS-1234"></div>
           <div class="form-group"><label>Resultado tacto</label><select id="srv-resultado">
-            <option>Pendiente</option><option>Preñada</option><option>Vacía</option><option>Repetidora</option>
+            <option>Pendiente</option><option>Preñada</option><option>Vacía</option><option>Repetidora</option><option>Abortó</option>
           </select></div>
           <div class="form-group"><label>Fecha tacto</label><input type="date" id="srv-fecha-tacto"></div>
           <div class="form-group"><label>Observaciones</label><input type="text" id="srv-obs" placeholder="Opcional"></div>
@@ -484,12 +484,13 @@ function abrirNuevoNovedad(rodeoId) {
 
 function onChangeTipoNovedad() {
   const tipo = document.getElementById('nov-tipo-main')?.value;
-  const panels = ['nov-panel-trabajo', 'nov-panel-nacimiento', 'nov-panel-ingreso', 'nov-panel-destete', 'nov-panel-baja', 'nov-panel-traslado', 'nov-panel-categoria'];
+  const panels = ['nov-panel-trabajo', 'nov-panel-nacimiento', 'nov-panel-ingreso', 'nov-panel-destete', 'nov-panel-aborto', 'nov-panel-baja', 'nov-panel-traslado', 'nov-panel-categoria'];
   const mapa = {
     'Trabajo de manga': 'nov-panel-trabajo',
     'Nacimiento': 'nov-panel-nacimiento',
     'Ingreso': 'nov-panel-ingreso',
     'Destete': 'nov-panel-destete',
+    'Aborto': 'nov-panel-aborto',
     'Muerte': 'nov-panel-baja',
     'Venta / Salida': 'nov-panel-baja',
     'Traslado': 'nov-panel-traslado',
@@ -612,7 +613,7 @@ function resetFormNovedad() {
   ['nov-subtipo','nov-vet','nov-campania','nov-obs-trab',
    'ing-cantidad','ing-raza','ing-procedencia','ing-caravanas',
    'baja-caravanas','baja-motivo','traslado-caravanas','cat-caravanas',
-   'destete-caravanas','destete-cantidad'].forEach(id => {
+   'destete-caravanas','destete-cantidad','aborto-caravanas','aborto-cantidad','aborto-obs'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -637,6 +638,7 @@ async function guardarNovedad() {
   else if (tipo === 'Nacimiento') await procesarNovNacimientos(rodeoId, fecha);
   else if (tipo === 'Ingreso') await procesarNovIngreso(rodeoId, fecha);
   else if (tipo === 'Destete') await procesarNovDestete(rodeoId, fecha);
+  else if (tipo === 'Aborto') await procesarNovAborto(rodeoId, fecha);
   else if (tipo === 'Muerte' || tipo === 'Venta / Salida') await procesarNovBaja(rodeoId, fecha, tipo);
   else if (tipo === 'Traslado') await procesarNovTraslado(rodeoId, fecha);
   else if (tipo === 'Cambio de categoría') await procesarNovCambioCategoria(rodeoId, fecha);
@@ -786,6 +788,39 @@ async function procesarNovIngreso(rodeoId, fecha) {
     tabRodeoActiva = 'novedades';
     await cargarManga();
   } else toast('❌ Algunos animales no se pudieron guardar', 'var(--rojo)');
+}
+
+async function procesarNovAborto(rodeoId, fecha) {
+  const cantidad = parseInt(document.getElementById('aborto-cantidad').value) || null;
+  const caravanasRaw = document.getElementById('aborto-caravanas').value.trim();
+  const observaciones = document.getElementById('aborto-obs').value.trim();
+  const caravanas = caravanasRaw.split(',').map(s => s.trim()).filter(Boolean);
+
+  // Actualizar resultado del último servicio de cada madre a "Abortó"
+  for (const car of caravanas) {
+    const madre = animalesRodeo.find(a => a.rodeo_id === rodeoId &&
+      (a.caravana_interna === car || a.caravana_electronica === car));
+    if (!madre) continue;
+    const ultimoSrv = serviciosAnimal
+      .filter(s => s.animal_id === madre.id && s.resultado !== 'Vacía')
+      .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))[0];
+    if (ultimoSrv) {
+      await sb('PATCH', 'servicios_animal', { resultado: 'Abortó', fecha_tacto: fecha, observaciones }, `?id=eq.${ultimoSrv.id}`);
+    }
+  }
+
+  const desc = `${cantidad ? cantidad + ' aborto' + (cantidad !== 1 ? 's' : '') : 'Aborto'}${caravanasRaw ? ' · madres: ' + caravanasRaw : ''}${observaciones ? ' · ' + observaciones : ''}`;
+  const r = await sb('POST', 'novedades_ganaderas', {
+    rodeo_id: rodeoId, fecha, tipo: 'Aborto', cantidad, descripcion: desc
+  });
+
+  if (r) {
+    toast(`✅ Aborto registrado${caravanas.length ? ' · historial reproductivo actualizado' : ''}`);
+    resetFormNovedad();
+    document.getElementById('form-novedad-wrap').style.display = 'none';
+    tabRodeoActiva = 'novedades';
+    await cargarManga();
+  } else toast('❌ Error', 'var(--rojo)');
 }
 
 async function procesarNovDestete(rodeoId, fecha) {

@@ -478,6 +478,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
                 <option>Nacimiento</option>
                 <option>Ingreso</option>
                 <option>Destete</option>
+                <option>Aborto</option>
                 <option>Muerte</option>
                 <option>Venta / Salida</option>
                 <option>Traslado</option>
@@ -537,6 +538,15 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
                 <div class="form-group"><label>Rodeo destino</label><select id="destete-rodeo-destino"><option value="">—</option></select></div>
                 <div class="form-group"><label>Caravanas (opcional, separadas por coma)</label><input type="text" id="destete-caravanas" placeholder="Ej: 01, 05, 12"></div>
                 <div class="form-group"><label>Nueva categoría (opcional)</label><select id="destete-categoria"><option value="">— Sin cambio —</option><option>Terneros</option><option>Terneras</option><option>Vaquillonas</option><option>Novillos</option></select></div>
+              </div>
+            </div>
+
+            <!-- Panel: Aborto -->
+            <div id="nov-panel-aborto" style="display:none;margin-top:12px">
+              <div class="form-grid">
+                <div class="form-group"><label>Cantidad</label><input type="number" id="aborto-cantidad" placeholder="Ej: 2"></div>
+                <div class="form-group"><label>Caravanas de las madres (opcional)</label><input type="text" id="aborto-caravanas" placeholder="Ej: 01, 05 — actualiza su registro reproductivo"></div>
+                <div class="form-group full"><label>Observaciones</label><input type="text" id="aborto-obs" placeholder="Ej: aborto en último tercio"></div>
               </div>
             </div>
 
