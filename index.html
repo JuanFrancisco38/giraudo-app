@@ -501,6 +501,8 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
                 <option>Venta / Salida</option>
                 <option>Traslado</option>
                 <option>Cambio de categoría</option>
+                <option>Entrada de toros</option>
+                <option>Retiro de toros</option>
               </select></div>
             </div>
 
@@ -572,6 +574,24 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
                 <div class="form-group"><label>Cantidad</label><input type="number" id="aborto-cantidad" placeholder="Ej: 2"></div>
                 <div class="form-group"><label>Caravanas de las madres (opcional)</label><input type="text" id="aborto-caravanas" placeholder="Ej: 01, 05 — actualiza su registro reproductivo"></div>
                 <div class="form-group full"><label>Observaciones</label><input type="text" id="aborto-obs" placeholder="Ej: aborto en último tercio"></div>
+              </div>
+            </div>
+
+            <!-- Panel: Entrada de toros -->
+            <div id="nov-panel-entrada-toros" style="display:none;margin-top:12px">
+              <div class="form-grid">
+                <div class="form-group"><label>Caravanas de los toros</label><input type="text" id="et-caravanas" placeholder="Ej: 01, 02, 03 — separadas por coma"></div>
+                <div class="form-group"><label>Fecha estimada de retiro</label><input type="date" id="et-fecha-retiro"></div>
+                <div class="form-group full"><label>Observaciones</label><input type="text" id="et-obs" placeholder="Opcional"></div>
+              </div>
+            </div>
+
+            <!-- Panel: Retiro de toros -->
+            <div id="nov-panel-retiro-toros" style="display:none;margin-top:12px">
+              <div class="form-grid">
+                <div class="form-group"><label>Caravanas de los toros (vacío = todos los toros del rodeo)</label><input type="text" id="rt-caravanas" placeholder="Ej: 01, 02, 03"></div>
+                <div class="form-group"><label>Rodeo destino (origen de los toros)</label><select id="rt-rodeo-destino"><option value="">— Seleccionar —</option></select></div>
+                <div class="form-group full"><label>Observaciones</label><input type="text" id="rt-obs" placeholder="Opcional"></div>
               </div>
             </div>
 

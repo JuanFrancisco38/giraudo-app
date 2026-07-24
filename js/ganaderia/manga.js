@@ -132,7 +132,7 @@ async function borrarRenspa(id) {
 function _poblarSelectsRodeo() {
   const opciones = '<option value="">— Seleccionar —</option>' +
     rodeos.map(r => `<option value="${r.id}">${r.nombre}</option>`).join('');
-  ['nov-rodeo-main', 'traslado-rodeo-destino', 'cat-rodeo-destino', 'destete-rodeo-destino'].forEach(id => {
+  ['nov-rodeo-main', 'traslado-rodeo-destino', 'cat-rodeo-destino', 'destete-rodeo-destino', 'rt-rodeo-destino'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       const prev = el.value;
@@ -369,7 +369,8 @@ function renderDetalleManga() {
 
 const ICONOS_NOV = {
   'Trabajo de manga': '💉', 'Nacimiento': '🐣', 'Ingreso': '⬇️',
-  'Destete': '🐂', 'Aborto': '⚠️', 'Muerte': '💀', 'Venta / Salida': '🚛', 'Traslado': '🔄',
+  'Destete': '🐂', 'Aborto': '⚠️', 'Muerte': '💀',
+  'Entrada de toros': '🐂', 'Retiro de toros': '🔙', 'Venta / Salida': '🚛', 'Traslado': '🔄',
   'Cambio de categoría': '🔀'
 };
 
@@ -590,6 +591,7 @@ function renderFichaAnimal(animalId) {
     <div class="tabs" style="border-bottom:1px solid var(--borde)">
       <div class="tab${tabAnimalActiva === 'datos' ? ' active' : ''}" onclick="switchTabAnimal('datos')">Datos</div>
       ${esHembra ? `<div class="tab${tabAnimalActiva === 'reproductivo' ? ' active' : ''}" onclick="switchTabAnimal('reproductivo')">Reproductivo <span style="font-size:11px;color:var(--texto-suave)">(${servicios.length})</span></div>` : ''}
+      ${!esHembra && a.categoria === 'Toro' || a.categoria === 'Torito' ? `<div class="tab${tabAnimalActiva === 'servicios-toro' ? ' active' : ''}" onclick="switchTabAnimal('servicios-toro')">Servicios realizados</div>` : ''}
       <div class="tab${tabAnimalActiva === 'medico' ? ' active' : ''}" onclick="switchTabAnimal('medico')">Historial médico <span style="font-size:11px;color:var(--texto-suave)">(${sanidadDelAnimal.length})</span></div>
     </div>
     <div id="ficha-animal-body">${renderContenidoFicha(tabAnimalActiva)}</div>
@@ -684,6 +686,33 @@ function renderContenidoFicha(tab) {
     </div>`;
   }
 
+  if (tab === 'servicios-toro') {
+    const carRef = a.caravana_interna || a.caravana_electronica;
+    const historial = novedadesGanaderas.filter(n =>
+      (n.tipo === 'Entrada de toros' || n.tipo === 'Retiro de toros') &&
+      n.detalle?.toros?.includes(carRef)
+    ).sort((x, y) => new Date(y.fecha) - new Date(x.fecha));
+
+    return `<div class="card-body" style="padding-top:12px">
+      ${historial.length ? `<div class="table-wrap"><table>
+        <thead><tr><th>Fecha</th><th>Evento</th><th>Rodeo</th><th>Detalle</th></tr></thead>
+        <tbody>${historial.map(n => {
+          const rodeo = rodeos.find(r => r.id === n.rodeo_id);
+          const ico = n.tipo === 'Entrada de toros' ? '🐂 Entrada' : '🔙 Retiro';
+          const extra = n.tipo === 'Entrada de toros' && n.detalle?.fecha_retiro_estimada
+            ? `Retiro est.: ${fmtFecha(n.detalle.fecha_retiro_estimada)}` : '';
+          return `<tr>
+            <td>${fmtFecha(n.fecha)}</td>
+            <td><strong>${ico}</strong></td>
+            <td>${rodeo?.nombre || '—'}</td>
+            <td style="font-size:12px;color:var(--texto-suave)">${extra}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>`
+      : `<div class="empty-state" style="padding:24px"><div class="icon">🐂</div><p>Sin historial de servicios registrado</p></div>`}
+    </div>`;
+  }
+
   if (tab === 'medico') {
     return `<div class="card-body" style="padding-top:12px">
       ${sanidadDelAnimal.length ? `<div class="table-wrap"><table>
@@ -728,7 +757,7 @@ function abrirNuevoNovedad(rodeoId) {
 
 function onChangeTipoNovedad() {
   const tipo = document.getElementById('nov-tipo-main')?.value;
-  const panels = ['nov-panel-trabajo', 'nov-panel-nacimiento', 'nov-panel-ingreso', 'nov-panel-destete', 'nov-panel-aborto', 'nov-panel-baja', 'nov-panel-traslado', 'nov-panel-categoria'];
+  const panels = ['nov-panel-trabajo', 'nov-panel-nacimiento', 'nov-panel-ingreso', 'nov-panel-destete', 'nov-panel-aborto', 'nov-panel-baja', 'nov-panel-traslado', 'nov-panel-categoria', 'nov-panel-entrada-toros', 'nov-panel-retiro-toros'];
   const mapa = {
     'Trabajo de manga': 'nov-panel-trabajo',
     'Nacimiento': 'nov-panel-nacimiento',
@@ -738,7 +767,9 @@ function onChangeTipoNovedad() {
     'Muerte': 'nov-panel-baja',
     'Venta / Salida': 'nov-panel-baja',
     'Traslado': 'nov-panel-traslado',
-    'Cambio de categoría': 'nov-panel-categoria'
+    'Cambio de categoría': 'nov-panel-categoria',
+    'Entrada de toros': 'nov-panel-entrada-toros',
+    'Retiro de toros': 'nov-panel-retiro-toros'
   };
   panels.forEach(id => {
     const el = document.getElementById(id);
@@ -885,7 +916,8 @@ function resetFormNovedad() {
   ['nov-subtipo','nov-vet','nov-campania','nov-obs-trab','nov-caravanas-trab',
    'ing-cantidad','ing-raza','ing-procedencia','ing-caravanas',
    'baja-caravanas','baja-motivo','traslado-caravanas','cat-caravanas',
-   'destete-caravanas','destete-cantidad','aborto-caravanas','aborto-cantidad','aborto-obs'].forEach(id => {
+   'destete-caravanas','destete-cantidad','aborto-caravanas','aborto-cantidad','aborto-obs',
+   'et-caravanas','et-fecha-retiro','et-obs','rt-caravanas','rt-obs'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -914,6 +946,8 @@ async function guardarNovedad() {
   else if (tipo === 'Muerte' || tipo === 'Venta / Salida') await procesarNovBaja(rodeoId, fecha, tipo);
   else if (tipo === 'Traslado') await procesarNovTraslado(rodeoId, fecha);
   else if (tipo === 'Cambio de categoría') await procesarNovCambioCategoria(rodeoId, fecha);
+  else if (tipo === 'Entrada de toros') await procesarNovEntradaToros(rodeoId, fecha);
+  else if (tipo === 'Retiro de toros') await procesarNovRetiroToros(rodeoId, fecha);
 }
 
 // ── Procesadores por tipo ─────────────────────────────────
@@ -1082,6 +1116,72 @@ async function procesarNovIngreso(rodeoId, fecha) {
     tabRodeoActiva = 'novedades';
     await cargarManga();
   } else toast('❌ Algunos animales no se pudieron guardar', 'var(--rojo)');
+}
+
+async function procesarNovEntradaToros(rodeoId, fecha) {
+  const caravanasRaw = document.getElementById('et-caravanas').value.trim();
+  const fechaRetiro = document.getElementById('et-fecha-retiro').value;
+  const observaciones = document.getElementById('et-obs').value.trim();
+  const caravanas = caravanasRaw.split(',').map(s => s.trim()).filter(Boolean);
+  if (!caravanas.length) { toast('Ingresá las caravanas de los toros', 'var(--rojo)'); return; }
+
+  // Buscar los toros en cualquier rodeo
+  const toros = animalesRodeo.filter(a =>
+    caravanas.includes(a.caravana_interna) || caravanas.includes(a.caravana_electronica));
+
+  const rodeoOrigenId = toros[0]?.rodeo_id || null;
+
+  // Mover toros al rodeo de vacas
+  for (const t of toros) {
+    await sb('PATCH', 'animales_rodeo', { rodeo_id: rodeoId }, `?id=eq.${t.id}`);
+  }
+
+  const desc = `${toros.length || caravanas.length} toro${caravanas.length !== 1 ? 's' : ''}: ${caravanasRaw}${fechaRetiro ? ' · retiro estimado: ' + fmtFecha(fechaRetiro) : ''}`;
+  await sb('POST', 'novedades_ganaderas', {
+    rodeo_id: rodeoId, fecha, tipo: 'Entrada de toros',
+    cantidad: toros.length || caravanas.length, descripcion: desc,
+    detalle: { toros: caravanas, rodeo_origen_id: rodeoOrigenId, fecha_retiro_estimada: fechaRetiro || null, observaciones }
+  });
+
+  toast(`✅ Entrada de toros registrada · ${caravanas.length} toro${caravanas.length !== 1 ? 's' : ''} movidos al rodeo`);
+  resetFormNovedad();
+  document.getElementById('form-novedad-wrap').style.display = 'none';
+  tabRodeoActiva = 'novedades';
+  await cargarManga();
+}
+
+async function procesarNovRetiroToros(rodeoId, fecha) {
+  const caravanasRaw = document.getElementById('rt-caravanas').value.trim();
+  const destinoId = document.getElementById('rt-rodeo-destino').value;
+  const observaciones = document.getElementById('rt-obs').value.trim();
+  if (!destinoId) { toast('Seleccioná el rodeo de destino', 'var(--rojo)'); return; }
+
+  const caravanas = caravanasRaw.split(',').map(s => s.trim()).filter(Boolean);
+  let toros = animalesRodeo.filter(a => a.rodeo_id === rodeoId &&
+    ['Toro', 'Torito'].includes(a.categoria));
+  if (caravanas.length) toros = toros.filter(a =>
+    caravanas.includes(a.caravana_interna) || caravanas.includes(a.caravana_electronica));
+
+  if (!toros.length) { toast('No se encontraron toros en este rodeo', 'var(--tierra)'); return; }
+
+  for (const t of toros) {
+    await sb('PATCH', 'animales_rodeo', { rodeo_id: destinoId }, `?id=eq.${t.id}`);
+  }
+
+  const destino = rodeos.find(r => r.id === destinoId);
+  const torosCaravanas = toros.map(t => caravanaDisplay(t)).join(', ');
+  const desc = `${toros.length} toro${toros.length !== 1 ? 's' : ''} → ${destino?.nombre || ''}: ${torosCaravanas}`;
+  await sb('POST', 'novedades_ganaderas', {
+    rodeo_id: rodeoId, fecha, tipo: 'Retiro de toros',
+    cantidad: toros.length, descripcion: desc,
+    detalle: { toros: toros.map(t => caravanaDisplay(t)), rodeo_destino_id: destinoId, observaciones }
+  });
+
+  toast(`✅ Retiro registrado · ${toros.length} toro${toros.length !== 1 ? 's' : ''} devueltos`);
+  resetFormNovedad();
+  document.getElementById('form-novedad-wrap').style.display = 'none';
+  tabRodeoActiva = 'novedades';
+  await cargarManga();
 }
 
 async function procesarNovAborto(rodeoId, fecha) {
