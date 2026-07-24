@@ -553,7 +553,7 @@ function renderListaTactoNov(rodeoId) {
   </table></div>`;
 }
 
-async function guardarTactoNov(cabecera) {
+async function guardarTactoNov(cabecera, novedadId = null) {
   const filas = document.querySelectorAll('.tacto-resultado-nov');
   let actualizados = 0;
   for (const sel of filas) {
@@ -568,7 +568,7 @@ async function guardarTactoNov(cabecera) {
       await sb('POST', 'servicios_animal', {
         animal_id: animalId, fecha: cabecera.fecha,
         metodo: 'Tacto', toro: '', resultado, fecha_tacto: fechaTacto,
-        observaciones: cabecera.observaciones || ''
+        observaciones: cabecera.observaciones || '', novedad_id: novedadId
       });
     }
     actualizados++;
@@ -661,8 +661,11 @@ async function procesarNovTrabajoManga(rodeoId, fecha) {
   };
 
   if (esTacto) {
-    const actualizados = await guardarTactoNov({ fecha, observaciones });
-    const r = await sb('POST', 'novedades_ganaderas', { ...novData, cantidad: actualizados });
+    const novRes = await sb('POST', 'novedades_ganaderas', { ...novData });
+    const novedadId = novRes?.[0]?.id || null;
+    const actualizados = await guardarTactoNov({ fecha, observaciones }, novedadId);
+    if (novedadId) await sb('PATCH', 'novedades_ganaderas', { cantidad: actualizados }, `?id=eq.${novedadId}`);
+    const r = novRes;
     if (r) {
       toast(`✅ Tacto registrado · ${actualizados} animal${actualizados !== 1 ? 'es' : ''} actualizado${actualizados !== 1 ? 's' : ''}`);
       resetFormNovedad();
@@ -696,12 +699,13 @@ async function procesarNovTrabajoManga(rodeoId, fecha) {
     else ok = false;
   }
 
-  if (ok && trabajosGuardados.length) {
-    await distribuirTrabajoAAnimales(cabecera, trabajosGuardados, rodeoId, caravanasFiltro);
-  }
-
   const desc = items.map(i => i.producto).filter(Boolean).join(', ') || observaciones || subtipo;
-  await sb('POST', 'novedades_ganaderas', { ...novData, descripcion: desc });
+  const novRes = await sb('POST', 'novedades_ganaderas', { ...novData, descripcion: desc });
+  const novedadId = novRes?.[0]?.id || null;
+
+  if (ok && trabajosGuardados.length) {
+    await distribuirTrabajoAAnimales(cabecera, trabajosGuardados, rodeoId, caravanasFiltro, novedadId);
+  }
 
   if (ok) {
     toast('✅ Trabajo registrado y distribuido');
@@ -1005,9 +1009,16 @@ async function guardarRodeo() {
 // ── Borrar ────────────────────────────────────────────────
 
 async function borrarNovedadManga(id) {
-  if (!confirm('¿Borrar esta novedad?')) return;
+  if (!confirm('¿Borrar esta novedad? Se eliminarán también los registros en las fichas de los animales afectados.')) return;
+  // Borrar registros en fichas individuales vinculados a esta novedad
+  await Promise.all([
+    sb('DELETE', 'servicios_animal', null, `?novedad_id=eq.${id}`),
+    sb('DELETE', 'sanidad_animal', null, `?novedad_id=eq.${id}`)
+  ]);
   await sb('DELETE', 'novedades_ganaderas', null, `?id=eq.${id}`);
   novedadesGanaderas = novedadesGanaderas.filter(n => n.id !== id);
+  serviciosAnimal = serviciosAnimal.filter(s => s.novedad_id !== id);
+  sanidadAnimal = sanidadAnimal.filter(s => s.novedad_id !== id);
   if (rodeoSeleccionado) renderDetalleManga(); else renderVistaGlobal();
 }
 
@@ -1097,7 +1108,7 @@ async function borrarServicio(id) {
 
 // ── Distribuir trabajo a animales ─────────────────────────
 
-async function distribuirTrabajoAAnimales(cabecera, trabajosGuardados, rodeoId, caravanasFiltro = []) {
+async function distribuirTrabajoAAnimales(cabecera, trabajosGuardados, rodeoId, caravanasFiltro = [], novedadId = null) {
   let animalesDelRodeo = animalesRodeo.filter(a => a.rodeo_id === rodeoId);
   if (caravanasFiltro.length) {
     animalesDelRodeo = animalesDelRodeo.filter(a =>
@@ -1112,7 +1123,8 @@ async function distribuirTrabajoAAnimales(cabecera, trabajosGuardados, rodeoId, 
       await sb('POST', 'servicios_animal', {
         animal_id: animal.id, fecha: cabecera.fecha,
         metodo: cabecera.tipo === 'Inseminación (IATF)' ? 'IATF' : 'Toro',
-        toro, resultado: 'Pendiente', observaciones: cabecera.observaciones || ''
+        toro, resultado: 'Pendiente', observaciones: cabecera.observaciones || '',
+        novedad_id: novedadId
       });
     }
     if (esSanidad) {
@@ -1121,7 +1133,8 @@ async function distribuirTrabajoAAnimales(cabecera, trabajosGuardados, rodeoId, 
           animal_id: animal.id, trabajo_manga_id: trab.id,
           fecha: cabecera.fecha, tipo: cabecera.tipo,
           producto: trab.producto || '', dosis: trab.dosis || '',
-          veterinario: cabecera.veterinario || '', observaciones: cabecera.observaciones || ''
+          veterinario: cabecera.veterinario || '', observaciones: cabecera.observaciones || '',
+          novedad_id: novedadId
         });
       }
     }
