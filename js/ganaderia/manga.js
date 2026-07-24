@@ -610,7 +610,7 @@ function resetFormNovedad() {
   document.getElementById('nov-fecha-main').value = '';
   document.getElementById('nov-rodeo-main').value = '';
   document.getElementById('nov-tipo-main').value = 'Trabajo de manga';
-  ['nov-subtipo','nov-vet','nov-campania','nov-obs-trab',
+  ['nov-subtipo','nov-vet','nov-campania','nov-obs-trab','nov-caravanas-trab',
    'ing-cantidad','ing-raza','ing-procedencia','ing-caravanas',
    'baja-caravanas','baja-motivo','traslado-caravanas','cat-caravanas',
    'destete-caravanas','destete-cantidad','aborto-caravanas','aborto-cantidad','aborto-obs'].forEach(id => {
@@ -682,6 +682,9 @@ async function procesarNovTrabajoManga(rodeoId, fecha) {
   })).filter(i => i.producto);
   if (!items.length) items = [{ producto: '', dosis: '', consumo_total: '' }];
 
+  const caravanasRaw = document.getElementById('nov-caravanas-trab').value.trim();
+  const caravanasFiltro = caravanasRaw.split(',').map(s => s.trim()).filter(Boolean);
+
   const cabecera = { fecha, rodeo_id: rodeoId, tipo: subtipo, veterinario, cantidad_animales: cant, campania, observaciones,
     campo: (rodeos.find(r => r.id === rodeoId) || {}).campo || null };
 
@@ -694,7 +697,7 @@ async function procesarNovTrabajoManga(rodeoId, fecha) {
   }
 
   if (ok && trabajosGuardados.length) {
-    await distribuirTrabajoAAnimales(cabecera, trabajosGuardados, rodeoId);
+    await distribuirTrabajoAAnimales(cabecera, trabajosGuardados, rodeoId, caravanasFiltro);
   }
 
   const desc = items.map(i => i.producto).filter(Boolean).join(', ') || observaciones || subtipo;
@@ -1094,8 +1097,12 @@ async function borrarServicio(id) {
 
 // ── Distribuir trabajo a animales ─────────────────────────
 
-async function distribuirTrabajoAAnimales(cabecera, trabajosGuardados, rodeoId) {
-  const animalesDelRodeo = animalesRodeo.filter(a => a.rodeo_id === rodeoId);
+async function distribuirTrabajoAAnimales(cabecera, trabajosGuardados, rodeoId, caravanasFiltro = []) {
+  let animalesDelRodeo = animalesRodeo.filter(a => a.rodeo_id === rodeoId);
+  if (caravanasFiltro.length) {
+    animalesDelRodeo = animalesDelRodeo.filter(a =>
+      caravanasFiltro.includes(a.caravana_interna) || caravanasFiltro.includes(a.caravana_electronica));
+  }
   if (!animalesDelRodeo.length) return;
   const esReproductivo = TIPOS_REPRODUCTIVO.includes(cabecera.tipo);
   const esSanidad = TIPOS_SANIDAD.includes(cabecera.tipo);
