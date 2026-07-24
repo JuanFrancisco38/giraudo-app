@@ -2,12 +2,16 @@ let maquinas = [], mantenimientos = [], trabajosMaq = [];
 let maquinaSeleccionada = null, tabMaqActiva = 'datos', catFiltroActiva = null;
 
 const BADGE_CAT = {
-  'Tractor': 'badge-bordo', 'Cosecha': 'badge-yellow', 'Siembra': 'badge-green',
-  'Henificación': 'badge-tierra', 'Movilidad': 'badge-blue', 'Herramienta': 'badge-gris', 'Otro': 'badge-gris'
+  'Tractores': 'badge-bordo', 'Cosecha': 'badge-yellow', 'Labranza': 'badge-tierra',
+  'Siembra': 'badge-green', 'Fertilización': 'badge-blue', 'Pulverización': 'badge-green',
+  'Forrajes': 'badge-tierra', 'Viales': 'badge-gris', 'Movilidad': 'badge-blue',
+  'Logística': 'badge-gris', 'Otro': 'badge-gris'
 };
 const ICON_CAT = {
-  'Tractor': '🚜', 'Cosecha': '🌾', 'Siembra': '🌱',
-  'Henificación': '🌀', 'Movilidad': '🚗', 'Herramienta': '🔧', 'Otro': '⚙️'
+  'Tractores': '🚜', 'Cosecha': '🌾', 'Labranza': '🪛',
+  'Siembra': '🌱', 'Fertilización': '🧪', 'Pulverización': '💧',
+  'Forrajes': '🌀', 'Viales': '🛣️', 'Movilidad': '🚗',
+  'Logística': '📦', 'Otro': '⚙️'
 };
 
 async function cargarMaquinaria() {
@@ -39,10 +43,14 @@ function renderTarjetasCat() {
   const cont = document.getElementById('maq-tarjetas');
   cont.innerHTML = Object.entries(cats).map(([cat, n]) => {
     const activa = catFiltroActiva === cat;
-    return `<div class="stat-card${activa ? ' activa' : ''}" onclick="toggleCatFiltro('${cat}')" style="cursor:pointer;min-width:120px;flex:1">
-      <div style="font-size:22px;margin-bottom:4px">${ICON_CAT[cat] || '⚙️'}</div>
-      <div style="font-size:24px;font-weight:700;line-height:1">${n}</div>
-      <div style="font-size:12px;margin-top:4px;color:var(--texto-suave)">${cat}</div>
+    return `<div class="stat-card${activa ? ' activa' : ''}" onclick="toggleCatFiltro('${cat}')" style="cursor:pointer;min-width:140px;flex:1">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:28px;line-height:1">${ICON_CAT[cat] || '⚙️'}</div>
+        <div>
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--texto-suave)">${cat}</div>
+          <div style="font-size:28px;font-weight:700;line-height:1">${n}</div>
+        </div>
+      </div>
     </div>`;
   }).join('');
 }
@@ -126,7 +134,7 @@ function renderContenidoFichaMaq(tab) {
           <div class="form-group"><label>Nombre</label><input type="text" id="medit-nombre" value="${m.nombre || ''}"></div>
           <div class="form-group"><label>Categoría</label>
             <select id="medit-cat">
-              ${['Tractor','Cosecha','Siembra','Henificación','Movilidad','Herramienta','Otro'].map(c => `<option${m.categoria===c?' selected':''}>${c}</option>`).join('')}
+              ${['Tractores','Cosecha','Labranza','Siembra','Fertilización','Pulverización','Forrajes','Viales','Movilidad','Logística','Otro'].map(c => `<option${m.categoria===c?' selected':''}>${c}</option>`).join('')}
             </select>
           </div>
           <div class="form-group"><label>Año</label><input type="number" id="medit-anio" value="${m.anio || ''}"></div>
