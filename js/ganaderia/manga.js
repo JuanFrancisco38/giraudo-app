@@ -4,6 +4,7 @@ let animalesRodeo = [];
 let novedadesGanaderas = [];
 let serviciosAnimal = [];
 let sanidadAnimal = [];
+let renspas = [];
 
 const TIPOS_REPRODUCTIVO = ['Inseminación (IATF)', 'Servicio'];
 const TIPOS_SANIDAD = ['Vacunación', 'Desparasitación', 'Tratamiento', 'Caravana electrónica', 'Tacto / Preñez', 'Otro'];
@@ -38,13 +39,14 @@ const COLORES_RODEO = {
 };
 
 async function cargarManga() {
-  [rodeos, trabajosManga, animalesRodeo, novedadesGanaderas, serviciosAnimal, sanidadAnimal] = await Promise.all([
+  [rodeos, trabajosManga, animalesRodeo, novedadesGanaderas, serviciosAnimal, sanidadAnimal, renspas] = await Promise.all([
     sb('GET', 'rodeos', null, '?order=created_at.asc&activo=eq.true'),
     sb('GET', 'trabajos_manga', null, '?order=fecha.desc'),
     sb('GET', 'animales_rodeo', null, '?activo=eq.true&order=caravana_interna.asc.nullslast'),
     sb('GET', 'novedades_ganaderas', null, '?order=fecha.desc'),
     sb('GET', 'servicios_animal', null, '?order=fecha.desc'),
-    sb('GET', 'sanidad_animal', null, '?order=fecha.desc')
+    sb('GET', 'sanidad_animal', null, '?order=fecha.desc'),
+    sb('GET', 'renspas', null, '?order=propietario.asc')
   ]);
   rodeos = rodeos || [];
   trabajosManga = trabajosManga || [];
@@ -52,10 +54,78 @@ async function cargarManga() {
   novedadesGanaderas = novedadesGanaderas || [];
   serviciosAnimal = serviciosAnimal || [];
   sanidadAnimal = sanidadAnimal || [];
+  renspas = renspas || [];
 
   _poblarSelectsRodeo();
+  _poblarSelectsRenspa();
   renderEstadisticasManga();
   renderRodeosManga();
+}
+
+function _poblarSelectsRenspa() {
+  const opciones = '<option value="">— Propio —</option>' +
+    renspas.map(r => `<option value="${r.id}">${r.propietario} · ${r.numero}</option>`).join('');
+  ['ing-renspa', 'an-renspa', 'edit-renspa', 'f-renspa'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { const prev = el.value; el.innerHTML = opciones; if (prev) el.value = prev; }
+  });
+}
+
+function renspaLabel(renspaId) {
+  if (!renspaId) return null;
+  const r = renspas.find(x => x.id === renspaId);
+  return r ? `${r.propietario} · ${r.numero}` : null;
+}
+
+function toggleFormRenspas() {
+  const f = document.getElementById('form-renspas-wrap');
+  f.style.display = f.style.display === 'none' ? '' : 'none';
+  if (f.style.display !== 'none') renderListaRenspas();
+}
+
+function renderListaRenspas() {
+  const el = document.getElementById('renspa-lista');
+  if (!el) return;
+  if (!renspas.length) { el.innerHTML = '<div style="font-size:13px;color:var(--texto-suave)">Sin RENSPAs cargados</div>'; return; }
+  el.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>RENSPA</th><th>Propietario / Firma</th><th>Observaciones</th><th>Animales</th><th></th></tr></thead>
+    <tbody>${renspas.map(r => {
+      const nAnim = animalesRodeo.filter(a => a.renspa_id === r.id).length;
+      return `<tr>
+        <td><strong>${r.numero}</strong></td>
+        <td>${r.propietario}</td>
+        <td>${r.observaciones || '—'}</td>
+        <td>${nAnim}</td>
+        <td><button class="btn btn-danger" style="padding:2px 8px;font-size:11px" onclick="borrarRenspa('${r.id}')">🗑️</button></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+async function guardarRenspa() {
+  const data = {
+    numero: document.getElementById('renspa-numero').value.trim(),
+    propietario: document.getElementById('renspa-propietario').value.trim(),
+    observaciones: document.getElementById('renspa-obs').value.trim() || null
+  };
+  if (!data.numero || !data.propietario) { toast('Completá número y propietario', 'var(--rojo)'); return; }
+  const r = await sb('POST', 'renspas', data);
+  if (r) {
+    toast('✅ RENSPA guardado');
+    document.getElementById('renspa-numero').value = '';
+    document.getElementById('renspa-propietario').value = '';
+    document.getElementById('renspa-obs').value = '';
+    await cargarManga();
+    renderListaRenspas();
+  } else toast('❌ Error', 'var(--rojo)');
+}
+
+async function borrarRenspa(id) {
+  if (!confirm('¿Borrar este RENSPA? Los animales vinculados quedarán sin RENSPA asignado.')) return;
+  await sb('DELETE', 'renspas', null, `?id=eq.${id}`);
+  renspas = renspas.filter(r => r.id !== id);
+  _poblarSelectsRenspa();
+  renderListaRenspas();
 }
 
 function _poblarSelectsRodeo() {
@@ -245,6 +315,7 @@ function renderTabAnimales(rodeoId, animales) {
   const fRep = document.getElementById(`f-rep-${rodeoId}`)?.value || '';
   const fFechaDesde = document.getElementById(`f-fecha-desde-${rodeoId}`)?.value || '';
   const fFechaHasta = document.getElementById(`f-fecha-hasta-${rodeoId}`)?.value || '';
+  const fRenspa = document.getElementById(`f-renspa-${rodeoId}`)?.value || '';
 
   let animalesFiltrados = animales;
   if (fCar) animalesFiltrados = animalesFiltrados.filter(a =>
@@ -258,6 +329,7 @@ function renderTabAnimales(rodeoId, animales) {
   });
   if (fFechaDesde) animalesFiltrados = animalesFiltrados.filter(a => a.fecha_nacimiento >= fFechaDesde);
   if (fFechaHasta) animalesFiltrados = animalesFiltrados.filter(a => a.fecha_nacimiento <= fFechaHasta);
+  if (fRenspa) animalesFiltrados = animalesFiltrados.filter(a => a.renspa_id === fRenspa);
 
   const cats = [...new Set(animales.map(a => a.categoria).filter(Boolean))].sort();
 
@@ -275,6 +347,7 @@ function renderTabAnimales(rodeoId, animales) {
         <div class="form-group"><label>Fecha nac.</label><input type="date" id="an-nacimiento"></div>
         <div class="form-group"><label>Caravana madre</label><input type="text" id="an-madre" placeholder="Ej: 456"></div>
         <div class="form-group"><label>Padre (toro/semen)</label><input type="text" id="an-padre" placeholder="Ej: Tornado, ABS-1234"></div>
+        <div class="form-group"><label>RENSPA / Propietario</label><select id="an-renspa"><option value="">— Propio —</option></select></div>
         <div class="form-group"><label>Observaciones</label><input type="text" id="an-obs" placeholder="Opcional"></div>
       </div>
       <button class="btn btn-primary" style="font-size:13px" onclick="guardarAnimalManga('${rodeoId}')">Guardar</button>
@@ -296,6 +369,11 @@ function renderTabAnimales(rodeoId, animales) {
         Nac. desde <input type="date" id="f-fecha-desde-${rodeoId}" style="font-size:12px;padding:4px 6px" onchange="renderDetalleManga()">
         hasta <input type="date" id="f-fecha-hasta-${rodeoId}" style="font-size:12px;padding:4px 6px" onchange="renderDetalleManga()">
       </div>
+      ${renspas.length ? `<select id="f-renspa-${rodeoId}" style="font-size:13px;padding:5px 8px" onchange="renderDetalleManga()">
+        <option value="">Todos los RENSPA</option>
+        <option value="__propio__">— Propio —</option>
+        ${renspas.map(r => `<option value="${r.id}">${r.propietario}</option>`).join('')}
+      </select>` : ''}
       <span style="font-size:12px;color:var(--texto-suave);align-self:center">${animalesFiltrados.length} de ${animales.length}</span>
     </div>
     ${animalesFiltrados.length
@@ -314,6 +392,7 @@ function renderTabAnimales(rodeoId, animales) {
             ${a.caravana_interna && a.caravana_electronica ? `<div style="font-size:11px;color:var(--texto-suave)">E: ${a.caravana_electronica}</div>` : ''}
             <div style="font-size:12px;color:var(--texto-suave)">${a.raza || ''}</div>
             ${a.caravana_madre ? `<div style="font-size:11px;color:var(--texto-suave);margin-top:4px">Madre: ${a.caravana_madre}</div>` : ''}
+            ${a.renspa_id ? `<div style="font-size:11px;color:var(--cielo);margin-top:2px">🏷️ ${renspaLabel(a.renspa_id) || ''}</div>` : ''}
             ${ultimoSrv ? `<div style="font-size:11px;margin-top:4px">
               <span class="badge badge-${ultimoSrv.resultado === 'Preñada' ? 'verde' : ultimoSrv.resultado === 'Vacía' ? 'rojo' : 'gray'}" style="font-size:10px">${ultimoSrv.resultado || 'Pendiente'}</span>
             </div>` : ''}
@@ -424,6 +503,10 @@ function renderContenidoFicha(tab) {
           <div class="form-group"><label>Fecha nac.</label><input type="date" id="edit-nacimiento" value="${a.fecha_nacimiento || ''}"></div>
           <div class="form-group"><label>Caravana madre</label><input type="text" id="edit-madre" value="${a.caravana_madre || ''}"></div>
           <div class="form-group"><label>Padre (toro/semen)</label><input type="text" id="edit-padre" value="${a.caravana_padre || ''}"></div>
+          <div class="form-group"><label>RENSPA / Propietario</label><select id="edit-renspa">
+            <option value=""${!a.renspa_id ? ' selected' : ''}>— Propio —</option>
+            ${renspas.map(r => `<option value="${r.id}"${a.renspa_id === r.id ? ' selected' : ''}>${r.propietario} · ${r.numero}</option>`).join('')}
+          </select></div>
           <div class="form-group"><label>Observaciones</label><input type="text" id="edit-obs" value="${a.observaciones || ''}"></div>
         </div>
         <button class="btn btn-primary" style="font-size:13px" onclick="guardarEdicionAnimal('${a.id}')">Guardar cambios</button>
@@ -440,6 +523,7 @@ function renderContenidoFicha(tab) {
           <div>${a.caravana_madre ? `<strong>${a.caravana_madre}</strong>${madre ? ` · ${madre.raza || ''}` : ''}` : '—'}</div>
         </div>
         <div class="form-group"><label style="font-size:11px;color:var(--texto-suave)">Padre (toro/semen)</label><div>${a.caravana_padre || '—'}</div></div>
+        <div class="form-group"><label style="font-size:11px;color:var(--texto-suave)">RENSPA / Propietario</label><div>${renspaLabel(a.renspa_id) || '— Propio —'}</div></div>
         ${a.observaciones ? `<div class="form-group full"><label style="font-size:11px;color:var(--texto-suave)">Observaciones</label><div>${a.observaciones}</div></div>` : ''}
       </div>
       ${crias.length ? `<div style="margin-top:16px">
@@ -822,9 +906,11 @@ async function procesarNovIngreso(rodeoId, fecha) {
   let ok = true;
   const n = caravanas.length || cantidad;
   for (let i = 0; i < n; i++) {
+    const renspa_id = document.getElementById('ing-renspa')?.value || null;
     const r = await sb('POST', 'animales_rodeo', {
       rodeo_id: rodeoId, fecha_nacimiento: null,
-      caravana_electronica: caravanas[i] || null, sexo, categoria, raza: raza || null, activo: true
+      caravana_electronica: caravanas[i] || null, sexo, categoria, raza: raza || null, activo: true,
+      renspa_id: renspa_id || null
     });
     if (!r) ok = false;
   }
@@ -1086,7 +1172,8 @@ async function guardarAnimalManga(rodeoId) {
     fecha_nacimiento: document.getElementById('an-nacimiento').value || null,
     caravana_madre: document.getElementById('an-madre').value.trim() || null,
     caravana_padre: document.getElementById('an-padre').value.trim() || null,
-    observaciones: document.getElementById('an-obs').value.trim() || null
+    observaciones: document.getElementById('an-obs').value.trim() || null,
+    renspa_id: document.getElementById('an-renspa').value || null
   };
   const r = await sb('POST', 'animales_rodeo', data);
   if (r) { toast('✅ Animal registrado'); await cargarManga(); }
@@ -1108,7 +1195,8 @@ async function guardarEdicionAnimal(id) {
     fecha_nacimiento: document.getElementById('edit-nacimiento').value || null,
     caravana_madre: document.getElementById('edit-madre').value.trim() || null,
     caravana_padre: document.getElementById('edit-padre').value.trim() || null,
-    observaciones: document.getElementById('edit-obs').value.trim() || null
+    observaciones: document.getElementById('edit-obs').value.trim() || null,
+    renspa_id: document.getElementById('edit-renspa').value || null
   };
   const r = await sb('PATCH', 'animales_rodeo', data, `?id=eq.${id}`);
   if (r) { toast('✅ Animal actualizado'); await cargarManga(); }

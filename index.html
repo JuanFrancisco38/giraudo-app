@@ -412,6 +412,24 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
         <button class="btn btn-primary" onclick="toggleFormNovedad()">+ Registrar novedad</button>
         <button class="btn btn-secondary" onclick="toggleImportarManga()">📷 Cargar desde imagen / texto</button>
         <button class="btn btn-secondary" onclick="toggleFormRodeo()">+ Nuevo rodeo</button>
+        <button class="btn btn-secondary" onclick="toggleFormRenspas()">🏷️ RENSPAs</button>
+      </div>
+
+      <!-- Panel RENSPAs -->
+      <div id="form-renspas-wrap" style="display:none;margin-bottom:16px">
+        <div class="card">
+          <div class="card-header"><h3>RENSPAs / Propietarios</h3></div>
+          <div class="card-body">
+            <div class="form-grid" style="margin-bottom:12px">
+              <div class="form-group"><label>Número RENSPA</label><input type="text" id="renspa-numero" placeholder="Ej: 14.001.0.00123/00"></div>
+              <div class="form-group"><label>Propietario / Firma</label><input type="text" id="renspa-propietario" placeholder="Ej: Giraudo SH"></div>
+              <div class="form-group"><label>Observaciones</label><input type="text" id="renspa-obs" placeholder="Opcional"></div>
+            </div>
+            <button class="btn btn-primary" style="font-size:13px" onclick="guardarRenspa()">Guardar</button>
+            <button class="btn btn-secondary" style="font-size:13px;margin-left:8px" onclick="toggleFormRenspas()">Cerrar</button>
+            <div id="renspa-lista" style="margin-top:16px"></div>
+          </div>
+        </div>
       </div>
 
       <!-- Importar desde imagen o texto -->
@@ -528,6 +546,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
                 <div class="form-group"><label>Categoría</label><select id="ing-categoria"><option>Ternera</option><option>Vaquillona</option><option>Vaca</option></select></div>
                 <div class="form-group"><label>Raza</label><input type="text" id="ing-raza" placeholder="Ej: Angus"></div>
                 <div class="form-group"><label>Procedencia</label><input type="text" id="ing-procedencia" placeholder="Ej: Establecimiento X"></div>
+                <div class="form-group"><label>RENSPA / Propietario</label><select id="ing-renspa"><option value="">— Propio —</option></select></div>
                 <div class="form-group full"><label>Caravanas (opcional, separadas por coma)</label><input type="text" id="ing-caravanas" placeholder="Ej: 10, 11, 12 — si no ponés se crean sin identificar"></div>
               </div>
             </div>
