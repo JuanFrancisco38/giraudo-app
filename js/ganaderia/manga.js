@@ -13,6 +13,7 @@ let animalSeleccionado = null;
 let tabRodeoActiva = 'novedades';
 let tabAnimalActiva = 'datos';
 let paginaManga = 1;
+let statFiltroActivo = null;
 
 const CATS_MACHO = ['Ternero', 'Novillito', 'Novillo', 'Torito', 'Toro'];
 const CATS_HEMBRA = ['Ternera', 'Vaquillona', 'Vaca'];
@@ -187,27 +188,104 @@ function renderEstadisticasManga() {
     { label: 'Toros', filtro: a => a.categoria === 'Toro', color: 'cielo' },
   ];
 
+  const cardStyle = 'cursor:pointer;transition:box-shadow .15s;user-select:none';
+  const selStyle = 'box-shadow:0 0 0 2px var(--bordo)';
+
   const cards = ORDEN_CATS.map(({ label, filtro, color }) => {
     const lista = animalesRodeo.filter(filtro);
     if (!lista.length) return '';
-    return `<div class="stat-card" style="min-width:120px">
+    const sel = statFiltroActivo === label;
+    return `<div class="stat-card" style="min-width:120px;${cardStyle}${sel ? ';' + selStyle : ''}" onclick="toggleStatFiltro('${label}')">
       <div class="label">${label}</div>
       <div class="value" style="color:var(--${color})">${lista.length}</div>
       <div class="sub" style="font-size:10px;line-height:1.4">${subRenspa(lista)}</div>
     </div>`;
   }).join('');
 
+  const selTotal = statFiltroActivo === 'total';
   el.innerHTML = `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
-    <div class="stat-card" style="min-width:120px">
+    <div class="stat-card" style="min-width:120px;${cardStyle}${selTotal ? ';' + selStyle : ''}" onclick="toggleStatFiltro('total')">
       <div class="label">Total hacienda</div>
       <div class="value" style="color:var(--bordo)">${animalesRodeo.length}</div>
       <div class="sub" style="font-size:10px;line-height:1.4">${subRenspa(animalesRodeo)}</div>
     </div>
     ${cards}
-  </div>`;
+  </div>
+  <div id="manga-stat-lista"></div>`;
+
+  if (statFiltroActivo) renderListaStatAnimales(statFiltroActivo, ultimoSrvPorAnimal);
 }
 
 // ── Rodeos ────────────────────────────────────────────────
+
+function toggleStatFiltro(label) {
+  statFiltroActivo = statFiltroActivo === label ? null : label;
+  renderEstadisticasManga();
+}
+
+function renderListaStatAnimales(label, ultimoSrvPorAnimal) {
+  const el = document.getElementById('manga-stat-lista');
+  if (!el) return;
+
+  const FILTROS = {
+    'total': a => true,
+    'Vacas preñadas': a => a.categoria === 'Vaca' && ultimoSrvPorAnimal[a.id]?.resultado === 'Preñada',
+    'Vacas vacías': a => a.categoria === 'Vaca' && ultimoSrvPorAnimal[a.id]?.resultado === 'Vacía',
+    'Vacas s/dato': a => a.categoria === 'Vaca' && !['Preñada','Vacía'].includes(ultimoSrvPorAnimal[a.id]?.resultado),
+    'Vaquillonas': a => a.categoria === 'Vaquillona',
+    'Terneras': a => a.categoria === 'Ternera',
+    'Terneros': a => a.categoria === 'Ternero',
+    'Novillitos': a => a.categoria === 'Novillito',
+    'Novillos': a => a.categoria === 'Novillo',
+    'Toritos': a => a.categoria === 'Torito',
+    'Toros': a => a.categoria === 'Toro',
+  };
+
+  const animales = animalesRodeo.filter(FILTROS[label] || (() => false));
+  const cardStyle = 'background:var(--fondo);border:1px solid var(--borde);border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .15s';
+
+  el.innerHTML = `<div class="card" style="margin-bottom:16px">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+      <h3>${label === 'total' ? 'Total hacienda' : label} <span style="font-size:13px;font-weight:400;color:var(--texto-suave)">(${animales.length})</span></h3>
+      <button class="btn btn-secondary" style="font-size:12px" onclick="toggleStatFiltro('${label}')">✕ Cerrar</button>
+    </div>
+    <div class="card-body">
+      ${animales.length ? `<div class="lotes-grid">${animales.map(a => {
+        const color = a.sexo === 'Hembra' ? 'bordo' : 'cielo';
+        const rodeo = rodeos.find(r => r.id === a.rodeo_id);
+        const srv = ultimoSrvPorAnimal[a.id];
+        const colRes = { 'Preñada':'verde','Vacía':'rojo','Repetidora':'tierra','Pendiente':'gray','Abortó':'tierra' };
+        return `<div style="${cardStyle}" onclick="seleccionarAnimalGlobal('${a.id}')">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+            <span class="badge badge-${color}" style="font-size:10px">${a.categoria || a.sexo}</span>
+            <span style="font-size:10px;color:var(--texto-suave)">${rodeo?.nombre || ''}</span>
+          </div>
+          <div style="font-size:17px;font-weight:700;color:var(--${color})">#${caravanaDisplay(a)}</div>
+          <div style="font-size:11px;color:var(--texto-suave)">${a.raza || ''}</div>
+          ${srv ? `<div style="margin-top:4px"><span class="badge badge-${colRes[srv.resultado]||'gray'}" style="font-size:10px">${srv.resultado}</span></div>` : ''}
+          ${a.renspa_id ? `<div style="font-size:10px;color:var(--cielo);margin-top:2px">🏷️ ${renspaLabel(a.renspa_id)}</div>` : ''}
+        </div>`;
+      }).join('')}</div>`
+      : `<div class="empty-state" style="padding:24px"><p>Sin animales en esta categoría</p></div>`}
+    </div>
+  </div>`;
+
+  setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+}
+
+function seleccionarAnimalGlobal(animalId) {
+  const a = animalesRodeo.find(x => x.id === animalId);
+  if (!a) return;
+  // Navegar al rodeo y abrir la ficha
+  rodeoSeleccionado = a.rodeo_id;
+  tabRodeoActiva = 'animales';
+  animalSeleccionado = animalId;
+  tabAnimalActiva = 'datos';
+  statFiltroActivo = null;
+  renderEstadisticasManga();
+  renderRodeosManga();
+  setTimeout(() => document.getElementById('ficha-animal')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+}
 
 function renderRodeosManga() {
   const container = document.getElementById('manga-rodeos-cards');
