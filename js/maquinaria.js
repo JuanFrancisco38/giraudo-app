@@ -1,9 +1,13 @@
 let maquinas = [], mantenimientos = [], trabajosMaq = [];
-let maquinaSeleccionada = null, tabMaqActiva = 'datos';
+let maquinaSeleccionada = null, tabMaqActiva = 'datos', catFiltroActiva = null;
 
 const BADGE_CAT = {
   'Tractor': 'badge-bordo', 'Cosecha': 'badge-yellow', 'Siembra': 'badge-green',
   'Henificación': 'badge-tierra', 'Movilidad': 'badge-blue', 'Herramienta': 'badge-gris', 'Otro': 'badge-gris'
+};
+const ICON_CAT = {
+  'Tractor': '🚜', 'Cosecha': '🌾', 'Siembra': '🌱',
+  'Henificación': '🌀', 'Movilidad': '🚗', 'Herramienta': '🔧', 'Otro': '⚙️'
 };
 
 async function cargarMaquinaria() {
@@ -15,6 +19,7 @@ async function cargarMaquinaria() {
   maquinas = maq || [];
   mantenimientos = mant || [];
   trabajosMaq = trab || [];
+  renderTarjetasCat();
   renderListaMaquinas();
   if (maquinaSeleccionada) {
     const actualizada = maquinas.find(m => m.id === maquinaSeleccionada.id);
@@ -25,33 +30,55 @@ async function cargarMaquinaria() {
   }
 }
 
+function renderTarjetasCat() {
+  const cats = {};
+  maquinas.forEach(m => {
+    const c = m.categoria || 'Otro';
+    cats[c] = (cats[c] || 0) + 1;
+  });
+  const cont = document.getElementById('maq-tarjetas');
+  cont.innerHTML = Object.entries(cats).map(([cat, n]) => {
+    const activa = catFiltroActiva === cat;
+    return `<div class="stat-card${activa ? ' activa' : ''}" onclick="toggleCatFiltro('${cat}')" style="cursor:pointer;min-width:120px;flex:1">
+      <div style="font-size:22px;margin-bottom:4px">${ICON_CAT[cat] || '⚙️'}</div>
+      <div style="font-size:24px;font-weight:700;line-height:1">${n}</div>
+      <div style="font-size:12px;margin-top:4px;color:var(--texto-suave)">${cat}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCatFiltro(cat) {
+  catFiltroActiva = catFiltroActiva === cat ? null : cat;
+  renderTarjetasCat();
+  renderListaMaquinas();
+}
+
 function renderListaMaquinas() {
   const cont = document.getElementById('maq-lista');
-  if (!maquinas.length) {
+  const lista = catFiltroActiva ? maquinas.filter(m => m.categoria === catFiltroActiva) : maquinas;
+
+  if (!lista.length) {
     cont.innerHTML = '<div style="padding:24px;text-align:center;color:var(--texto-suave);font-size:13px">Sin máquinas</div>';
     return;
   }
-  const grupos = {};
-  maquinas.forEach(m => {
-    const cat = m.categoria || 'Otro';
-    if (!grupos[cat]) grupos[cat] = [];
-    grupos[cat].push(m);
-  });
-  cont.innerHTML = Object.entries(grupos).map(([cat, items]) => `
-    <div style="padding:6px 14px 2px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--texto-suave);font-weight:600">${cat}</div>
-    ${items.map(m => {
-      const activa = maquinaSeleccionada?.id === m.id;
-      const uso = m.horas_actuales ? `${fmtNum(m.horas_actuales)} ${m.unidad_uso || 'hs'}` : '—';
-      return `<div class="maq-item${activa ? ' activa' : ''}" onclick="seleccionarMaquina(${JSON.stringify(m).replace(/"/g, '&quot;')})">
+
+  cont.innerHTML = lista.map(m => {
+    const activa = maquinaSeleccionada?.id === m.id;
+    const uso = m.horas_actuales ? `${fmtNum(m.horas_actuales)} ${m.unidad_uso || 'hs'}` : '—';
+    const valor = m.valor_compra ? `${m.moneda_compra || 'USD'} ${fmtNum(m.valor_compra)}` : '—';
+    return `<div class="maq-item${activa ? ' activa' : ''}" onclick="seleccionarMaquina(${JSON.stringify(m).replace(/"/g, '&quot;')})">
+      <div style="display:flex;align-items:center;justify-content:space-between">
         <div style="font-weight:600;font-size:13px">${m.nombre}</div>
-        <div style="font-size:11px;color:var(--texto-suave)">${m.anio || '—'} · ${uso}</div>
-      </div>`;
-    }).join('')}
-  `).join('');
+        <span class="badge ${BADGE_CAT[m.categoria] || 'badge-gris'}" style="font-size:10px">${m.categoria || '—'}</span>
+      </div>
+      <div style="font-size:11px;color:var(--texto-suave);margin-top:3px">${m.anio || '—'} · ${uso} · ${valor}</div>
+    </div>`;
+  }).join('');
 }
 
 function seleccionarMaquina(m) {
   maquinaSeleccionada = m;
+  tabMaqActiva = 'datos';
   renderListaMaquinas();
   document.getElementById('maq-empty').style.display = 'none';
   document.getElementById('maq-ficha-wrap').style.display = '';
@@ -62,7 +89,6 @@ function renderFichaMaquina() {
   const m = maquinaSeleccionada;
   document.getElementById('maq-ficha-titulo').textContent = m.nombre;
   document.getElementById('maq-ficha-sub').innerHTML = `<span class="badge ${BADGE_CAT[m.categoria] || 'badge-gris'}">${m.categoria || '—'}</span> &nbsp; ${m.anio || '—'}`;
-
   ['datos','mantenimiento','trabajos'].forEach(t => {
     document.getElementById(`maq-tab-${t}`).classList.toggle('active', t === tabMaqActiva);
   });
@@ -83,12 +109,12 @@ function renderContenidoFichaMaq(tab) {
     const valor = m.valor_compra ? `${m.moneda_compra || 'USD'} ${fmtNum(m.valor_compra)}` : '—';
     cont.innerHTML = `
       <div id="maq-datos-view">
-        <div class="ficha-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;padding:16px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;padding:16px">
           <div class="ficha-dato"><span class="ficha-label">Nombre</span><span class="ficha-val">${m.nombre}</span></div>
           <div class="ficha-dato"><span class="ficha-label">Categoría</span><span class="ficha-val">${m.categoria || '—'}</span></div>
           <div class="ficha-dato"><span class="ficha-label">Año</span><span class="ficha-val">${m.anio || '—'}</span></div>
           <div class="ficha-dato"><span class="ficha-label">Valor de compra</span><span class="ficha-val">${valor}</span></div>
-          <div class="ficha-dato"><span class="ficha-label">${labelUso(m.unidad_uso)}</span><span class="ficha-val">${uso}</span></div>
+          <div class="ficha-dato"><span class="ficha-label">${labelUso(m.unidad_uso)} actuales</span><span class="ficha-val">${uso}</span></div>
           <div class="ficha-dato"><span class="ficha-label">Observaciones</span><span class="ficha-val">${m.observaciones || '—'}</span></div>
         </div>
         <div style="padding:0 16px 16px">
@@ -127,6 +153,7 @@ function renderContenidoFichaMaq(tab) {
 
   } else if (tab === 'mantenimiento') {
     const registros = mantenimientos.filter(r => r.maquina_id === m.id);
+    const totalCosto = registros.reduce((s, r) => s + (r.costo || 0), 0);
     const rows = registros.length
       ? registros.map(r => `<tr>
           <td>${fmtFecha(r.fecha)}</td>
@@ -139,8 +166,9 @@ function renderContenidoFichaMaq(tab) {
       : '<tr><td colspan="6"><div class="empty-state"><div class="icon">🔧</div><h3>Sin registros</h3></div></td></tr>';
 
     cont.innerHTML = `
-      <div style="padding:14px 16px;border-bottom:1px solid var(--gris-borde);display:flex;justify-content:flex-end">
-        <button class="btn btn-primary" style="font-size:12px" onclick="toggleFormMant()">+ Registrar mantenimiento</button>
+      <div style="padding:12px 16px;border-bottom:1px solid var(--gris-borde);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:12px;color:var(--texto-suave)">${registros.length} registro${registros.length!==1?'s':''} · Total: $ ${fmtNum(totalCosto)}</span>
+        <button class="btn btn-primary" style="font-size:12px" onclick="toggleFormMant()">+ Registrar</button>
       </div>
       <div id="form-mant-ficha" style="display:none;padding:16px;border-bottom:1px solid var(--gris-borde)">
         <div class="form-grid">
@@ -166,9 +194,11 @@ function renderContenidoFichaMaq(tab) {
       </table></div>`;
 
   } else if (tab === 'trabajos') {
+    const nombre3 = m.nombre.toLowerCase().split(' ').slice(0,3).join(' ');
     const registros = trabajosMaq.filter(t =>
       t.maquina_id === m.id ||
-      (t.descripcion && t.descripcion.toLowerCase().includes(m.nombre.toLowerCase().split(' ').slice(0,3).join(' ').toLowerCase()))
+      (t.descripcion && t.descripcion.toLowerCase().includes(nombre3)) ||
+      (t.detalle?.maquinaria && t.detalle.maquinaria.toLowerCase().includes(nombre3))
     );
     const rows = registros.length
       ? registros.map(t => `<tr>
