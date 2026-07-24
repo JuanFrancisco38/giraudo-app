@@ -231,8 +231,36 @@ function renderTabTrabajos(trabajos) {
 
 // ── Tab Animales (cards) ──────────────────────────────────
 
+function filtrarAnimales(rodeoId) {
+  renderDetalleManga();
+}
+
 function renderTabAnimales(rodeoId, animales) {
   const cardStyle = 'background:var(--fondo);border:1px solid var(--borde);border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .15s';
+
+  // Leer filtros activos
+  const fCar = (document.getElementById(`f-caravana-${rodeoId}`)?.value || '').toLowerCase().trim();
+  const fSexo = document.getElementById(`f-sexo-${rodeoId}`)?.value || '';
+  const fCat = document.getElementById(`f-cat-${rodeoId}`)?.value || '';
+  const fRep = document.getElementById(`f-rep-${rodeoId}`)?.value || '';
+  const fFechaDesde = document.getElementById(`f-fecha-desde-${rodeoId}`)?.value || '';
+  const fFechaHasta = document.getElementById(`f-fecha-hasta-${rodeoId}`)?.value || '';
+
+  let animalesFiltrados = animales;
+  if (fCar) animalesFiltrados = animalesFiltrados.filter(a =>
+    (a.caravana_interna || '').toLowerCase().includes(fCar) ||
+    (a.caravana_electronica || '').toLowerCase().includes(fCar));
+  if (fSexo) animalesFiltrados = animalesFiltrados.filter(a => a.sexo === fSexo);
+  if (fCat) animalesFiltrados = animalesFiltrados.filter(a => a.categoria === fCat);
+  if (fRep) animalesFiltrados = animalesFiltrados.filter(a => {
+    const ultimo = serviciosAnimal.filter(s => s.animal_id === a.id).sort((x,y) => new Date(y.fecha)-new Date(x.fecha))[0];
+    return (ultimo?.resultado || 'Sin registro') === fRep;
+  });
+  if (fFechaDesde) animalesFiltrados = animalesFiltrados.filter(a => a.fecha_nacimiento >= fFechaDesde);
+  if (fFechaHasta) animalesFiltrados = animalesFiltrados.filter(a => a.fecha_nacimiento <= fFechaHasta);
+
+  const cats = [...new Set(animales.map(a => a.categoria).filter(Boolean))].sort();
+
   return `<div class="card-body" style="padding-top:12px">
     <button class="btn btn-secondary" style="font-size:12px;margin-bottom:12px" onclick="toggleFormAnimalManga('${rodeoId}')">+ Agregar animal</button>
     <div id="form-animal-${rodeoId}" style="display:none;background:var(--fondo);border-radius:8px;padding:12px;margin-bottom:16px">
@@ -252,8 +280,26 @@ function renderTabAnimales(rodeoId, animales) {
       <button class="btn btn-primary" style="font-size:13px" onclick="guardarAnimalManga('${rodeoId}')">Guardar</button>
       <button class="btn btn-secondary" style="font-size:13px;margin-left:8px" onclick="toggleFormAnimalManga('${rodeoId}')">Cancelar</button>
     </div>
-    ${animales.length
-      ? `<div class="lotes-grid">${animales.map(a => {
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;padding:10px;background:var(--fondo);border-radius:8px;border:1px solid var(--borde)">
+      <input type="text" id="f-caravana-${rodeoId}" placeholder="🔍 Caravana" style="width:120px;font-size:13px;padding:5px 8px" oninput="renderDetalleManga()">
+      <select id="f-sexo-${rodeoId}" style="font-size:13px;padding:5px 8px" onchange="renderDetalleManga()">
+        <option value="">Todos los sexos</option><option>Hembra</option><option>Macho</option>
+      </select>
+      <select id="f-cat-${rodeoId}" style="font-size:13px;padding:5px 8px" onchange="renderDetalleManga()">
+        <option value="">Todas las categorías</option>${cats.map(c => `<option>${c}</option>`).join('')}
+      </select>
+      <select id="f-rep-${rodeoId}" style="font-size:13px;padding:5px 8px" onchange="renderDetalleManga()">
+        <option value="">Estado reproductivo</option>
+        <option>Preñada</option><option>Vacía</option><option>Pendiente</option><option>Repetidora</option><option>Abortó</option><option>Sin registro</option>
+      </select>
+      <div style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--texto-suave)">
+        Nac. desde <input type="date" id="f-fecha-desde-${rodeoId}" style="font-size:12px;padding:4px 6px" onchange="renderDetalleManga()">
+        hasta <input type="date" id="f-fecha-hasta-${rodeoId}" style="font-size:12px;padding:4px 6px" onchange="renderDetalleManga()">
+      </div>
+      <span style="font-size:12px;color:var(--texto-suave);align-self:center">${animalesFiltrados.length} de ${animales.length}</span>
+    </div>
+    ${animalesFiltrados.length
+      ? `<div class="lotes-grid">${animalesFiltrados.map(a => {
           const color = a.sexo === 'Hembra' ? 'bordo' : 'cielo';
           const servicios = serviciosAnimal.filter(s => s.animal_id === a.id);
           const ultimoSrv = servicios[0];
@@ -275,7 +321,7 @@ function renderTabAnimales(rodeoId, animales) {
           </div>`;
         }).join('')}</div>
         <div style="font-size:12px;color:var(--texto-suave);margin-top:8px">Tocá una tarjeta para ver la ficha del animal</div>`
-      : `<div class="empty-state" style="padding:24px"><div class="icon">🐄</div><p>Sin animales identificados en este rodeo.<br>Registrá un "Ingreso" o "Nacimiento" para cargarlos.</p></div>`}
+      : `<div class="empty-state" style="padding:24px"><div class="icon">🐄</div><p>${animales.length ? 'Ningún animal coincide con los filtros' : 'Sin animales identificados en este rodeo.<br>Registrá un "Ingreso" o "Nacimiento" para cargarlos.'}</p></div>`}
   </div>`;
 }
 
