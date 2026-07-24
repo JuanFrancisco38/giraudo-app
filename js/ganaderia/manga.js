@@ -42,7 +42,7 @@ async function cargarManga() {
 function _poblarSelectsRodeo() {
   const opciones = '<option value="">— Seleccionar —</option>' +
     rodeos.map(r => `<option value="${r.id}">${r.nombre}</option>`).join('');
-  ['nov-rodeo-main', 'traslado-rodeo-destino', 'cat-rodeo-destino'].forEach(id => {
+  ['nov-rodeo-main', 'traslado-rodeo-destino', 'cat-rodeo-destino', 'destete-rodeo-destino'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       const prev = el.value;
@@ -166,7 +166,7 @@ function renderDetalleManga() {
 
 const ICONOS_NOV = {
   'Trabajo de manga': '💉', 'Nacimiento': '🐣', 'Ingreso': '⬇️',
-  'Muerte': '💀', 'Venta / Salida': '🚛', 'Traslado': '🔄',
+  'Destete': '🐂', 'Muerte': '💀', 'Venta / Salida': '🚛', 'Traslado': '🔄',
   'Cambio de categoría': '🔀'
 };
 
@@ -438,11 +438,12 @@ function abrirNuevoNovedad(rodeoId) {
 
 function onChangeTipoNovedad() {
   const tipo = document.getElementById('nov-tipo-main')?.value;
-  const panels = ['nov-panel-trabajo', 'nov-panel-nacimiento', 'nov-panel-ingreso', 'nov-panel-baja', 'nov-panel-traslado', 'nov-panel-categoria'];
+  const panels = ['nov-panel-trabajo', 'nov-panel-nacimiento', 'nov-panel-ingreso', 'nov-panel-destete', 'nov-panel-baja', 'nov-panel-traslado', 'nov-panel-categoria'];
   const mapa = {
     'Trabajo de manga': 'nov-panel-trabajo',
     'Nacimiento': 'nov-panel-nacimiento',
     'Ingreso': 'nov-panel-ingreso',
+    'Destete': 'nov-panel-destete',
     'Muerte': 'nov-panel-baja',
     'Venta / Salida': 'nov-panel-baja',
     'Traslado': 'nov-panel-traslado',
@@ -563,7 +564,8 @@ function resetFormNovedad() {
   document.getElementById('nov-tipo-main').value = 'Trabajo de manga';
   ['nov-subtipo','nov-vet','nov-campania','nov-obs-trab',
    'ing-cantidad','ing-raza','ing-procedencia','ing-caravanas',
-   'baja-caravanas','baja-motivo','traslado-caravanas','cat-caravanas'].forEach(id => {
+   'baja-caravanas','baja-motivo','traslado-caravanas','cat-caravanas',
+   'destete-caravanas'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -587,6 +589,7 @@ async function guardarNovedad() {
   if (tipo === 'Trabajo de manga') await procesarNovTrabajoManga(rodeoId, fecha);
   else if (tipo === 'Nacimiento') await procesarNovNacimientos(rodeoId, fecha);
   else if (tipo === 'Ingreso') await procesarNovIngreso(rodeoId, fecha);
+  else if (tipo === 'Destete') await procesarNovDestete(rodeoId, fecha);
   else if (tipo === 'Muerte' || tipo === 'Venta / Salida') await procesarNovBaja(rodeoId, fecha, tipo);
   else if (tipo === 'Traslado') await procesarNovTraslado(rodeoId, fecha);
   else if (tipo === 'Cambio de categoría') await procesarNovCambioCategoria(rodeoId, fecha);
@@ -736,6 +739,39 @@ async function procesarNovIngreso(rodeoId, fecha) {
     tabRodeoActiva = 'novedades';
     await cargarManga();
   } else toast('❌ Algunos animales no se pudieron guardar', 'var(--rojo)');
+}
+
+async function procesarNovDestete(rodeoId, fecha) {
+  const caravanasRaw = document.getElementById('destete-caravanas').value.trim();
+  const destinoId = document.getElementById('destete-rodeo-destino').value;
+  const nuevaCat = document.getElementById('destete-categoria').value;
+  if (!destinoId) { toast('Seleccioná el rodeo destino', 'var(--rojo)'); return; }
+
+  const caravanas = caravanasRaw.split(',').map(s => s.trim()).filter(Boolean);
+  let terneros = animalesRodeo.filter(a => a.rodeo_id === rodeoId &&
+    ['Ternero', 'Ternera', 'Terneros', 'Terneras'].includes(a.categoria));
+  if (caravanas.length) terneros = terneros.filter(a => caravanas.includes(a.caravana));
+
+  if (!terneros.length) { toast('No se encontraron terneros en este rodeo', 'var(--tierra)'); return; }
+
+  const patch = { rodeo_id: destinoId };
+  if (nuevaCat) patch.categoria = nuevaCat;
+
+  for (const a of terneros) {
+    await sb('PATCH', 'animales_rodeo', patch, `?id=eq.${a.id}`);
+  }
+
+  const destino = rodeos.find(r => r.id === destinoId);
+  const desc = `${terneros.length} ternero${terneros.length !== 1 ? 's' : ''} → ${destino?.nombre || destinoId}${nuevaCat ? ' como ' + nuevaCat : ''}${caravanasRaw ? ' · ' + caravanasRaw : ''}`;
+  await sb('POST', 'novedades_ganaderas', {
+    rodeo_id: rodeoId, fecha, tipo: 'Destete', cantidad: terneros.length, descripcion: desc
+  });
+
+  toast(`✅ Destete registrado · ${terneros.length} ternero${terneros.length !== 1 ? 's' : ''} trasladados`);
+  resetFormNovedad();
+  document.getElementById('form-novedad-wrap').style.display = 'none';
+  tabRodeoActiva = 'novedades';
+  await cargarManga();
 }
 
 async function procesarNovBaja(rodeoId, fecha, tipo) {
