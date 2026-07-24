@@ -414,11 +414,16 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
         <button class="btn btn-secondary" onclick="toggleFormRodeo()">+ Nuevo rodeo</button>
       </div>
 
-      <!-- Importar desde imagen -->
+      <!-- Importar desde imagen o texto -->
       <div id="form-importar-manga" style="display:none">
         <div class="card" style="margin-bottom:16px">
-          <div class="card-header"><h3>Importar trabajo desde imagen</h3></div>
-          <div class="card-body">
+          <div class="card-header"><h3>Importar trabajo</h3></div>
+          <div class="tabs" style="border-bottom:1px solid var(--borde)">
+            <div class="tab active" onclick="switchTabImportarManga(this,'manga-imp-imagen')">📷 Imagen</div>
+            <div class="tab" onclick="switchTabImportarManga(this,'manga-imp-texto')">💬 Texto / WhatsApp</div>
+          </div>
+          <!-- Tab imagen -->
+          <div id="manga-imp-imagen" class="card-body">
             <div id="manga-dropzone" ondragover="event.preventDefault()" ondrop="onDropManga(event)"
               style="border:2px dashed var(--borde);border-radius:10px;padding:32px;text-align:center;cursor:pointer;color:var(--texto-suave)"
               onclick="document.getElementById('manga-file-input').click()">
@@ -428,6 +433,15 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             </div>
             <input type="file" id="manga-file-input" accept="image/*" style="display:none" onchange="procesarImagenManga(this.files[0])">
             <div id="manga-ia-status" style="display:none;margin-top:12px;padding:10px;background:var(--fondo);border-radius:8px;font-size:13px;color:var(--texto-suave)">Analizando imagen...</div>
+          </div>
+          <!-- Tab texto -->
+          <div id="manga-imp-texto" class="card-body" style="display:none">
+            <div class="form-group">
+              <label>Pegá el texto del WhatsApp o describí el trabajo</label>
+              <textarea id="manga-texto-ia" rows="5" placeholder="Ej: Hoy vacunamos las 48 vacas CUT con Glipondin 4 (5cc/animal) y Bovigen 2cc. Dr. García. Campo Don Alfredo."></textarea>
+            </div>
+            <button class="btn btn-primary" id="btn-manga-texto" onclick="procesarTextoManga()">Interpretar con IA</button>
+            <div id="manga-texto-status" style="display:none;margin-top:10px;font-size:13px;color:var(--texto-suave)"></div>
           </div>
         </div>
       </div>

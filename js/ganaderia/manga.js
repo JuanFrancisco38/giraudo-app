@@ -545,6 +545,14 @@ function toggleImportarManga() {
   f.style.display = f.style.display === 'none' ? '' : 'none';
 }
 
+function switchTabImportarManga(tabEl, targetId) {
+  tabEl.closest('.tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  tabEl.classList.add('active');
+  ['manga-imp-imagen','manga-imp-texto'].forEach(id => {
+    document.getElementById(id).style.display = id === targetId ? '' : 'none';
+  });
+}
+
 function onDropManga(event) {
   event.preventDefault();
   const file = event.dataTransfer.files[0];
@@ -630,6 +638,98 @@ Si no se lee bien algún campo, dejalo vacío.`
   } finally {
     dropzone.style.opacity = '1';
     document.getElementById('manga-file-input').value = '';
+  }
+}
+
+async function procesarTextoManga() {
+  const texto = document.getElementById('manga-texto-ia').value.trim();
+  if (!texto) { toast('Ingresá el texto primero', 'var(--tierra)'); return; }
+
+  const btn = document.getElementById('btn-manga-texto');
+  const status = document.getElementById('manga-texto-status');
+  btn.disabled = true; btn.textContent = '⏳ Interpretando...';
+  status.style.display = ''; status.textContent = 'La IA está analizando el texto...';
+
+  const rodesNombres = rodeos.map(r => r.nombre).join(', ');
+
+  try {
+    const res = await fetch('/api/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1200,
+        temperature: 0,
+        system: `Sos un asistente ganadero del Grupo Giraudo, Argentina. Extraés datos de mensajes de WhatsApp o texto libre sobre trabajos de manga. Devolvés SOLO JSON válido sin backticks.
+Los rodeos disponibles son: ${rodesNombres || 'no hay rodeos cargados'}.`,
+        messages: [{ role: 'user', content: `Extraé los datos de este texto y devolvé este JSON exacto:
+{
+  "fecha": "YYYY-MM-DD o vacío",
+  "rodeo": "nombre del rodeo más parecido a los disponibles, o vacío",
+  "tipo": "Vacunación | Desparasitación | Tacto / Preñez | Inseminación (IATF) | Tratamiento | Servicio | Caravana electrónica | Otro",
+  "veterinario": "nombre del veterinario o vacío",
+  "cantidad_animales": número o null,
+  "campania": "campaña si aparece o vacío",
+  "observaciones": "observaciones generales o vacío",
+  "productos": [
+    { "producto": "nombre del producto/vacuna", "dosis": "dosis por animal", "consumo_total": "total usado" }
+  ]
+}
+Si hay varios productos, incluí uno por elemento. Si no se lee algún campo, dejalo vacío.
+
+Texto: ${texto}` }]
+      })
+    });
+
+    const json = await res.json();
+    let raw = json.content?.[0]?.text || '{}';
+    raw = raw.replace(/```json|```/g, '').trim();
+    const datos = JSON.parse(raw);
+
+    // Cerrar importar y abrir form prellenado
+    document.getElementById('form-importar-manga').style.display = 'none';
+    document.getElementById('form-manga-wrap').style.display = '';
+
+    if (datos.fecha) document.getElementById('tm-fecha').value = datos.fecha;
+    if (datos.tipo) document.getElementById('tm-tipo').value = datos.tipo;
+    if (datos.veterinario) document.getElementById('tm-vet').value = datos.veterinario;
+    if (datos.cantidad_animales) document.getElementById('tm-cant').value = datos.cantidad_animales;
+    if (datos.campania) document.getElementById('tm-campania').value = datos.campania;
+    if (datos.observaciones) document.getElementById('tm-obs-trab').value = datos.observaciones;
+
+    if (datos.rodeo) {
+      const r = rodeos.find(x =>
+        x.nombre.toLowerCase().includes(datos.rodeo.toLowerCase()) ||
+        datos.rodeo.toLowerCase().includes(x.nombre.toLowerCase())
+      );
+      if (r) document.getElementById('tm-rodeo').value = r.id;
+    }
+
+    const lista = document.getElementById('tm-insumos-list');
+    lista.innerHTML = '';
+    const prods = datos.productos?.length ? datos.productos : [{ producto: '', dosis: '', consumo_total: '' }];
+    prods.forEach(p => {
+      agregarInsumoManga();
+      const filas = lista.querySelectorAll('.insumo-row');
+      const ultima = filas[filas.length - 1];
+      if (ultima) {
+        ultima.querySelector('.tm-producto').value = p.producto || '';
+        ultima.querySelector('.tm-dosis').value = p.dosis || '';
+        ultima.querySelector('.tm-consumo').value = p.consumo_total || '';
+      }
+    });
+
+    onChangeTipoTrabajo();
+    document.getElementById('form-manga-wrap').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('manga-texto-ia').value = '';
+    toast('✅ Datos extraídos — revisá y confirmá');
+
+  } catch (e) {
+    status.textContent = '❌ Error: ' + e.message;
+    status.style.color = 'var(--rojo)';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Interpretar con IA';
   }
 }
 
