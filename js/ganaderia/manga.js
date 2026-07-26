@@ -1041,15 +1041,19 @@ async function procesarNovNacimientos(rodeoId, fecha) {
 
   const rodeo = rodeos.find(r => r.id === rodeoId);
   const nacimientos = [];
+  let errores = 0;
+
   for (const fila of filas) {
     const sexo = fila.querySelector('.nac-sexo').value;
-    const caravana = fila.querySelector('.nac-caravana').value.trim(); // se guarda como caravana_electronica
+    const caravana = fila.querySelector('.nac-caravana').value.trim();
     const caravana_madre = fila.querySelector('.nac-madre').value.trim();
     let caravana_padre = fila.querySelector('.nac-padre').value.trim();
 
     // Inferir padre del último servicio de la madre
     if (!caravana_padre && caravana_madre) {
-      const madre = animalesRodeo.find(a => a.caravana === caravana_madre);
+      const madre = animalesRodeo.find(a =>
+        a.caravana_interna === caravana_madre || a.caravana_electronica === caravana_madre
+      );
       if (madre) {
         const ultimoSrv = serviciosAnimal.filter(s => s.animal_id === madre.id && s.resultado === 'Preñada')
           .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))[0];
@@ -1060,12 +1064,18 @@ async function procesarNovNacimientos(rodeoId, fecha) {
     const categoria = fila.querySelector('.nac-cat')?.value || (sexo === 'Macho' ? 'Ternero' : 'Ternera');
     nacimientos.push({ sexo, caravana, caravana_madre, caravana_padre, categoria });
 
-    await sb('POST', 'animales_rodeo', {
+    const animalRes = await sb('POST', 'animales_rodeo', {
       rodeo_id: rodeoId, caravana_electronica: caravana || null, sexo, categoria,
       raza: rodeo?.raza || null, fecha_nacimiento: fecha,
       caravana_madre: caravana_madre || null, caravana_padre: caravana_padre || null,
       activo: true
     });
+    if (!animalRes) errores++;
+  }
+
+  if (errores > 0) {
+    toast(`❌ Error al crear ${errores} animal(es). Revisá la consola.`, 'var(--rojo)');
+    return;
   }
 
   const desc = nacimientos.map(n => `${n.sexo === 'Macho' ? '♂' : '♀'}${n.caravana ? ' #' + n.caravana : ''}${n.caravana_madre ? ' (m:' + n.caravana_madre + ')' : ''}`).join(', ');
