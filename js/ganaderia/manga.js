@@ -296,19 +296,31 @@ function renderRodeosManga() {
     container.innerHTML = rodeos.map(r => {
       const color = COLORES_RODEO[r.categoria] || 'gray';
       const nNov = novedadesGanaderas.filter(n => n.rodeo_id === r.id).length;
-      const nAnimales = animalesRodeo.filter(a => a.rodeo_id === r.id).length;
+      const animalesDelRodeo = animalesRodeo.filter(a => a.rodeo_id === r.id);
+      const nAnimales = animalesDelRodeo.length;
       const sel = rodeoSeleccionado === r.id;
-      return `<div class="lote-card${sel ? ' selected' : ''}" onclick="seleccionarRodeoManga('${r.id}')" style="cursor:pointer">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+
+      // Desglose por categoría
+      const cats = {};
+      animalesDelRodeo.forEach(a => { if (a.categoria) cats[a.categoria] = (cats[a.categoria] || 0) + 1; });
+      const catHtml = Object.entries(cats).length
+        ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+            ${Object.entries(cats).map(([cat, n]) => `<span style="font-size:11px;color:var(--texto-suave);background:var(--gris-fondo);border-radius:4px;padding:1px 6px">${cat}: <strong>${n}</strong></span>`).join('')}
+           </div>`
+        : '';
+
+      return `<div onclick="seleccionarRodeoManga('${r.id}')" style="cursor:pointer;background:var(--fondo);border:2px solid ${sel ? 'var(--bordo)' : 'var(--gris-borde)'};border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:4px;box-shadow:${sel ? '0 2px 8px rgba(128,0,32,0.15)' : '0 1px 3px rgba(0,0,0,0.05)'}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <span class="badge badge-${color}">${r.categoria || 'Sin cat.'}</span>
           <span style="font-size:11px;color:var(--texto-suave)">${r.campo || ''}</span>
         </div>
-        <div style="font-size:15px;font-weight:600;margin-bottom:4px">${r.nombre}</div>
-        ${r.ubicacion ? `<div style="font-size:12px;color:var(--texto-suave);margin-bottom:6px">📍 ${r.ubicacion}</div>` : ''}
-        <div style="display:flex;gap:12px;font-size:13px;margin-top:auto;flex-wrap:wrap">
+        <div style="font-size:15px;font-weight:700;margin-top:4px">${r.nombre}</div>
+        ${r.ubicacion ? `<div style="font-size:11px;color:var(--texto-suave)">📍 ${r.ubicacion}</div>` : ''}
+        <div style="display:flex;gap:12px;font-size:13px;margin-top:6px;border-top:1px solid var(--gris-borde);padding-top:8px">
           <span><strong>${nAnimales}</strong> identificados</span>
           <span style="color:var(--texto-suave)">${nNov} novedad${nNov !== 1 ? 'es' : ''}</span>
         </div>
+        ${catHtml}
       </div>`;
     }).join('');
   }
