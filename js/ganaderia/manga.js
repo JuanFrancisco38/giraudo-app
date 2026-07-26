@@ -1076,11 +1076,17 @@ async function procesarNovNacimientos(rodeoId, fecha) {
     const categoria = fila.querySelector('.nac-cat')?.value || (sexo === 'Macho' ? 'Ternero' : 'Ternera');
     nacimientos.push({ sexo, caravana, caravana_madre, caravana_padre, categoria });
 
+    // Heredar renspa de la madre
+    const madre = animalesRodeo.find(a =>
+      a.caravana_interna === caravana_madre || a.caravana_electronica === caravana_madre
+    );
+    const renspa_id = madre?.renspa_id || null;
+
     const animalRes = await sb('POST', 'animales_rodeo', {
       rodeo_id: rodeoId, caravana_electronica: caravana || null, sexo, categoria,
       raza: rodeo?.raza || null, fecha_nacimiento: fecha,
       caravana_madre: caravana_madre || null, caravana_padre: caravana_padre || null,
-      activo: true
+      renspa_id, activo: true
     });
     if (!animalRes) errores++;
   }
