@@ -23,7 +23,7 @@ async function cargarResumenGranos() {
 
   ventas.forEach(l => {
     const g = get(l.grano);
-    g.kgVendido += parseFloat(l.kg) || 0;
+    if (l.observacion !== 'Ajuste calidad') g.kgVendido += parseFloat(l.kg) || 0;
     const monto = parseFloat(l.subtotal) || ((parseFloat(l.kg) || 0) * (parseFloat(l.precio_tt) || 0) / 1000);
     g.monto += monto;
   });
