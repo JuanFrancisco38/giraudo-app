@@ -259,9 +259,18 @@ function renderCheques(tipo) {
     ? { cartera: 'En cartera', efectivizado: 'Cobrado', rechazado: 'Rechazado' }
     : { cartera: 'En cartera', efectivizado: 'Pagado', rechazado: 'Rechazado' };
 
+  const hoyStr = new Date().toISOString().split('T')[0];
+
   tbody.innerHTML = pagina.map(c => {
     const badge = `<button class="badge ${ESTADO_BADGE[c.estado] || 'badge-bordo'}" style="border:none;cursor:pointer" onclick="cicloEstadoCheque('${c.id}','${tipo}', this)">${estadoLabel[c.estado] || c.estado}</button>`;
     const registroBadge = `<button class="badge ${c.registro === 'negro' ? 'badge-gray' : 'badge-blue'}" style="border:none;cursor:pointer" onclick="toggleRegistroCheque('${c.id}','${tipo}', this)">${c.registro === 'negro' ? 'Negro' : 'Blanco'}</button>`;
+    const fechaPago = c.fecha_cobro ? c.fecha_cobro.slice(0, 10) : null;
+    const soloCartera = c.estado === 'cartera';
+    let trStyle = '';
+    if (soloCartera && fechaPago) {
+      if (fechaPago < hoyStr) trStyle = 'background:rgba(180,30,30,0.10);border-left:3px solid var(--rojo)';
+      else if (fechaPago === hoyStr) trStyle = 'background:rgba(220,140,0,0.12);border-left:3px solid #e08800';
+    }
     const firmaCorta = c.firma === 'Francisco J. Giraudo' ? 'FJG' : (c.firma === 'Giraudo SH' ? 'SH' : (c.firma || '—'));
     const filas = tipo === 'recibido' ? `
       <td>${fmtFecha(c.fecha_emision)}</td>
@@ -292,7 +301,7 @@ function renderCheques(tipo) {
     const checkTd = sumaState.active && sumaState.tipo === tipo
       ? `<td><input type="checkbox" ${sumaState.seleccionados[c.id] !== undefined ? 'checked' : ''} onchange="toggleSumaCheck('${c.id}',${c.monto||0},this)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--bordo)"></td>`
       : '';
-    return `<tr>${checkTd}${filas}<td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarCheque('${c.id}','${tipo}')">🗑️</button></td></tr>`;
+    return `<tr style="${trStyle}">${checkTd}${filas}<td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarCheque('${c.id}','${tipo}')">🗑️</button></td></tr>`;
   }).join('');
 }
 
