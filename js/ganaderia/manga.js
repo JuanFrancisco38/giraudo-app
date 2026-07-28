@@ -503,6 +503,15 @@ function renderTabAnimales(rodeoId, animales) {
       </select>` : ''}
       <span style="font-size:12px;color:var(--texto-suave);align-self:center">${animalesFiltrados.length} de ${animales.length}</span>
     </div>
+    ${(() => {
+      const porCat = {};
+      animalesFiltrados.forEach(a => { if (a.categoria) porCat[a.categoria] = (porCat[a.categoria] || 0) + 1; });
+      const entries = Object.entries(porCat);
+      if (!entries.length) return '';
+      return `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;font-size:12px">
+        ${entries.map(([cat, n]) => `<span style="background:var(--fondo);border:1px solid var(--gris-borde);border-radius:6px;padding:3px 10px;color:var(--texto-suave)"><strong style="color:var(--texto)">${n}</strong> ${cat}</span>`).join('')}
+      </div>`;
+    })()}
     ${animalesFiltrados.length
       ? `<div class="lotes-grid">${animalesFiltrados.map(a => {
           const color = a.sexo === 'Hembra' ? 'bordo' : 'cielo';
