@@ -1648,6 +1648,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
                 <option value="rechazado">Rechazado</option>
               </select>
               <button class="btn btn-primary" onclick="toggleForm('form-chr')">+ Cargar cheque</button>
+              <button class="btn btn-secondary" onclick="activarSuma('recibido')" id="btn-suma-chr">➕ Sumar</button>
             </div>
           </div>
           <div id="form-chr" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
@@ -1730,7 +1731,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
                 <th colspan="3" style="text-align:center;background:var(--bordo-claro)">DESTINO</th>
                 <th></th>
               </tr>
-              <tr><th>Fecha</th><th>Recibido de</th><th>Motivo</th><th>Fac.</th><th>B/N</th><th>Banco</th><th>Cuenta</th><th>N° cheque</th><th>Fecha Vto.</th><th>Importe</th><th>Estado</th><th>Destino</th><th>Fact.</th><th>Rubro</th><th></th></tr>
+              <tr><th id="chr-th-check" style="display:none">☑</th><th>Fecha</th><th>Recibido de</th><th>Motivo</th><th>Fac.</th><th>B/N</th><th>Banco</th><th>Cuenta</th><th>N° cheque</th><th>Fecha Vto.</th><th>Importe</th><th>Estado</th><th>Destino</th><th>Fact.</th><th>Rubro</th><th></th></tr>
             </thead>
             <tbody id="tabla-chr"><tr><td colspan="15"><div class="empty-state"><div class="icon">💳</div><h3>Sin cheques recibidos</h3></div></td></tr></tbody>
           </table></div>
@@ -1751,6 +1752,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
                 <option value="rechazado">Rechazado</option>
               </select>
               <button class="btn btn-primary" onclick="toggleForm('form-che')">+ Cargar cheque</button>
+              <button class="btn btn-secondary" onclick="activarSuma('emitido')" id="btn-suma-che">➕ Sumar</button>
             </div>
           </div>
           <div id="form-che" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
@@ -1802,12 +1804,20 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
           </div>
 
           <div class="table-wrap"><table>
-            <thead><tr><th>F. pago</th><th>N° cheque</th><th>Banco</th><th>Beneficiario</th><th>Detalle</th><th>Firma</th><th>Monto</th><th>Estado</th><th>Blanco/Negro</th><th></th></tr></thead>
+            <thead><tr><th id="che-th-check" style="display:none">☑</th><th>F. pago</th><th>N° cheque</th><th>Banco</th><th>Beneficiario</th><th>Detalle</th><th>Firma</th><th>Monto</th><th>Estado</th><th>Blanco/Negro</th><th></th></tr></thead>
             <tbody id="tabla-che"><tr><td colspan="10"><div class="empty-state"><div class="icon">💳</div><h3>Sin cheques emitidos</h3></div></td></tr></tbody>
           </table></div>
           <div id="che-paginador"></div>
         </div>
       </div>
+    </div>
+
+    <!-- Panel flotante suma cheques -->
+    <div id="suma-panel" style="display:none;position:fixed;bottom:28px;right:28px;z-index:999;background:var(--fondo-card);border:2px solid var(--bordo);border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,0.18);padding:20px 24px;min-width:220px">
+      <div style="font-size:12px;font-weight:600;color:var(--bordo);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Suma seleccionada</div>
+      <div id="suma-cant" style="font-size:12px;color:var(--texto-suave);margin-bottom:4px">0 cheques</div>
+      <div id="suma-total" style="font-size:26px;font-weight:800;color:var(--bordo)">$ 0</div>
+      <button class="btn btn-secondary" onclick="salirSuma()" style="margin-top:14px;width:100%">Salir</button>
     </div>
 
     <!-- MOVIMIENTOS -->

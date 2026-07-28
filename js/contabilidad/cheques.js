@@ -120,6 +120,49 @@ async function cargarTodosCheques() {
 
 const ESTADO_BADGE = { cartera: 'badge-bordo', efectivizado: 'badge-green', rechazado: 'badge-red' };
 
+const sumaState = { active: false, tipo: null, seleccionados: {} };
+
+function activarSuma(tipo) {
+  sumaState.active = true;
+  sumaState.tipo = tipo;
+  sumaState.seleccionados = {};
+  const pref = tipo === 'recibido' ? 'chr' : 'che';
+  const thCheck = document.getElementById(`${pref}-th-check`);
+  if (thCheck) thCheck.style.display = '';
+  document.getElementById('suma-panel').style.display = '';
+  actualizarPanelSuma();
+  renderCheques(tipo);
+}
+
+function salirSuma() {
+  const tipo = sumaState.tipo;
+  sumaState.active = false;
+  sumaState.tipo = null;
+  sumaState.seleccionados = {};
+  document.getElementById('suma-panel').style.display = 'none';
+  ['chr','che'].forEach(p => {
+    const th = document.getElementById(`${p}-th-check`);
+    if (th) th.style.display = 'none';
+  });
+  if (tipo) renderCheques(tipo);
+}
+
+function toggleSumaCheck(id, monto, cb) {
+  if (cb.checked) {
+    sumaState.seleccionados[id] = monto;
+  } else {
+    delete sumaState.seleccionados[id];
+  }
+  actualizarPanelSuma();
+}
+
+function actualizarPanelSuma() {
+  const ids = Object.keys(sumaState.seleccionados);
+  const total = ids.reduce((acc, id) => acc + (sumaState.seleccionados[id] || 0), 0);
+  document.getElementById('suma-cant').textContent = ids.length + ' cheque' + (ids.length !== 1 ? 's' : '');
+  document.getElementById('suma-total').textContent = fmtMonto(total, 'ARS');
+}
+
 function renderCheques(tipo) {
   const cfg = CHEQUE_CFG[tipo];
   const st = chequeState[tipo];
@@ -246,7 +289,10 @@ function renderCheques(tipo) {
       <td>${badge}</td>
       <td>${registroBadge}</td>
     `;
-    return `<tr>${filas}<td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarCheque('${c.id}','${tipo}')">🗑️</button></td></tr>`;
+    const checkTd = sumaState.active && sumaState.tipo === tipo
+      ? `<td><input type="checkbox" ${sumaState.seleccionados[c.id] !== undefined ? 'checked' : ''} onchange="toggleSumaCheck('${c.id}',${c.monto||0},this)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--bordo)"></td>`
+      : '';
+    return `<tr>${checkTd}${filas}<td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarCheque('${c.id}','${tipo}')">🗑️</button></td></tr>`;
   }).join('');
 }
 
