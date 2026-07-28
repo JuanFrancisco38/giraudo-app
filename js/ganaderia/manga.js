@@ -837,7 +837,95 @@ function renderListaInseminacion(rodeoId, subtipo) {
 }
 
 function onChangeRodeoNovedad() {
+  // Limpiar selectores al cambiar rodeo
+  ['sel-trab','sel-destete','sel-aborto','sel-et','sel-rt','sel-baja','sel-traslado','sel-cat'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.innerHTML = ''; el.style.display = 'none'; }
+  });
   onChangeTipoNovedad();
+}
+
+// ── Selector de animales para novedades ───────────────────
+
+function toggleSelectorAnimalesNov(containerId, filtroSexo, filtroCategoria) {
+  const cont = document.getElementById(containerId);
+  if (!cont) return;
+  const isHidden = cont.style.display === 'none';
+  cont.style.display = isHidden ? '' : 'none';
+  if (isHidden) {
+    const rodeoId = document.getElementById('nov-rodeo-main')?.value;
+    if (rodeoId) renderSelectorAnimalesNov(containerId, rodeoId, filtroSexo, filtroCategoria);
+  }
+}
+
+function renderSelectorAnimalesNov(containerId, rodeoId, filtroSexo, filtroCategoria) {
+  const cont = document.getElementById(containerId);
+  if (!cont) return;
+
+  // Para entrada de toros: mostrar todos los animales de TODOS los rodeos con categoría toro
+  let lista;
+  if (filtroCategoria && containerId === 'sel-et') {
+    lista = animalesRodeo.filter(a => filtroCategoria.includes(a.categoria) && a.activo !== false);
+  } else {
+    lista = animalesRodeo.filter(a => a.rodeo_id === rodeoId && a.activo !== false);
+    if (filtroSexo) lista = lista.filter(a => a.sexo === filtroSexo);
+    if (filtroCategoria) lista = lista.filter(a => filtroCategoria.includes(a.categoria));
+  }
+
+  if (!lista.length) {
+    cont.innerHTML = '<div style="padding:8px;font-size:12px;color:var(--texto-suave)">Sin animales en este rodeo con ese criterio</div>';
+    return;
+  }
+
+  cont.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button type="button" class="btn btn-secondary" style="font-size:11px;padding:3px 10px" onclick="seleccionarTodosNov('${containerId}',true)">Todos</button>
+      <button type="button" class="btn btn-secondary" style="font-size:11px;padding:3px 10px" onclick="seleccionarTodosNov('${containerId}',false)">Ninguno</button>
+      <span id="${containerId}-resumen" style="font-size:12px;color:var(--texto-suave);align-self:center"></span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;max-height:220px;overflow-y:auto;padding:8px;border:1px solid var(--gris-borde);border-radius:6px;background:var(--fondo)">
+      ${lista.map(a => {
+        const car = caravanaDisplay(a);
+        return `<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:4px 6px;border-radius:4px;background:var(--blanco,#fff)">
+          <input type="checkbox" class="nov-animal-check" data-id="${a.id}" data-caravana="${car}" checked onchange="actualizarResumenSelector('${containerId}')">
+          <span><strong>${car}</strong> <span style="color:var(--texto-suave);font-size:11px">${a.categoria || ''}</span></span>
+        </label>`;
+      }).join('')}
+    </div>`;
+  actualizarResumenSelector(containerId);
+}
+
+function seleccionarTodosNov(containerId, checked) {
+  document.querySelectorAll(`#${containerId} .nov-animal-check`).forEach(cb => { cb.checked = checked; });
+  actualizarResumenSelector(containerId);
+}
+
+function actualizarResumenSelector(containerId) {
+  const total = document.querySelectorAll(`#${containerId} .nov-animal-check`).length;
+  const sel = document.querySelectorAll(`#${containerId} .nov-animal-check:checked`).length;
+  const res = document.getElementById(`${containerId}-resumen`);
+  if (res) res.textContent = `${sel} de ${total} seleccionados`;
+}
+
+function getIdsSeleccionadosNov(containerId) {
+  const cont = document.getElementById(containerId);
+  if (!cont || cont.style.display === 'none') return []; // no abierto = todos
+  const checks = [...document.querySelectorAll(`#${containerId} .nov-animal-check:checked`)];
+  const total = document.querySelectorAll(`#${containerId} .nov-animal-check`).length;
+  if (checks.length === total) return []; // todos = vacío
+  return checks.map(cb => cb.dataset.id);
+}
+
+function getAnimalesPorSelector(containerId, rodeoId, filtroFn) {
+  const ids = getIdsSeleccionadosNov(containerId);
+  let base = animalesRodeo.filter(a => a.rodeo_id === rodeoId);
+  if (filtroFn) base = base.filter(filtroFn);
+  if (!ids.length) return base; // todos
+  return base.filter(a => ids.includes(a.id));
+}
+
+function getCaravanaResumen(animales) {
+  return animales.map(a => caravanaDisplay(a)).join(', ');
 }
 
 function renderListaTactoNov(rodeoId) {
@@ -925,11 +1013,15 @@ function resetFormNovedad() {
   document.getElementById('nov-fecha-main').value = '';
   document.getElementById('nov-rodeo-main').value = '';
   document.getElementById('nov-tipo-main').value = 'Trabajo de manga';
-  ['nov-subtipo','nov-vet','nov-campania','nov-obs-trab','nov-caravanas-trab',
+  ['sel-trab','sel-destete','sel-aborto','sel-et','sel-rt','sel-baja','sel-traslado','sel-cat'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.innerHTML = ''; el.style.display = 'none'; }
+  });
+  ['nov-subtipo','nov-vet','nov-campania','nov-obs-trab',
    'ing-cantidad','ing-raza','ing-procedencia','ing-caravanas',
-   'baja-caravanas','baja-motivo','traslado-caravanas','cat-caravanas',
-   'destete-caravanas','destete-cantidad','aborto-caravanas','aborto-cantidad','aborto-obs',
-   'et-caravanas','et-fecha-retiro','et-obs','rt-caravanas','rt-obs'].forEach(id => {
+   'baja-motivo',
+   'destete-cantidad','aborto-obs',
+   'et-fecha-retiro','et-obs','rt-obs'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -1003,8 +1095,10 @@ async function procesarNovTrabajoManga(rodeoId, fecha) {
   })).filter(i => i.producto);
   if (!items.length) items = [{ producto: '', dosis: '', consumo_total: '' }];
 
-  const caravanasRaw = document.getElementById('nov-caravanas-trab').value.trim();
-  const caravanasFiltro = caravanasRaw.split(',').map(s => s.trim()).filter(Boolean);
+  const idsSelTrab = getIdsSeleccionadosNov('sel-trab');
+  const caravanasFiltro = idsSelTrab.length
+    ? animalesRodeo.filter(a => idsSelTrab.includes(a.id)).map(a => a.caravana_interna || a.caravana_electronica).filter(Boolean)
+    : [];
 
   // Si no se especificó cantidad, calcularla automáticamente
   let cantFinal = cant;
@@ -1147,28 +1241,30 @@ async function procesarNovIngreso(rodeoId, fecha) {
 }
 
 async function procesarNovEntradaToros(rodeoId, fecha) {
-  const caravanasRaw = document.getElementById('et-caravanas').value.trim();
   const fechaRetiro = document.getElementById('et-fecha-retiro').value;
   const observaciones = document.getElementById('et-obs').value.trim();
-  const caravanas = caravanasRaw.split(',').map(s => s.trim()).filter(Boolean);
-  if (!caravanas.length) { toast('Ingresá las caravanas de los toros', 'var(--rojo)'); return; }
 
-  // Buscar los toros en cualquier rodeo
-  const toros = animalesRodeo.filter(a =>
-    caravanas.includes(a.caravana_interna) || caravanas.includes(a.caravana_electronica));
+  const idsSelEt = getIdsSeleccionadosNov('sel-et');
+  if (!idsSelEt.length && document.getElementById('sel-et')?.style.display !== 'none') {
+    toast('Seleccioná al menos un toro de la lista', 'var(--rojo)'); return;
+  }
+  const toros = idsSelEt.length
+    ? animalesRodeo.filter(a => idsSelEt.includes(a.id))
+    : animalesRodeo.filter(a => ['Toro','Torito'].includes(a.categoria));
+  if (!toros.length) { toast('No se encontraron toros', 'var(--rojo)'); return; }
 
   const rodeoOrigenId = toros[0]?.rodeo_id || null;
+  const torosCaravanas = toros.map(t => caravanaDisplay(t));
 
-  // Mover toros al rodeo de vacas
   for (const t of toros) {
     await sb('PATCH', 'animales_rodeo', { rodeo_id: rodeoId }, `?id=eq.${t.id}`);
   }
 
-  const desc = `${toros.length || caravanas.length} toro${caravanas.length !== 1 ? 's' : ''}: ${caravanasRaw}${fechaRetiro ? ' · retiro estimado: ' + fmtFecha(fechaRetiro) : ''}`;
+  const desc = `${toros.length} toro${toros.length !== 1 ? 's' : ''}: ${torosCaravanas.join(', ')}${fechaRetiro ? ' · retiro estimado: ' + fmtFecha(fechaRetiro) : ''}`;
   await sb('POST', 'novedades_ganaderas', {
     rodeo_id: rodeoId, fecha, tipo: 'Entrada de toros',
-    cantidad: toros.length || caravanas.length, descripcion: desc,
-    detalle: { toros: caravanas, rodeo_origen_id: rodeoOrigenId, fecha_retiro_estimada: fechaRetiro || null, observaciones }
+    cantidad: toros.length, descripcion: desc,
+    detalle: { toros: torosCaravanas, rodeo_origen_id: rodeoOrigenId, fecha_retiro_estimada: fechaRetiro || null, observaciones }
   });
 
   toast(`✅ Entrada de toros registrada · ${caravanas.length} toro${caravanas.length !== 1 ? 's' : ''} movidos al rodeo`);
@@ -1179,16 +1275,11 @@ async function procesarNovEntradaToros(rodeoId, fecha) {
 }
 
 async function procesarNovRetiroToros(rodeoId, fecha) {
-  const caravanasRaw = document.getElementById('rt-caravanas').value.trim();
   const destinoId = document.getElementById('rt-rodeo-destino').value;
   const observaciones = document.getElementById('rt-obs').value.trim();
   if (!destinoId) { toast('Seleccioná el rodeo de destino', 'var(--rojo)'); return; }
 
-  const caravanas = caravanasRaw.split(',').map(s => s.trim()).filter(Boolean);
-  let toros = animalesRodeo.filter(a => a.rodeo_id === rodeoId &&
-    ['Toro', 'Torito'].includes(a.categoria));
-  if (caravanas.length) toros = toros.filter(a =>
-    caravanas.includes(a.caravana_interna) || caravanas.includes(a.caravana_electronica));
+  const toros = getAnimalesPorSelector('sel-rt', rodeoId, a => ['Toro','Torito'].includes(a.categoria));
 
   if (!toros.length) { toast('No se encontraron toros en este rodeo', 'var(--tierra)'); return; }
 
@@ -1213,16 +1304,10 @@ async function procesarNovRetiroToros(rodeoId, fecha) {
 }
 
 async function procesarNovAborto(rodeoId, fecha) {
-  const cantidad = parseInt(document.getElementById('aborto-cantidad').value) || null;
-  const caravanasRaw = document.getElementById('aborto-caravanas').value.trim();
   const observaciones = document.getElementById('aborto-obs').value.trim();
-  const caravanas = caravanasRaw.split(',').map(s => s.trim()).filter(Boolean);
+  const madres = getAnimalesPorSelector('sel-aborto', rodeoId, a => a.sexo === 'Hembra');
 
-  // Actualizar resultado del último servicio de cada madre a "Abortó"
-  for (const car of caravanas) {
-    const madre = animalesRodeo.find(a => a.rodeo_id === rodeoId &&
-      (a.caravana_interna === car || a.caravana_electronica === car));
-    if (!madre) continue;
+  for (const madre of madres) {
     const ultimoSrv = serviciosAnimal
       .filter(s => s.animal_id === madre.id && s.resultado !== 'Vacía')
       .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))[0];
@@ -1231,13 +1316,14 @@ async function procesarNovAborto(rodeoId, fecha) {
     }
   }
 
-  const desc = `${cantidad ? cantidad + ' aborto' + (cantidad !== 1 ? 's' : '') : 'Aborto'}${caravanasRaw ? ' · madres: ' + caravanasRaw : ''}${observaciones ? ' · ' + observaciones : ''}`;
+  const madresResumen = getCaravanaResumen(madres);
+  const desc = `${madres.length} aborto${madres.length !== 1 ? 's' : ''}${madresResumen ? ' · madres: ' + madresResumen : ''}${observaciones ? ' · ' + observaciones : ''}`;
   const r = await sb('POST', 'novedades_ganaderas', {
-    rodeo_id: rodeoId, fecha, tipo: 'Aborto', cantidad, descripcion: desc
+    rodeo_id: rodeoId, fecha, tipo: 'Aborto', cantidad: madres.length || null, descripcion: desc
   });
 
   if (r) {
-    toast(`✅ Aborto registrado${caravanas.length ? ' · historial reproductivo actualizado' : ''}`);
+    toast(`✅ Aborto registrado${madres.length ? ' · historial reproductivo actualizado' : ''}`);
     resetFormNovedad();
     document.getElementById('form-novedad-wrap').style.display = 'none';
     tabRodeoActiva = 'novedades';
@@ -1246,15 +1332,12 @@ async function procesarNovAborto(rodeoId, fecha) {
 }
 
 async function procesarNovDestete(rodeoId, fecha) {
-  const caravanasRaw = document.getElementById('destete-caravanas').value.trim();
   const destinoId = document.getElementById('destete-rodeo-destino').value;
   const nuevaCat = document.getElementById('destete-categoria').value;
   if (!destinoId) { toast('Seleccioná el rodeo destino', 'var(--rojo)'); return; }
 
-  const caravanas = caravanasRaw.split(',').map(s => s.trim()).filter(Boolean);
-  let terneros = animalesRodeo.filter(a => a.rodeo_id === rodeoId &&
-    ['Ternero', 'Ternera', 'Terneros', 'Terneras'].includes(a.categoria));
-  if (caravanas.length) terneros = terneros.filter(a => caravanas.includes(a.caravana_interna) || caravanas.includes(a.caravana_electronica));
+  const terneros = getAnimalesPorSelector('sel-destete', rodeoId,
+    a => ['Ternero','Ternera','Terneros','Terneras'].includes(a.categoria));
 
   if (!terneros.length) { toast('No se encontraron terneros en este rodeo', 'var(--tierra)'); return; }
 
@@ -1266,8 +1349,7 @@ async function procesarNovDestete(rodeoId, fecha) {
   }
 
   const destino = rodeos.find(r => r.id === destinoId);
-  const cantIngresada = parseInt(document.getElementById('destete-cantidad').value) || terneros.length;
-  const desc = `${cantIngresada} ternero${cantIngresada !== 1 ? 's' : ''} → ${destino?.nombre || destinoId}${nuevaCat ? ' como ' + nuevaCat : ''}${caravanasRaw ? ' · ' + caravanasRaw : ''}`;
+  const desc = `${terneros.length} ternero${terneros.length !== 1 ? 's' : ''} → ${destino?.nombre || destinoId}${nuevaCat ? ' como ' + nuevaCat : ''} · ${getCaravanaResumen(terneros)}`;
   await sb('POST', 'novedades_ganaderas', {
     rodeo_id: rodeoId, fecha, tipo: 'Destete', cantidad: cantIngresada, descripcion: desc
   });
@@ -1280,20 +1362,15 @@ async function procesarNovDestete(rodeoId, fecha) {
 }
 
 async function procesarNovBaja(rodeoId, fecha, tipo) {
-  const caravanasRaw = document.getElementById('baja-caravanas').value.trim();
   const motivo = document.getElementById('baja-motivo').value.trim();
-  const caravanas = caravanasRaw.split(',').map(s => s.trim()).filter(Boolean);
-
-  let animalesAfectados = animalesRodeo.filter(a => a.rodeo_id === rodeoId);
-  if (caravanas.length) animalesAfectados = animalesAfectados.filter(a => caravanas.includes(a.caravana_interna) || caravanas.includes(a.caravana_electronica));
-
-  if (!animalesAfectados.length) { toast('No se encontraron animales con esas caravanas', 'var(--tierra)'); return; }
+  const animalesAfectados = getAnimalesPorSelector('sel-baja', rodeoId);
+  if (!animalesAfectados.length) { toast('Seleccioná al menos un animal', 'var(--tierra)'); return; }
 
   for (const a of animalesAfectados) {
     await sb('PATCH', 'animales_rodeo', { activo: false, fecha_baja: fecha, motivo_baja: motivo || tipo }, `?id=eq.${a.id}`);
   }
 
-  const desc = `${animalesAfectados.length} animal${animalesAfectados.length !== 1 ? 'es' : ''}${motivo ? ': ' + motivo : ''}${caravanasRaw ? ' · ' + caravanasRaw : ''}`;
+  const desc = `${animalesAfectados.length} animal${animalesAfectados.length !== 1 ? 'es' : ''}${motivo ? ': ' + motivo : ''} · ${getCaravanaResumen(animalesAfectados)}`;
   await sb('POST', 'novedades_ganaderas', {
     rodeo_id: rodeoId, fecha, tipo, cantidad: animalesAfectados.length, descripcion: desc
   });
@@ -1306,14 +1383,10 @@ async function procesarNovBaja(rodeoId, fecha, tipo) {
 }
 
 async function procesarNovTraslado(rodeoId, fecha) {
-  const caravanasRaw = document.getElementById('traslado-caravanas').value.trim();
   const destinoId = document.getElementById('traslado-rodeo-destino').value;
   if (!destinoId) { toast('Seleccioná el rodeo destino', 'var(--rojo)'); return; }
 
-  const caravanas = caravanasRaw.split(',').map(s => s.trim()).filter(Boolean);
-  let animalesAfectados = animalesRodeo.filter(a => a.rodeo_id === rodeoId);
-  if (caravanas.length) animalesAfectados = animalesAfectados.filter(a => caravanas.includes(a.caravana_interna) || caravanas.includes(a.caravana_electronica));
-
+  const animalesAfectados = getAnimalesPorSelector('sel-traslado', rodeoId);
   if (!animalesAfectados.length) { toast('No se encontraron animales', 'var(--tierra)'); return; }
 
   for (const a of animalesAfectados) {
@@ -1321,7 +1394,7 @@ async function procesarNovTraslado(rodeoId, fecha) {
   }
 
   const destino = rodeos.find(r => r.id === destinoId);
-  const desc = `${animalesAfectados.length} animal${animalesAfectados.length !== 1 ? 'es' : ''} → ${destino?.nombre || destinoId}${caravanasRaw ? ' · ' + caravanasRaw : ''}`;
+  const desc = `${animalesAfectados.length} animal${animalesAfectados.length !== 1 ? 'es' : ''} → ${destino?.nombre || destinoId} · ${getCaravanaResumen(animalesAfectados)}`;
   await sb('POST', 'novedades_ganaderas', {
     rodeo_id: rodeoId, fecha, tipo: 'Traslado', cantidad: animalesAfectados.length, descripcion: desc
   });
@@ -1334,14 +1407,10 @@ async function procesarNovTraslado(rodeoId, fecha) {
 }
 
 async function procesarNovCambioCategoria(rodeoId, fecha) {
-  const caravanasRaw = document.getElementById('cat-caravanas').value.trim();
   const nuevaCat = document.getElementById('cat-nueva').value;
   const destinoId = document.getElementById('cat-rodeo-destino').value;
 
-  const caravanas = caravanasRaw.split(',').map(s => s.trim()).filter(Boolean);
-  let animalesAfectados = animalesRodeo.filter(a => a.rodeo_id === rodeoId);
-  if (caravanas.length) animalesAfectados = animalesAfectados.filter(a => caravanas.includes(a.caravana_interna) || caravanas.includes(a.caravana_electronica));
-
+  const animalesAfectados = getAnimalesPorSelector('sel-cat', rodeoId);
   if (!animalesAfectados.length) { toast('No se encontraron animales', 'var(--tierra)'); return; }
 
   const patch = { categoria: nuevaCat };
@@ -1352,7 +1421,7 @@ async function procesarNovCambioCategoria(rodeoId, fecha) {
   }
 
   const destino = destinoId ? rodeos.find(r => r.id === destinoId) : null;
-  const desc = `${animalesAfectados.length} animal${animalesAfectados.length !== 1 ? 'es' : ''} → ${nuevaCat}${destino ? ' · rodeo: ' + destino.nombre : ''}${caravanasRaw ? ' · ' + caravanasRaw : ''}`;
+  const desc = `${animalesAfectados.length} animal${animalesAfectados.length !== 1 ? 'es' : ''} → ${nuevaCat}${destino ? ' · rodeo: ' + destino.nombre : ''} · ${getCaravanaResumen(animalesAfectados)}`;
   await sb('POST', 'novedades_ganaderas', {
     rodeo_id: rodeoId, fecha, tipo: 'Cambio de categoría', cantidad: animalesAfectados.length, descripcion: desc
   });
