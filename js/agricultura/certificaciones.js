@@ -86,8 +86,60 @@ let certPagina = 1;
 function irPaginaCert(p) { certPagina = p; renderCertificaciones(); window.scrollTo({ top: document.getElementById('section-certificaciones').offsetTop, behavior: 'smooth' }); }
 
 async function cargarCertificaciones() {
-  certTodas = await sb('GET', 'certificaciones', '', '?tipo=eq.deposito&order=fecha.desc') || [];
+  const [certs, liqs] = await Promise.all([
+    sb('GET', 'certificaciones', '', '?tipo=eq.deposito&order=fecha.desc'),
+    sb('GET', 'liquidaciones_granos', '', '?campania=eq.25/26')
+  ]);
+  certTodas = certs || [];
+  renderResumenCert(certTodas, liqs || []);
   renderCertificaciones();
+}
+
+function renderResumenCert(certs, liqs) {
+  const tbody = document.getElementById('tabla-cert-resumen');
+  if (!tbody) return;
+  const cultColors = {soja:'green',maiz:'yellow',trigo:'tierra',girasol:'amarillo'};
+  const norm = s => (s || '').trim();
+
+  // kg vendidos por grano (excluye ajuste calidad)
+  const kgVendidoPorGrano = {};
+  liqs.forEach(l => {
+    if (l.observacion === 'Ajuste calidad') return;
+    const g = norm(l.grano);
+    kgVendidoPorGrano[g] = (kgVendidoPorGrano[g] || 0) + (parseFloat(l.kg) || 0);
+  });
+
+  // kg depositados por grano → depositario
+  const porGrano = {};
+  certs.forEach(row => {
+    const c = parseCert(row);
+    const g = norm(c.grano) || 'Sin especificar';
+    const dep = norm(c.depositario) || 'Sin depositario';
+    const kg = parseFloat(c.kg_neto) || 0;
+    if (!porGrano[g]) porGrano[g] = {};
+    porGrano[g][dep] = (porGrano[g][dep] || 0) + kg;
+  });
+
+  if (!Object.keys(porGrano).length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--texto-suave);padding:12px">Sin datos</td></tr>';
+    return;
+  }
+
+  const filas = [];
+  Object.entries(porGrano).forEach(([grano, deps]) => {
+    const totalGrano = Object.values(deps).reduce((s, k) => s + k, 0);
+    const stockRem = totalGrano - (kgVendidoPorGrano[grano] || 0);
+    const depEntries = Object.entries(deps);
+    depEntries.forEach(([dep, kg], i) => {
+      filas.push(`<tr>
+        ${i === 0 ? `<td rowspan="${depEntries.length}"><span class="badge badge-${cultColors[grano.toLowerCase()]||'gray'}">${grano}</span></td>` : ''}
+        ${i === 0 ? `<td rowspan="${depEntries.length}">${fmtKg(totalGrano)}</td>` : ''}
+        <td style="font-size:13px">${dep}</td>
+        ${i === 0 ? `<td rowspan="${depEntries.length}"><strong style="color:${stockRem < 0 ? 'var(--rojo)' : 'var(--verde)'}">${fmtKg(stockRem)}</strong></td>` : ''}
+      </tr>`);
+    });
+  });
+  tbody.innerHTML = filas.join('');
 }
 
 function filtrarCertReset() { certPagina = 1; renderCertificaciones(); }
