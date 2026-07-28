@@ -17,14 +17,21 @@ async function cargarResumenGranos() {
   const porGrano = {};
   const get = g => {
     const k = norm(g);
-    if (!porGrano[k]) porGrano[k] = { kgVendido: 0, monto: 0, kgDepositado: 0, ubicaciones: {} };
+    if (!porGrano[k]) porGrano[k] = { kgVendido: 0, kgCanje: 0, montoAjuste: 0, monto: 0, kgDepositado: 0, ubicaciones: {} };
     return porGrano[k];
   };
 
   ventas.forEach(l => {
     const g = get(l.grano);
-    if (l.observacion !== 'Ajuste calidad') g.kgVendido += parseFloat(l.kg) || 0;
-    const monto = parseFloat(l.subtotal) || ((parseFloat(l.kg) || 0) * (parseFloat(l.precio_tt) || 0) / 1000);
+    const kg = parseFloat(l.kg) || 0;
+    const monto = parseFloat(l.subtotal) || (kg * (parseFloat(l.precio_tt) || 0) / 1000);
+    if (l.observacion === 'Ajuste calidad') {
+      g.montoAjuste += parseFloat(l.neto_cobrar) || monto;
+    } else if (l.observacion === 'Canje') {
+      g.kgCanje += kg;
+    } else {
+      g.kgVendido += kg;
+    }
     g.monto += monto;
   });
 
@@ -36,29 +43,30 @@ async function cargarResumenGranos() {
     g.ubicaciones[ub] = (g.ubicaciones[ub] || 0) + kg;
   });
 
-  const dolar = getDolar();
   const cultColors = {soja:'green',maiz:'yellow',trigo:'tierra',girasol:'amarillo'};
   const tbody = document.getElementById('tabla-resumen-granos');
   const granos = Object.keys(porGrano);
 
   if (!granos.length) {
-    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="icon">📊</div><h3>Sin datos</h3></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="icon">📊</div><h3>Sin datos</h3></div></td></tr>';
   } else {
     tbody.innerHTML = granos.map(nombre => {
       const d = porGrano[nombre];
-      const stock = d.kgDepositado - d.kgVendido;
+      const kgTotales = d.kgVendido + d.kgCanje;
+      const stockVenta = d.kgDepositado - d.kgVendido - d.kgCanje;
       const ubics = Object.entries(d.ubicaciones)
         .filter(([, kg]) => kg > 0)
         .map(([u, kg]) => `${u}: ${fmtKg(kg)}`)
         .join('<br>') || '—';
-      const usd = dolar ? fmtMonto(d.monto / dolar, 'USD') : '—';
       return `<tr>
         <td><span class="badge badge-${cultColors[nombre.toLowerCase()] || 'gray'}">${nombre}</span></td>
         <td>${fmtKg(d.kgVendido)}</td>
-        <td><strong>${fmtKg(stock)}</strong></td>
+        <td>${d.kgCanje ? fmtKg(d.kgCanje) : '—'}</td>
+        <td>${fmtKg(kgTotales)}</td>
+        <td>${d.montoAjuste ? fmtMonto(d.montoAjuste, 'ARS') : '—'}</td>
+        <td><strong>${fmtKg(stockVenta)}</strong></td>
         <td style="font-size:12px">${ubics}</td>
         <td>${fmtMonto(d.monto, 'ARS')}</td>
-        <td>${usd}</td>
       </tr>`;
     }).join('');
   }
