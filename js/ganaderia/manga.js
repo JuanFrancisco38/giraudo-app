@@ -481,25 +481,27 @@ function renderTabAnimales(rodeoId, animales) {
       <button class="btn btn-secondary" style="font-size:13px;margin-left:8px" onclick="toggleFormAnimalManga('${rodeoId}')">Cancelar</button>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;padding:10px;background:var(--fondo);border-radius:8px;border:1px solid var(--borde)">
-      <input type="text" id="f-caravana-${rodeoId}" placeholder="🔍 Caravana" style="width:120px;font-size:13px;padding:5px 8px" oninput="renderDetalleManga()">
+      <input type="text" id="f-caravana-${rodeoId}" value="${fCar}" placeholder="🔍 Caravana" style="width:120px;font-size:13px;padding:5px 8px" oninput="renderDetalleManga()">
       <select id="f-sexo-${rodeoId}" style="font-size:13px;padding:5px 8px" onchange="renderDetalleManga()">
-        <option value="">Todos los sexos</option><option>Hembra</option><option>Macho</option>
+        <option value="" ${!fSexo?'selected':''}>Todos los sexos</option>
+        <option ${fSexo==='Hembra'?'selected':''}>Hembra</option>
+        <option ${fSexo==='Macho'?'selected':''}>Macho</option>
       </select>
       <select id="f-cat-${rodeoId}" style="font-size:13px;padding:5px 8px" onchange="renderDetalleManga()">
-        <option value="">Todas las categorías</option>${cats.map(c => `<option>${c}</option>`).join('')}
+        <option value="" ${!fCat?'selected':''}>Todas las categorías</option>${cats.map(c => `<option ${fCat===c?'selected':''}>${c}</option>`).join('')}
       </select>
       <select id="f-rep-${rodeoId}" style="font-size:13px;padding:5px 8px" onchange="renderDetalleManga()">
-        <option value="">Estado reproductivo</option>
-        <option>Preñada</option><option>Vacía</option><option>Pendiente</option><option>Repetidora</option><option>Abortó</option><option>Sin registro</option>
+        <option value="" ${!fRep?'selected':''}>Estado reproductivo</option>
+        ${['Preñada','Vacía','Pendiente','Repetidora','Abortó','Sin registro'].map(v=>`<option ${fRep===v?'selected':''}>${v}</option>`).join('')}
       </select>
       <div style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--texto-suave)">
-        Nac. desde <input type="date" id="f-fecha-desde-${rodeoId}" style="font-size:12px;padding:4px 6px" onchange="renderDetalleManga()">
-        hasta <input type="date" id="f-fecha-hasta-${rodeoId}" style="font-size:12px;padding:4px 6px" onchange="renderDetalleManga()">
+        Nac. desde <input type="date" id="f-fecha-desde-${rodeoId}" value="${fFechaDesde}" style="font-size:12px;padding:4px 6px" onchange="renderDetalleManga()">
+        hasta <input type="date" id="f-fecha-hasta-${rodeoId}" value="${fFechaHasta}" style="font-size:12px;padding:4px 6px" onchange="renderDetalleManga()">
       </div>
       ${renspas.length ? `<select id="f-renspa-${rodeoId}" style="font-size:13px;padding:5px 8px" onchange="renderDetalleManga()">
-        <option value="">Todos los RENSPA</option>
-        <option value="__propio__">— Propio —</option>
-        ${renspas.map(r => `<option value="${r.id}">${r.propietario}</option>`).join('')}
+        <option value="" ${!fRenspa?'selected':''}>Todos los RENSPA</option>
+        <option value="__propio__" ${fRenspa==='__propio__'?'selected':''}>— Propio —</option>
+        ${renspas.map(r => `<option value="${r.id}" ${fRenspa===r.id?'selected':''}>${r.propietario}</option>`).join('')}
       </select>` : ''}
       <span style="font-size:12px;color:var(--texto-suave);align-self:center">${animalesFiltrados.length} de ${animales.length}</span>
     </div>
