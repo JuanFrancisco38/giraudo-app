@@ -265,9 +265,10 @@ function renderCheques(tipo) {
     const badge = `<button class="badge ${ESTADO_BADGE[c.estado] || 'badge-bordo'}" style="border:none;cursor:pointer" onclick="cicloEstadoCheque('${c.id}','${tipo}', this)">${estadoLabel[c.estado] || c.estado}</button>`;
     const registroBadge = `<button class="badge ${c.registro === 'negro' ? 'badge-gray' : 'badge-blue'}" style="border:none;cursor:pointer" onclick="toggleRegistroCheque('${c.id}','${tipo}', this)">${c.registro === 'negro' ? 'Negro' : 'Blanco'}</button>`;
     const fechaPago = c.fecha_cobro ? c.fecha_cobro.slice(0, 10) : null;
-    const soloCartera = c.estado === 'cartera';
     let trStyle = '';
-    if (soloCartera && fechaPago) {
+    if (c.estado === 'efectivizado') {
+      trStyle = 'background:rgba(40,160,80,0.10);border-left:3px solid var(--verde)';
+    } else if (c.estado === 'cartera' && fechaPago) {
       if (fechaPago < hoyStr) trStyle = 'background:rgba(180,30,30,0.10);border-left:3px solid var(--rojo)';
       else if (fechaPago === hoyStr) trStyle = 'background:rgba(220,140,0,0.12);border-left:3px solid #e08800';
     }
