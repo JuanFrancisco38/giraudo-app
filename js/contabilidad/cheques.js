@@ -109,7 +109,7 @@ function irPaginaCheque_chr(p) { chequeState.recibido.pagina = p; renderCheques(
 function irPaginaCheque_che(p) { chequeState.emitido.pagina = p; renderCheques('emitido'); window.scrollTo({ top: document.getElementById('section-cheques').offsetTop, behavior: 'smooth' }); }
 
 async function cargarCheques(tipo) {
-  const rows = await sb('GET', 'cheques', '', `?tipo=eq.${tipo}&order=fecha_emision.desc`);
+  const rows = await sb('GET', 'cheques', '', `?tipo=eq.${tipo}&order=fecha_cobro.desc`);
   chequeState[tipo].todas = rows || [];
   renderCheques(tipo);
 }
@@ -236,13 +236,12 @@ function renderCheques(tipo) {
       <td style="font-size:11px">${c.factura_destino || '—'}</td>
       <td><span class="badge badge-gray" style="font-size:10px">${c.rubro_destino || '—'}</span></td>
     ` : `
-      <td>${fmtFecha(c.fecha_emision)}</td>
+      <td><strong style="font-size:14px">${fmtFecha(c.fecha_cobro)}</strong></td>
       <td style="font-size:11px">${c.numero || '—'}</td>
       <td>${c.banco || '—'}</td>
       <td><strong>${c.contraparte || '—'}</strong></td>
       <td style="font-size:12px">${c.detalle || '—'}</td>
       <td><span class="badge badge-bordo" style="font-size:10px">${firmaCorta}</span></td>
-      <td style="font-size:11px;color:var(--texto-suave)">${fmtFecha(c.fecha_cobro)}</td>
       <td><strong>${fmtMonto(c.monto, 'ARS')}</strong></td>
       <td>${badge}</td>
       <td>${registroBadge}</td>
