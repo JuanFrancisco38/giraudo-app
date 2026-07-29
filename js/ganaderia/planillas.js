@@ -91,7 +91,7 @@ function generarPlanillaPDF() {
 const CSS_BASE = `
   <style>
   @page { size: A4 portrait; margin: 10mm 11mm; }
-  html, body { width: 210mm; }
+  html, body { width: 210mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #fff; font-family: system-ui, sans-serif; }
   .enc { display:flex; align-items:flex-end; justify-content:space-between; border-bottom:2.5px solid #2D5016; padding-bottom:5px; margin-bottom:5px; }
