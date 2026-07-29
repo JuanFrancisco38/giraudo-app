@@ -1,5 +1,16 @@
 function abrirModalPlanilla() {
+  // Crear overlay sólido separado
+  let ov = document.getElementById('planilla-overlay');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'planilla-overlay';
+    ov.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#111;z-index:9998;';
+    document.body.appendChild(ov);
+  }
+  ov.style.display = 'block';
+
   const modal = document.getElementById('modal-planilla');
+  if (modal.parentElement !== document.body) document.body.appendChild(modal);
   modal.style.display = 'flex';
 
   // Poblar rodeos
@@ -15,6 +26,8 @@ function abrirModalPlanilla() {
 
 function cerrarModalPlanilla() {
   document.getElementById('modal-planilla').style.display = 'none';
+  const ov = document.getElementById('planilla-overlay');
+  if (ov) ov.style.display = 'none';
 }
 
 function cargarAnimalesPlanilla() {

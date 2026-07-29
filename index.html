@@ -418,8 +418,8 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
       </div>
 
       <!-- Modal planilla de trabajo -->
-      <div id="modal-planilla" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center">
-        <div style="background:var(--fondo-card);border-radius:14px;padding:28px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 12px 48px rgba(0,0,0,0.5);border:1px solid var(--gris-borde)">
+      <div id="modal-planilla" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;background:transparent;align-items:center;justify-content:center">
+        <div style="background:#ffffff;border-radius:14px;padding:28px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 16px 64px rgba(0,0,0,0.9);border:2px solid #333;color:#111;position:relative;z-index:10000">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
             <h3 style="margin:0">📋 Planilla de trabajo</h3>
             <button onclick="cerrarModalPlanilla()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--texto-suave)">✕</button>
@@ -1033,77 +1033,8 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
               <option value="">Todos los tipos</option>
               <option>Siembra</option><option>Pulverización</option><option>Fertilización</option><option>Cosecha</option><option>Henificación</option><option>Enrollado</option><option>Labranza</option><option>Otro</option>
             </select>
-            <button class="btn btn-primary" onclick="toggleForm('form-trab-texto')">📝 Cargar por texto</button>
-            <button class="btn btn-secondary" onclick="toggleForm('form-trab')">+ Formulario</button>
+            <button class="btn btn-primary" onclick="abrirModalTrabajo()">✚ Cargar trabajo</button>
           </div>
-        </div>
-
-        <!-- CARGA POR TEXTO -->
-        <div id="form-trab-texto" style="display:none;padding:18px;border-top:1px solid var(--gris-borde);background:var(--bordo-claro)">
-          <p style="font-size:13px;color:var(--bordo);margin-bottom:12px">✏️ Describí el trabajo con tus palabras, o 📷 subí una foto de la planilla/cuaderno de campo — la IA lo interpreta y carga automáticamente. Podés cargar varios trabajos juntos.</p>
-          <div style="margin-bottom:14px;padding:12px;background:white;border:1px dashed var(--gris-borde);border-radius:8px">
-            <label style="font-weight:600;font-size:13px">📷 Cargar desde foto o PDF</label>
-            <input type="file" id="trt-archivo" accept="application/pdf,image/*" onchange="procesarTrabajoImagen(this)" style="display:block;margin-top:8px">
-            <div id="trt-img-status" style="font-size:12px;color:var(--texto-suave);margin-top:6px"></div>
-          </div>
-          <div class="form-grid">
-            <div class="form-group"><label>Campo</label>
-              <select id="trt-campo"><option>Don Alfredo (Azcona)</option><option>Doña Vica</option><option>Sant-Yago</option></select>
-            </div>
-            <div class="form-group"><label>Fecha (si no la mencionás en el texto)</label>
-              <input type="date" id="trt-fecha">
-            </div>
-            <div class="form-group full">
-              <label>Descripción del trabajo</label>
-              <textarea id="trt-texto" style="min-height:120px" placeholder="Ejemplos:
-- Siembra soja lote 3, 34 has, 15/10/2022, contratista Truccone, semilla DM 4670 60kg/ha
-- Pulverización lote 1 y 2, 90 has, glifosato 3lt/ha + 2-4D 0.5lt/ha, Barrios, 20/11/2022
-- Cosecha trigo lote 4, 33 has, rendimiento 4200kg/ha, Lucas Cordero, 05/12/2022
-- Fertilización lote 3 soja, 34 has, urea 100kg/ha, Francisco Giraudo, 01/10/2022"></textarea>
-            </div>
-          </div>
-          <div class="form-actions">
-            <button class="btn btn-primary" id="btn-trab-texto" onclick="importarTrabajoTexto()">🤖 Interpretar y cargar con IA</button>
-            <button class="btn btn-secondary" onclick="toggleForm('form-trab-texto')">Cancelar</button>
-            <span id="trt-status" style="font-size:13px;color:var(--texto-suave)"></span>
-          </div>
-          <div id="trt-result" style="background:white;border-radius:8px;padding:12px;margin-top:12px;font-size:13px;display:none;line-height:1.8"></div>
-        </div>
-
-        <!-- FORMULARIO MANUAL -->
-        <div id="form-trab" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
-          <div class="form-grid">
-            <div class="form-group"><label>Fecha</label><input type="date" id="tr-fecha"></div>
-            <div class="form-group"><label>Tipo</label><select id="tr-tipo"><option>Siembra</option><option>Pulverización</option><option>Fertilización</option><option>Cosecha</option><option>Henificación</option><option>Enrollado</option><option>Labranza</option><option>Otro</option></select></div>
-            <div class="form-group"><label>Campo</label><select id="tr-campo"><option>Don Alfredo (Azcona)</option><option>Doña Vica</option><option>Sant-Yago</option></select></div>
-            <div class="form-group"><label>Lote</label><input type="text" id="tr-lote"></div>
-            <div class="form-group"><label>Hectáreas</label><input type="number" id="tr-has"></div>
-            <div class="form-group"><label>Cultivo</label><input type="text" id="tr-cultivo" placeholder="Ej: Alfalfa, Maíz, Soja"></div>
-            <div class="form-group"><label>Contratista</label><input type="text" id="tr-cont"></div>
-            <div class="form-group"><label>Campaña</label><input type="text" id="tr-campania" placeholder="Ej: 25/26"></div>
-          </div>
-          <div style="margin-top:14px">
-            <label style="font-weight:600;font-size:13px">Insumos / Productos utilizados</label>
-            <p style="font-size:12px;color:var(--texto-suave);margin:4px 0 8px">Si el trabajo usó varios productos (ej: pulverización con dos herbicidas), agregá un renglón por cada uno.</p>
-            <div id="tr-insumos-list">
-              <div class="insumo-row" style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-end">
-                <div class="form-group" style="flex:2;margin:0"><label style="font-size:11px">Insumo / Producto</label><input type="text" class="ins-desc"></div>
-                <div class="form-group" style="flex:1;margin:0"><label style="font-size:11px">Dosis</label><input type="text" class="ins-dosis" placeholder="Ej: 3 lt/ha"></div>
-                <div class="form-group" style="flex:1;margin:0"><label style="font-size:11px">Consumo total</label><input type="text" class="ins-consumo" placeholder="Ej: 270 lts"></div>
-                <button type="button" class="btn btn-secondary" style="padding:6px 10px;font-size:12px" onclick="this.closest('.insumo-row').remove()">🗑️</button>
-              </div>
-            </div>
-            <button type="button" class="btn btn-secondary" style="margin-top:8px;font-size:12px;padding:6px 10px" onclick="agregarInsumoTrabajo()">+ Agregar insumo</button>
-          </div>
-          <div style="margin-top:14px">
-            <label style="font-weight:600;font-size:13px">Rendimiento (solo para Cosecha / Henificación / Enrollado)</label>
-            <div class="form-grid" style="margin-top:6px">
-              <div class="form-group"><label>Cantidad</label><input type="number" id="tr-rend" placeholder="Ej: 4200"></div>
-              <div class="form-group"><label>Unidad</label><select id="tr-rendunidad"><option value="">—</option><option>kg</option><option>kg/ha</option><option>rollos</option><option>rollos/ha</option></select></div>
-              <div class="form-group"><label>Precio estimado por unidad $</label><input type="number" id="tr-rendprecio" placeholder="Ej: 350"></div>
-            </div>
-          </div>
-          <div class="form-actions"><button class="btn btn-primary" onclick="guardarTrabajo()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-trab')">Cancelar</button></div>
         </div>
 
         <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Campo</th><th>Lote</th><th>Has</th><th>Cultivo</th><th>Contratista</th><th>Descripción / Insumos</th><th>Dosis</th><th>Consumo total</th><th>$ Unitario</th><th>$ Total</th><th>Campaña</th><th></th></tr></thead>
@@ -1998,6 +1929,67 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 <script src="js/importar.js"></script>
 <script src="js/consultas-ia.js"></script>
 <script src="js/dashboard.js"></script>
+
+<!-- Modal Cargar Trabajo -->
+<div id="modal-trabajo-overlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:#111;z-index:9998"></div>
+<div id="modal-trabajo" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;align-items:center;justify-content:center;overflow-y:auto;padding:20px 0">
+  <div style="background:#fff;border-radius:14px;width:680px;max-width:96vw;margin:auto;box-shadow:0 16px 48px rgba(0,0,0,0.5);border:1px solid #ccc;color:#111">
+    <!-- Header -->
+    <div style="padding:20px 24px 16px;border-bottom:2px solid #8B1A2F;display:flex;justify-content:space-between;align-items:center">
+      <h3 style="margin:0;color:#8B1A2F;font-size:17px">✚ Nuevo trabajo de campo</h3>
+      <button onclick="cerrarModalTrabajo()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#666;line-height:1">✕</button>
+    </div>
+    <div style="padding:20px 24px">
+
+      <!-- SECCIÓN 1: EL TRABAJO -->
+      <div style="margin-bottom:20px">
+        <div style="font-weight:700;font-size:13px;color:#8B1A2F;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #e0e0e0">📋 Datos del trabajo</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="form-group" style="margin:0"><label>Fecha</label><input type="date" id="mtr-fecha"></div>
+          <div class="form-group" style="margin:0"><label>Tipo de trabajo</label>
+            <select id="mtr-tipo" onchange="actualizarSelectMaquinaria(this.value)">
+              <option value="">— Seleccioná —</option>
+              <option>Siembra</option><option>Pulverización</option><option>Fertilización</option>
+              <option>Cosecha</option><option>Henificación</option><option>Enrollado</option>
+              <option>Labranza</option><option>Otro</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0"><label>Herramienta / Maquinaria</label>
+            <select id="mtr-herramienta"><option value="">— Seleccioná tipo primero —</option></select>
+          </div>
+          <div class="form-group" style="margin:0"><label>Contratista</label><input type="text" id="mtr-cont" placeholder="Dejar vacío = Propio"></div>
+          <div class="form-group" style="margin:0"><label>Campo</label>
+            <select id="mtr-campo">
+              <option>Don Alfredo (Azcona)</option><option>Doña Vica</option><option>Sant-Yago</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0"><label>Cultivo</label><input type="text" id="mtr-cultivo" placeholder="Ej: Maíz, Soja, Trigo"></div>
+          <div class="form-group" style="margin:0"><label>Campaña</label><input type="text" id="mtr-campania" placeholder="Ej: 25/26"></div>
+        </div>
+
+        <!-- LOTES DINÁMICOS -->
+        <div style="margin-top:12px">
+          <div style="font-weight:600;font-size:12px;color:#555;margin-bottom:6px">Lotes y hectáreas</div>
+          <div id="mtr-lotes-list"></div>
+          <button type="button" onclick="agregarFilaLoteModal()" style="margin-top:4px;padding:5px 12px;font-size:12px;border:1px dashed #8B1A2F;background:none;color:#8B1A2F;border-radius:6px;cursor:pointer">+ Agregar lote</button>
+        </div>
+
+      <!-- SECCIÓN 2: INSUMOS -->
+      <div>
+        <div style="font-weight:700;font-size:13px;color:#8B1A2F;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #e0e0e0">🧪 Insumos / Productos</div>
+        <p style="font-size:12px;color:#888;margin:0 0 10px">Si usaste varios productos, agregá una fila por cada uno.</p>
+        <div id="mtr-insumos-list"></div>
+        <button type="button" onclick="agregarFilaInsumoModal()" style="margin-top:6px;padding:6px 12px;font-size:12px;border:1px dashed #8B1A2F;background:none;color:#8B1A2F;border-radius:6px;cursor:pointer">+ Agregar insumo</button>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:16px 24px;border-top:1px solid #e0e0e0;display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="cerrarModalTrabajo()" style="padding:8px 20px;border:1px solid #ccc;background:#fff;border-radius:7px;cursor:pointer;font-size:14px">Cancelar</button>
+      <button onclick="guardarTrabajoModal()" style="padding:8px 22px;background:#8B1A2F;color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:14px;font-weight:600">💾 Guardar</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
