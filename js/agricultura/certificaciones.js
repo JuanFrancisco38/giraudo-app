@@ -137,6 +137,7 @@ function renderResumenCert(certs, liqs) {
         <td style="font-size:13px">${dep}</td>
         <td>${fmtKg(kg)}</td>
         <td>${esUltimo ? `<strong style="color:${stockRem < 0 ? 'var(--rojo)' : 'var(--verde)'}">${fmtKg(stockRem)}</strong>` : ''}</td>
+        <td>${esUltimo ? `<strong>${fmtKg(totalGrano)}</strong>` : ''}</td>
       </tr>`);
     });
   });
