@@ -42,11 +42,15 @@ async function cargarMaquinariaModal() {
   return maquinariaModalCache;
 }
 
+function normCat(s) {
+  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+}
+
 function actualizarSelectMaquinaria(tipo) {
   const sel = document.getElementById('mtr-herramienta');
   const cats = MAQUINARIA_POR_TIPO[tipo]; // null = todas
   const filtradas = cats
-    ? maquinariaModalCache.filter(m => cats.includes(m.categoria))
+    ? maquinariaModalCache.filter(m => cats.some(c => normCat(c) === normCat(m.categoria)))
     : maquinariaModalCache;
 
   sel.innerHTML = '<option value="">— Sin especificar —</option>';
