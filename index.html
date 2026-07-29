@@ -772,12 +772,22 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
     <!-- LIQUIDACIONES HACIENDA -->
     <div id="section-liq_hacienda" class="section">
       <div class="resumen-box">
-        <h4>📊 Resumen ventas hacienda</h4>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+          <h4 style="margin:0">📊 Resumen ventas hacienda</h4>
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="font-size:13px;color:var(--texto-suave)">Año:</label>
+            <select id="lh-filtro-anio" onchange="renderLiqHacienda()" style="padding:5px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px">
+              <option value="">Todos</option>
+            </select>
+          </div>
+        </div>
         <div class="resumen-grid">
           <div class="resumen-item"><div class="ri-label">Total cabezas vendidas</div><div class="ri-value" id="lh-res-cabezas">0</div></div>
+          <div class="resumen-item"><div class="ri-label">Total kg vendidos</div><div class="ri-value" style="font-size:13px" id="lh-res-kg">—</div></div>
           <div class="resumen-item"><div class="ri-label">Total neto cobrado</div><div class="ri-value" style="font-size:13px" id="lh-res-neto">$0</div></div>
           <div class="resumen-item"><div class="ri-label">Precio promedio venta</div><div class="ri-value" style="font-size:13px" id="lh-res-precio">$0/kg</div></div>
           <div class="resumen-item"><div class="ri-label">Ret. Ganancias hacienda</div><div class="ri-value" style="font-size:13px" id="lh-res-gan">$0</div></div>
+          <div class="resumen-item"><div class="ri-label">Comisiones y otros gastos</div><div class="ri-value" style="font-size:13px" id="lh-res-com">—</div></div>
           <div class="resumen-item"><div class="ri-label">Consignatarios</div><div class="ri-value" style="font-size:13px" id="lh-res-cons">—</div></div>
         </div>
         <div style="font-size:12px;font-weight:600;color:var(--bordo);margin:14px 0 8px">Por categoría</div>

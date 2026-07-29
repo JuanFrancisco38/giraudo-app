@@ -144,13 +144,21 @@ async function guardarLiqHacienda() {
 
 async function cargarLiqHacienda() {
   liqhacTodas = await sb('GET', 'liquidaciones_hacienda', '', '?order=fecha.desc') || [];
+  // Poblar filtro de años
+  const sel = document.getElementById('lh-filtro-anio');
+  if (sel) {
+    const anios = [...new Set(liqhacTodas.map(l => (l.fecha || '').slice(0, 4)).filter(Boolean))].sort().reverse();
+    const actual = sel.value;
+    sel.innerHTML = '<option value="">Todos</option>' + anios.map(a => `<option value="${a}" ${a === actual ? 'selected' : ''}>${a}</option>`).join('');
+  }
   renderLiqHacienda();
 }
 
 function filtrarLiqHacReset() { liqhacPagina = 1; renderLiqHacienda(); }
 
 function renderLiqHacienda() {
-  const rows = liqhacTodas;
+  const fAnio = document.getElementById('lh-filtro-anio')?.value || '';
+  const rows = fAnio ? liqhacTodas.filter(l => (l.fecha || '').startsWith(fAnio)) : liqhacTodas;
   const tbody = document.getElementById('tabla-liqhac');
   if (!tbody) return;
 
@@ -162,6 +170,7 @@ function renderLiqHacienda() {
     a.gan += l.ret_ganancias || 0;
     a.importe += l.subtotal || 0;
     a.kg += l.kg_totales || 0;
+    a.com += (l.comision || 0) + (l.iva || 0);
     if (l.consignatario) a.cons.add(l.consignatario);
     const cat = l.categoria || 'Sin categoría';
     if (!porCat[cat]) porCat[cat] = { cabezas: 0, kg: 0, importe: 0 };
@@ -169,10 +178,12 @@ function renderLiqHacienda() {
     porCat[cat].kg += l.kg_totales || 0;
     porCat[cat].importe += l.subtotal || 0;
     return a;
-  }, { cabezas: 0, neto: 0, gan: 0, importe: 0, kg: 0, cons: new Set() });
+  }, { cabezas: 0, neto: 0, gan: 0, importe: 0, kg: 0, com: 0, cons: new Set() });
   document.getElementById('lh-res-cabezas').textContent = fmtNum(res.cabezas);
+  document.getElementById('lh-res-kg').textContent = res.kg ? fmtKg(res.kg) : '—';
   document.getElementById('lh-res-neto').textContent = fmtMonto(res.neto, 'ARS');
   document.getElementById('lh-res-gan').textContent = fmtMonto(res.gan, 'ARS');
+  document.getElementById('lh-res-com').textContent = res.com ? fmtMonto(res.com, 'ARS') : '—';
   document.getElementById('lh-res-precio').textContent = res.kg ? fmtMonto(res.importe / res.kg, 'ARS') + '/kg' : '$0/kg';
   document.getElementById('lh-res-cons').textContent = res.cons.size ? [...res.cons].join(' / ') : '—';
 
@@ -203,7 +214,7 @@ function renderLiqHacienda() {
 
   const pag = document.getElementById('liqhac-paginador');
   const fBusca = (document.getElementById('liqhac-filtro-busca')?.value || '').trim().toLowerCase();
-  const filtradas = fBusca ? rows.filter(l => `${l.consignatario || ''} ${l.numero || ''}`.toLowerCase().includes(fBusca)) : rows;
+  const filtradas = rows.filter(l => !fBusca || `${l.consignatario || ''} ${l.numero || ''}`.toLowerCase().includes(fBusca));
   if (!filtradas || !filtradas.length) {
     tbody.innerHTML = `<tr><td colspan="14"><div class="empty-state"><div class="icon">📄</div><h3>${fBusca ? 'Sin resultados para la búsqueda' : 'Sin liquidaciones'}</h3></div></td></tr>`;
     if (pag) pag.innerHTML = '';
