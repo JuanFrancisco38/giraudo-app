@@ -131,11 +131,12 @@ function renderResumenCert(certs, liqs) {
     const stockRem = totalGrano - (kgVendidoPorGrano[grano] || 0);
     const depEntries = Object.entries(deps);
     depEntries.forEach(([dep, kg], i) => {
+      const esUltimo = i === depEntries.length - 1;
       filas.push(`<tr>
-        ${i === 0 ? `<td rowspan="${depEntries.length}"><span class="badge badge-${cultColors[grano.toLowerCase()]||'gray'}">${grano}</span></td>` : ''}
-        ${i === 0 ? `<td rowspan="${depEntries.length}">${fmtKg(totalGrano)}</td>` : ''}
+        ${i === 0 ? `<td rowspan="${depEntries.length}" style="vertical-align:middle"><span class="badge badge-${cultColors[grano.toLowerCase()]||'gray'}">${grano}</span></td>` : ''}
         <td style="font-size:13px">${dep}</td>
-        ${i === 0 ? `<td rowspan="${depEntries.length}"><strong style="color:${stockRem < 0 ? 'var(--rojo)' : 'var(--verde)'}">${fmtKg(stockRem)}</strong></td>` : ''}
+        <td>${fmtKg(kg)}</td>
+        <td>${esUltimo ? `<strong style="color:${stockRem < 0 ? 'var(--rojo)' : 'var(--verde)'}">${fmtKg(stockRem)}</strong>` : ''}</td>
       </tr>`);
     });
   });
