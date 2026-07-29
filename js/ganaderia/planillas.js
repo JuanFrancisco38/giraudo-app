@@ -91,6 +91,7 @@ function generarPlanillaPDF() {
 const CSS_BASE = `
   <style>
   @page { size: A4 portrait; margin: 10mm 11mm; }
+  html, body { width: 210mm; }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #fff; font-family: system-ui, sans-serif; }
   .enc { display:flex; align-items:flex-end; justify-content:space-between; border-bottom:2.5px solid #2D5016; padding-bottom:5px; margin-bottom:5px; }
@@ -112,7 +113,7 @@ const CSS_BASE = `
   td.num { font-size:6pt; color:#999; text-align:center; vertical-align:middle; font-family:'Courier New',monospace; }
   td.idc { font-family:'Courier New',monospace; font-size:7pt; padding:0 3px; vertical-align:middle; }
   .pie { display:flex; justify-content:space-between; font-size:6.5pt; color:#555; margin-top:3px; }
-  .page { width:100%; height:297mm; display:flex; flex-direction:column; gap:6px; page-break-after:always; }
+  .page { width:100%; height:277mm; display:flex; flex-direction:column; gap:6px; page-break-after:always; overflow:hidden; }
   .page:last-child { page-break-after:auto; }
   </style>`;
 
