@@ -21,14 +21,14 @@ function calcTotalInsumo(input) {
   row.querySelector('.ins-total').value = precio && cantidad ? Math.round(precio * cantidad) : '';
 }
 
-// Mapeo tipo de trabajo → categorías de maquinaria
+// Mapeo tipo de trabajo → categorías de maquinaria (acepta múltiples alias)
 const MAQUINARIA_POR_TIPO = {
   'Siembra':       ['Siembra', 'Tractores'],
-  'Pulverización': ['Pulverización', 'Tractores'],
-  'Fertilización': ['Fertilización', 'Tractores'],
+  'Pulverización': ['Pulverización', 'Pulverizacion', 'Tractores'],
+  'Fertilización': ['Fertilización', 'Fertilizacion', 'Tractores'],
   'Cosecha':       ['Cosecha'],
-  'Henificación':  ['Forrajes', 'Tractores'],
-  'Enrollado':     ['Forrajes', 'Tractores'],
+  'Henificación':  ['Henificación', 'Henificacion', 'Forrajes', 'Tractores'],
+  'Enrollado':     ['Enrollado', 'Forrajes', 'Tractores'],
   'Labranza':      ['Labranza', 'Tractores'],
   'Otro':          null, // null = todas
 };
@@ -36,6 +36,11 @@ const MAQUINARIA_POR_TIPO = {
 let maquinariaModalCache = [];
 
 async function cargarMaquinariaModal() {
+  // Reusar el array global si ya fue cargado por el módulo de maquinaria
+  if (typeof maquinas !== 'undefined' && maquinas.length) {
+    maquinariaModalCache = maquinas;
+    return maquinariaModalCache;
+  }
   if (maquinariaModalCache.length) return maquinariaModalCache;
   const rows = await sb('GET', 'maquinaria', null, '?order=categoria,nombre');
   maquinariaModalCache = rows || [];
