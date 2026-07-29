@@ -48,15 +48,20 @@ async function cargarMaquinariaModal() {
 }
 
 function normCat(s) {
-  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+  return (s || '').toLowerCase()
+    .replace(/á/g,'a').replace(/é/g,'e').replace(/í/g,'i').replace(/ó/g,'o').replace(/ú/g,'u').replace(/ñ/g,'n').trim();
 }
 
 function actualizarSelectMaquinaria(tipo) {
   const sel = document.getElementById('mtr-herramienta');
-  const cats = MAQUINARIA_POR_TIPO[tipo]; // null = todas
-  const filtradas = cats
-    ? maquinariaModalCache.filter(m => cats.some(c => normCat(c) === normCat(m.categoria)))
-    : maquinariaModalCache;
+  const cats = MAQUINARIA_POR_TIPO[tipo];
+  let filtradas = maquinariaModalCache;
+  if (tipo && cats) {
+    const catNorms = cats.map(normCat);
+    const candidatas = maquinariaModalCache.filter(m => catNorms.includes(normCat(m.categoria)));
+    // Si hay resultado usamos el filtro; si no, mostramos todas para que el usuario pueda elegir igual
+    filtradas = candidatas.length ? candidatas : maquinariaModalCache;
+  }
 
   sel.innerHTML = '<option value="">— Sin especificar —</option>';
   // Agrupar por categoría
