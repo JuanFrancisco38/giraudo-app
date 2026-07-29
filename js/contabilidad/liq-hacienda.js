@@ -201,12 +201,14 @@ function renderLiqHacienda() {
           <td><span class="badge badge-bordo">${cat}</span></td>
           <td>${fmtNum(v.cabezas)}</td>
           <td>${v.kg ? fmtKg(v.kg) : '—'}</td>
+          <td>${v.kg ? fmtMonto(v.importe / v.kg, 'ARS') + '/kg' : '—'}</td>
           <td>${v.importe ? fmtMonto(v.importe, 'ARS') : '—'}</td>
         </tr>`
       ).join('') + `<tr style="font-weight:700;border-top:2px solid var(--gris-borde)">
           <td>TOTAL</td>
           <td>${fmtNum(totCab)}</td>
           <td>${fmtKg(totKg)}</td>
+          <td>${totKg ? fmtMonto(totImp / totKg, 'ARS') + '/kg' : '—'}</td>
           <td>${fmtMonto(totImp, 'ARS')}</td>
         </tr>`;
     }
