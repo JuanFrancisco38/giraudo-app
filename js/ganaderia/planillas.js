@@ -106,7 +106,8 @@ const CSS_BASE = `
   thead th { background:#2D5016; color:#fff; padding:4px 3px; font-size:7pt; font-weight:700; text-transform:uppercase; text-align:center; border-right:1px solid rgba(255,255,255,0.2); white-space:nowrap; }
   thead th:last-child { border-right:none; }
   thead th.sep { border-left:3px solid rgba(255,255,255,0.55) !important; }
-  tbody tr:nth-child(even) { background:#F2F6EF; }
+  tbody tr:nth-child(even) { background:#E0E0E0; }
+  tbody tr:nth-child(odd)  { background:#FFFFFF; }
   tbody td { border-right:1px solid #B8C8AD; border-bottom:1px solid #B8C8AD; padding:0; }
   tbody td:last-child { border-right:none; }
   tbody td.sep { border-left:2.5px solid #7A9A68 !important; }
