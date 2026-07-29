@@ -179,14 +179,26 @@ function renderLiqHacienda() {
   const contCat = document.getElementById('lh-res-categorias');
   if (contCat) {
     const cats = Object.entries(porCat).sort((a, b) => b[1].cabezas - a[1].cabezas);
-    contCat.innerHTML = cats.length ? cats.map(([cat, v]) => {
-      const precioProm = v.kg ? fmtMonto(v.importe / v.kg, 'ARS') + '/kg' : '—';
-      return `<div style="background:#fff;border:1px solid var(--bordo-suave);border-radius:8px;padding:10px">
-        <div style="font-size:12px;color:var(--bordo);font-weight:600;margin-bottom:4px">${cat}</div>
-        <div style="font-size:15px;font-weight:700;color:var(--bordo)">${fmtNum(v.cabezas)} cab.</div>
-        <div style="font-size:12px;color:var(--texto-suave);margin-top:2px">${fmtKg(v.kg)} · ${precioProm}</div>
-      </div>`;
-    }).join('') : '<div style="font-size:12px;color:var(--texto-suave)">Sin datos.</div>';
+    if (!cats.length) {
+      contCat.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--texto-suave);padding:12px">Sin datos</td></tr>';
+    } else {
+      const totCab = cats.reduce((s, [, v]) => s + v.cabezas, 0);
+      const totKg  = cats.reduce((s, [, v]) => s + v.kg, 0);
+      const totImp = cats.reduce((s, [, v]) => s + v.importe, 0);
+      contCat.innerHTML = cats.map(([cat, v]) =>
+        `<tr>
+          <td><span class="badge badge-bordo">${cat}</span></td>
+          <td>${fmtNum(v.cabezas)}</td>
+          <td>${v.kg ? fmtKg(v.kg) : '—'}</td>
+          <td>${v.importe ? fmtMonto(v.importe, 'ARS') : '—'}</td>
+        </tr>`
+      ).join('') + `<tr style="font-weight:700;border-top:2px solid var(--gris-borde)">
+          <td>TOTAL</td>
+          <td>${fmtNum(totCab)}</td>
+          <td>${fmtKg(totKg)}</td>
+          <td>${fmtMonto(totImp, 'ARS')}</td>
+        </tr>`;
+    }
   }
 
   const pag = document.getElementById('liqhac-paginador');
