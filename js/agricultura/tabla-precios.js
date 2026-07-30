@@ -181,9 +181,9 @@ async function sincronizarDesdeFacturas() {
   // Agrupar por producto+rubro+unidad+campaña → promedio de precios
   const grupos = {};
   recibidas.forEach(b => {
-    let obs;
-    try { obs = JSON.parse(b.observaciones || '{}'); } catch(e) { return; }
-    if (!obs.costo_unitario || !b.concepto) return;
+    if (!b.concepto) return;
+    let obs = {};
+    try { obs = JSON.parse(b.observaciones || '{}'); } catch(e) {}
     const camp = obs.campania || '';
     const clave = `${(b.concepto||'').trim()}||${b.categoria||''}||${obs.unidad||''}||${camp}`;
     if (!grupos[clave]) grupos[clave] = {
@@ -191,12 +191,15 @@ async function sincronizarDesdeFacturas() {
       unidad: obs.unidad||'', moneda: obs.moneda_costo||'ARS',
       campania: camp, precios: []
     };
-    grupos[clave].precios.push(Number(obs.costo_unitario));
+    // precio unitario: usar costo_unitario si existe, si no calcular de monto/cantidad
+    let pu = Number(obs.costo_unitario) || 0;
+    if (!pu && b.monto && obs.cantidad) pu = Number(b.monto) / Number(obs.cantidad);
+    if (pu > 0) grupos[clave].precios.push(pu);
   });
 
   let ok = 0;
   for (const g of Object.values(grupos)) {
-    const promedio = g.precios.reduce((a,b) => a+b, 0) / g.precios.length;
+    const promedio = g.precios.length ? g.precios.reduce((a,b) => a+b, 0) / g.precios.length : null;
     const r = await sb('POST', 'tabla_precios', {
       producto: g.producto, rubro: g.rubro, unidad: g.unidad,
       precio: Math.round(promedio * 100) / 100, moneda: g.moneda,
