@@ -603,11 +603,11 @@ function renderTabAnimales(rodeoId, animales) {
             : catNaranja  ? '#d4904a'
             : '#ccc';
 
-          return `<div style="${cardStyle};background:${bgCard};border-color:${borderCard};display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="seleccionarAnimal('${a.id}')">
+          return `<div style="${cardStyle};background:${bgCard};border-color:${borderCard};display:flex;justify-content:space-between;align-items:center;gap:10px;position:relative" onclick="seleccionarAnimal('${a.id}')">
+            <button class="btn btn-danger" style="position:absolute;top:8px;right:8px;padding:2px 7px;font-size:12px;z-index:1" onclick="event.stopPropagation();borrarAnimalManga('${a.id}')">🗑️</button>
             <div style="flex:1;min-width:0">
-              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+              <div style="margin-bottom:6px">
                 <span class="badge badge-${color}" style="font-size:13px;padding:4px 10px">${a.categoria || a.sexo || '—'}</span>
-                <button class="btn btn-danger" style="padding:2px 7px;font-size:12px" onclick="event.stopPropagation();borrarAnimalManga('${a.id}')">🗑️</button>
               </div>
               <div style="font-size:22px;font-weight:800;color:var(--${color});margin-bottom:3px">#${caravanaDisplay(a)}</div>
               ${a.caravana_interna && a.caravana_electronica ? `<div style="font-size:12px;color:var(--texto-suave)">E: ${a.caravana_electronica}</div>` : ''}
