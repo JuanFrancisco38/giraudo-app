@@ -162,7 +162,6 @@ function buscarCostoUnitarioInsumo(descripcion, campania) {
     unidad: lista.find(x => x.unidad)?.unidad || ''
   });
 
-  const campN = normalizarCampania(campania);
   if (porCampania[campN]) return promediar(porCampania[campN]);
 
   // Sin facturas de esta campaña: usar el promedio de la campaña anterior más reciente que tenga datos.
