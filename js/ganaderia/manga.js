@@ -906,10 +906,19 @@ function renderContenidoFicha(tab) {
         ${pesadas.length ? (() => {
           const ult = pesadas[pesadas.length-1];
           const primera = pesadas[0];
-          const diasTotal = Math.floor((new Date(ult.fecha) - new Date(primera.fecha)) / 86400000);
-          const gdpTotal = diasTotal > 0 ? ((ult.peso_kg - primera.peso_kg) / diasTotal).toFixed(2) : '—';
+          const nac = a.fecha_nacimiento ? new Date(a.fecha_nacimiento) : null;
+          // GDP: entre pesadas si hay más de una; si hay solo una, desde nacimiento
+          let gdpTotal = '—';
+          let gdpLabel = 'GDP promedio';
+          if (pesadas.length >= 2) {
+            const diasTotal = Math.floor((new Date(ult.fecha) - new Date(primera.fecha)) / 86400000);
+            if (diasTotal > 0) gdpTotal = ((ult.peso_kg - primera.peso_kg) / diasTotal).toFixed(2);
+          } else if (nac) {
+            const diasDesdeNac = Math.floor((new Date(ult.fecha) - nac) / 86400000);
+            if (diasDesdeNac > 0) { gdpTotal = (ult.peso_kg / diasDesdeNac).toFixed(2); gdpLabel = 'GDP desde nac.'; }
+          }
           return `<div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Último peso</div><div style="font-size:20px;font-weight:800;color:var(--verde)">${ult.peso_kg} kg</div><div style="font-size:11px;color:var(--texto-suave)">${fmtFecha(ult.fecha)}</div></div>
-          <div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">GDP promedio</div><div style="font-size:20px;font-weight:800;color:var(--tierra)">${gdpTotal} kg/día</div></div>`;
+          <div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">${gdpLabel}</div><div style="font-size:20px;font-weight:800;color:var(--tierra)">${gdpTotal !== '—' ? gdpTotal + ' kg/día' : '—'}</div></div>`;
         })() : ''}
       </div>`;
     })();
@@ -936,16 +945,6 @@ function renderContenidoFicha(tab) {
     : `<div class="empty-state" style="padding:24px"><div class="icon">⚖️</div><p>Sin pesadas registradas</p></div>`;
 
     return `<div class="card-body" style="padding-top:12px">
-      <button class="btn btn-secondary" style="font-size:12px;margin-bottom:12px" onclick="toggleFormPesada()">+ Registrar pesada</button>
-      <div id="form-pesada" style="display:none;background:var(--fondo);border-radius:8px;padding:12px;margin-bottom:16px">
-        <div class="form-grid">
-          <div class="form-group"><label>Fecha</label><input type="date" id="pes-fecha" value="${new Date().toISOString().split('T')[0]}"></div>
-          <div class="form-group"><label>Peso (kg)</label><input type="number" id="pes-peso" step="0.1" placeholder="Ej: 185.5"></div>
-          <div class="form-group"><label>Observaciones</label><input type="text" id="pes-obs" placeholder="Opcional"></div>
-        </div>
-        <button class="btn btn-primary" style="font-size:13px" onclick="guardarPesadaAnimal('${a.id}')">Guardar</button>
-        <button class="btn btn-secondary" style="font-size:13px;margin-left:8px" onclick="toggleFormPesada()">Cancelar</button>
-      </div>
       ${edadHtml}
       ${tablaPesadas}
     </div>`;
