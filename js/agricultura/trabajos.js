@@ -118,10 +118,58 @@ function agregarFilaLoteModal() {
   document.getElementById('mtr-lotes-list').insertAdjacentHTML('beforeend', filaLoteModalHTML());
 }
 
+let _boletasInsumos = null;
+
+async function cargarPanelPreciosInsumos() {
+  if (!_boletasInsumos) {
+    const rubros = ['Agroquímicos', 'Semillas', 'Fertilizantes'];
+    const todas = await sb('GET', 'boletas', '', '?order=fecha.desc') || [];
+    _boletasInsumos = todas.filter(b => rubros.includes(b.rubro));
+  }
+  renderPanelInsumos('');
+}
+
+function renderPanelInsumos(busca) {
+  const lista = document.getElementById('panel-insumos-lista');
+  if (!lista) return;
+  const q = (busca || '').toLowerCase().trim();
+  const items = (_boletasInsumos || []).filter(b =>
+    !q || (b.descripcion_a || '').toLowerCase().includes(q)
+  );
+  if (!items.length) {
+    lista.innerHTML = `<div style="padding:20px;text-align:center;color:#aaa;font-size:13px">Sin resultados</div>`;
+    return;
+  }
+  lista.innerHTML = items.map(b => {
+    let obs = {};
+    try { obs = JSON.parse(b.observaciones || '{}'); } catch(e) {}
+    const precioUnit = obs.precio_unitario ?? b.precio_unitario ?? b.costo_unitario ?? null;
+    const unidad = obs.unidad || b.unidad || '';
+    const moneda = obs.moneda || b.moneda || 'ARS';
+    const campania = b.campania || obs.campania || '—';
+    return `<div style="padding:8px 14px;border-bottom:1px solid #f0f0f0;font-size:12px">
+      <div style="font-weight:600;color:#222;margin-bottom:2px">${b.descripcion_a || '—'}</div>
+      <div style="display:flex;gap:12px;color:#555">
+        <span>${precioUnit != null ? fmtMonto(precioUnit, moneda) + (unidad ? '/' + unidad : '') : '—'}</span>
+        <span style="color:#888">Camp: ${campania}</span>
+        <span style="color:#aaa">${fmtFecha(b.fecha)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filtrarPanelInsumos() {
+  const q = document.getElementById('panel-insumos-busca')?.value || '';
+  renderPanelInsumos(q);
+}
+
 async function abrirModalTrabajo() {
   document.getElementById('modal-trabajo-overlay').style.display = 'block';
   const m = document.getElementById('modal-trabajo');
   m.style.display = 'flex';
+
+  // Cargar panel de precios en paralelo
+  cargarPanelPreciosInsumos();
 
   // Cargar maquinaria si no está en caché
   await cargarMaquinariaModal();
