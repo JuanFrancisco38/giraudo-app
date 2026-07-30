@@ -1,0 +1,170 @@
+const RUBROS_PRECIOS = ['Agroquímicos','Semillas','Fertilizantes','Combustibles y Lubricantes','Fletes','Insumos Varios','Reparaciones','Repuestos','Servicios Rurales','Servicios Varios','Insumos Veterinarios','Otro'];
+const UNIDADES_PRECIOS = ['','kg','lts','tt','unidad','bolsa','tn'];
+
+let tablaPreciosTodos = [];
+let tablaPreciosCampania = '';
+
+async function cargarTablaPrecios() {
+  const rows = await sb('GET', 'tabla_precios', '', '?order=rubro,producto');
+  tablaPreciosTodos = rows || [];
+  const camps = [...new Set(tablaPreciosTodos.map(r => r.campania).filter(Boolean))].sort();
+  const sel = document.getElementById('tp-filtro-campania');
+  const actual = sel.value;
+  sel.innerHTML = '<option value="">Todas las campañas</option>' + camps.map(c => `<option${c===actual?' selected':''}>${c}</option>`).join('');
+  if (!actual && camps.length) sel.value = camps[camps.length - 1]; // más reciente por defecto
+  tablaPreciosCampania = sel.value;
+  renderTablaPrecios();
+}
+
+function renderTablaPrecios() {
+  tablaPreciosCampania = document.getElementById('tp-filtro-campania').value;
+  const fBusca = (document.getElementById('tp-filtro-busca')?.value || '').toLowerCase();
+  const fRubro = document.getElementById('tp-filtro-rubro')?.value || '';
+  const rows = tablaPreciosTodos.filter(r => {
+    if (tablaPreciosCampania && r.campania !== tablaPreciosCampania) return false;
+    if (fRubro && r.rubro !== fRubro) return false;
+    if (fBusca && !(r.producto || '').toLowerCase().includes(fBusca)) return false;
+    return true;
+  });
+
+  const tbody = document.getElementById('tabla-precios-body');
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="icon">💰</div><h3>Sin precios para esta campaña</h3><p>Sincronizá desde facturas o agregá uno manualmente</p></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const precio = r.precio != null ? Number(r.precio) : null;
+    const moneda = r.moneda || 'ARS';
+    const origenBadge = r.origen === 'factura'
+      ? '<span class="badge badge-blue" style="font-size:10px">Factura</span>'
+      : '<span class="badge badge-gris" style="font-size:10px">Manual</span>';
+    return `<tr>
+      <td>${inputTP(r.id,'producto',r.producto,160)}</td>
+      <td>${selectTP(r.id,'rubro',r.rubro)}</td>
+      <td>${selectTPUnidad(r.id,'unidad',r.unidad)}</td>
+      <td style="text-align:right">${inputTPNum(r.id,'precio',precio,90)}</td>
+      <td>${selectTPMoneda(r.id,'moneda',moneda)}</td>
+      <td>${inputTP(r.id,'campania',r.campania,70)}</td>
+      <td style="text-align:center">${origenBadge}</td>
+      <td><button class="btn btn-secondary" style="padding:3px 8px;font-size:12px" onclick="borrarPrecio('${r.id}')">🗑️</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function inputTP(id, campo, valor, ancho) {
+  return `<input type="text" value="${(valor||'').replace(/"/g,'&quot;')}" style="width:${ancho}px;border:1px solid var(--gris-borde);border-radius:4px;padding:3px 5px;font-size:12px" onchange="editarPrecio('${id}','${campo}',this.value)">`;
+}
+function inputTPNum(id, campo, valor, ancho) {
+  const v = valor != null ? valor : '';
+  return `<input type="number" value="${v}" step="any" style="width:${ancho}px;border:1px solid var(--gris-borde);border-radius:4px;padding:3px 5px;font-size:12px;text-align:right" onchange="editarPrecio('${id}','${campo}',parseFloat(this.value)||null)">`;
+}
+function selectTP(id, campo, valor) {
+  const opts = RUBROS_PRECIOS.map(r => `<option${r===valor?' selected':''}>${r}</option>`).join('');
+  return `<select style="font-size:12px;border:1px solid var(--gris-borde);border-radius:4px;padding:3px 4px" onchange="editarPrecio('${id}','${campo}',this.value)">${opts}</select>`;
+}
+function selectTPUnidad(id, campo, valor) {
+  const opts = UNIDADES_PRECIOS.map(u => `<option value="${u}"${u===(valor||'')?' selected':''}>${u||'—'}</option>`).join('');
+  return `<select style="font-size:12px;border:1px solid var(--gris-borde);border-radius:4px;padding:3px 4px" onchange="editarPrecio('${id}','${campo}',this.value)">${opts}</select>`;
+}
+function selectTPMoneda(id, campo, valor) {
+  return `<select style="font-size:12px;border:1px solid var(--gris-borde);border-radius:4px;padding:3px 4px" onchange="editarPrecio('${id}','${campo}',this.value)">
+    <option${valor==='ARS'?' selected':''}>ARS</option>
+    <option${valor==='USD'?' selected':''}>USD</option>
+  </select>`;
+}
+
+async function editarPrecio(id, campo, valor) {
+  const r = await sb('PATCH', 'tabla_precios', { [campo]: valor }, `?id=eq.${id}`);
+  if (r) {
+    const row = tablaPreciosTodos.find(x => x.id === id);
+    if (row) row[campo] = valor;
+    toast('✅ Actualizado');
+  } else toast('❌ Error', 'var(--rojo)');
+}
+
+async function borrarPrecio(id) {
+  if (!confirm('¿Borrar este precio?')) return;
+  await sb('DELETE', 'tabla_precios', '', `?id=eq.${id}`);
+  toast('🗑️ Borrado');
+  cargarTablaPrecios();
+}
+
+function abrirFormNuevoPrecio() {
+  const f = document.getElementById('tp-form-nuevo');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+  if (f.style.display === 'block') {
+    document.getElementById('tp-nuevo-campania').value = tablaPreciosCampania || '';
+  }
+}
+
+async function guardarNuevoPrecio() {
+  const data = {
+    producto: document.getElementById('tp-nuevo-producto').value.trim(),
+    rubro: document.getElementById('tp-nuevo-rubro').value,
+    unidad: document.getElementById('tp-nuevo-unidad').value,
+    precio: parseFloat(document.getElementById('tp-nuevo-precio').value) || null,
+    moneda: document.getElementById('tp-nuevo-moneda').value,
+    campania: document.getElementById('tp-nuevo-campania').value.trim(),
+    origen: 'manual',
+  };
+  if (!data.producto) { toast('Ingresá el nombre del producto', 'var(--tierra)'); return; }
+  const r = await sb('POST', 'tabla_precios', data);
+  if (r) {
+    toast('✅ Precio agregado');
+    document.getElementById('tp-form-nuevo').style.display = 'none';
+    ['tp-nuevo-producto','tp-nuevo-precio','tp-nuevo-campania'].forEach(id => document.getElementById(id).value = '');
+    cargarTablaPrecios();
+  } else toast('❌ Error al guardar', 'var(--rojo)');
+}
+
+async function sincronizarDesdeFacturas() {
+  const campania = document.getElementById('tp-filtro-campania').value;
+  if (!campania) { toast('Seleccioná una campaña primero', 'var(--tierra)'); return; }
+
+  const btn = document.getElementById('btn-tp-sincronizar');
+  btn.disabled = true; btn.textContent = '⏳ Sincronizando...';
+
+  // Leer todas las boletas recibidas
+  const boletas = await sb('GET', 'boletas', '', '');
+  const recibidas = (boletas || []).filter(b => {
+    try {
+      const e = JSON.parse(b.observaciones || '{}');
+      const tipOk = !e.tipo_factura || e.tipo_factura === 'recibida';
+      const campNorm = (e.campania || '').replace(/20(\d\d)/g,'$1').trim();
+      const filtNorm = (campania || '').replace(/20(\d\d)/g,'$1').trim();
+      return tipOk && campNorm === filtNorm;
+    } catch(e) { return false; }
+  });
+
+  if (!recibidas.length) {
+    toast('No hay facturas para esa campaña', 'var(--tierra)');
+    btn.disabled = false; btn.textContent = '🔄 Sincronizar desde facturas';
+    return;
+  }
+
+  // Agrupar por producto+rubro+unidad → lista de precios
+  const grupos = {};
+  recibidas.forEach(b => {
+    const obs = JSON.parse(b.observaciones || '{}');
+    if (!obs.costo_unitario || !b.concepto) return;
+    const clave = `${(b.concepto||'').trim()}||${b.categoria||''}||${obs.unidad||''}`;
+    if (!grupos[clave]) grupos[clave] = { producto: (b.concepto||'').trim(), rubro: b.categoria||'', unidad: obs.unidad||'', moneda: obs.moneda_costo||'ARS', precios: [] };
+    grupos[clave].precios.push(Number(obs.costo_unitario));
+  });
+
+  let ok = 0;
+  for (const g of Object.values(grupos)) {
+    const promedio = g.precios.reduce((a,b) => a+b, 0) / g.precios.length;
+    const r = await sb('POST', 'tabla_precios', {
+      producto: g.producto, rubro: g.rubro, unidad: g.unidad,
+      precio: Math.round(promedio * 100) / 100, moneda: g.moneda,
+      campania, origen: 'factura'
+    });
+    if (r) ok++;
+  }
+
+  toast(`✅ ${ok} productos sincronizados desde facturas`);
+  btn.disabled = false; btn.textContent = '🔄 Sincronizar desde facturas';
+  cargarTablaPrecios();
+}

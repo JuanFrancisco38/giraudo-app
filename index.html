@@ -193,6 +193,7 @@ tr:hover td{background:var(--gris)}
   <div class="sidebar-group">
     <div class="nav-item" onclick="showSection('trabajos_agri',this)">🌾 Trabajos lotes</div>
     <div class="nav-item" onclick="showSection('lotes',this)">🗺️ Historial lotes</div>
+    <div class="nav-item" onclick="showSection('tabla_precios',this)">💰 Tabla de precios</div>
     <div class="nav-item" onclick="showSection('agro_dash',this)">📊 Análisis económicos</div>
     <div class="nav-item" onclick="showSection('manga',this)">🐄 Ganadería</div>
     <div class="nav-item" onclick="showSection('maquinaria',this)">🚜 Maquinaria</div>
@@ -1040,6 +1041,70 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
         <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Campo</th><th>Lote</th><th>Has</th><th>Cultivo</th><th>Contratista</th><th>Descripción / Insumos</th><th>Dosis</th><th>Consumo total</th><th>$ Unitario</th><th>$ Total</th><th>Campaña</th><th></th></tr></thead>
         <tbody id="tabla-trabajos"><tr><td colspan="14"><div class="empty-state"><div class="icon">🌾</div><h3>Sin trabajos registrados</h3></div></td></tr></tbody></table></div>
         <div id="trab-paginador"></div>
+      </div>
+    </div>
+
+    <!-- TABLA DE PRECIOS -->
+    <div id="section-tabla_precios" class="section">
+      <div class="card">
+        <div class="card-header">
+          <h3>💰 Tabla de precios</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input type="text" id="tp-filtro-busca" placeholder="🔎 Buscar producto..." oninput="renderTablaPrecios()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;width:180px">
+            <select id="tp-filtro-rubro" onchange="renderTablaPrecios()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px">
+              <option value="">Todos los rubros</option>
+              <option>Agroquímicos</option><option>Semillas</option><option>Fertilizantes</option>
+              <option>Combustibles y Lubricantes</option><option>Fletes</option><option>Insumos Varios</option>
+              <option>Reparaciones</option><option>Repuestos</option><option>Servicios Rurales</option>
+              <option>Insumos Veterinarios</option><option>Otro</option>
+            </select>
+            <select id="tp-filtro-campania" onchange="renderTablaPrecios()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;min-width:110px">
+              <option value="">Todas las campañas</option>
+            </select>
+            <button id="btn-tp-sincronizar" class="btn btn-secondary" onclick="sincronizarDesdeFacturas()">🔄 Sincronizar desde facturas</button>
+            <button class="btn btn-primary" onclick="abrirFormNuevoPrecio()">✚ Agregar precio</button>
+          </div>
+        </div>
+
+        <!-- Form nuevo precio manual -->
+        <div id="tp-form-nuevo" style="display:none;padding:16px 20px;border-top:1px solid var(--gris-borde);background:var(--fondo)">
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr auto;gap:10px;align-items:flex-end">
+            <div class="form-group" style="margin:0"><label>Producto</label><input type="text" id="tp-nuevo-producto" placeholder="Ej: Glifosato 75%"></div>
+            <div class="form-group" style="margin:0"><label>Rubro</label>
+              <select id="tp-nuevo-rubro">
+                <option>Agroquímicos</option><option>Semillas</option><option>Fertilizantes</option>
+                <option>Combustibles y Lubricantes</option><option>Fletes</option><option>Insumos Varios</option>
+                <option>Reparaciones</option><option>Repuestos</option><option>Servicios Rurales</option>
+                <option>Insumos Veterinarios</option><option>Otro</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0"><label>Unidad</label>
+              <select id="tp-nuevo-unidad">
+                <option value="">—</option><option>kg</option><option>lts</option><option>tt</option><option>unidad</option><option>bolsa</option><option>tn</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0"><label>Precio</label><input type="number" id="tp-nuevo-precio" placeholder="0" step="any"></div>
+            <div class="form-group" style="margin:0"><label>Moneda</label>
+              <select id="tp-nuevo-moneda"><option>ARS</option><option>USD</option></select>
+            </div>
+            <div class="form-group" style="margin:0"><label>Campaña</label><input type="text" id="tp-nuevo-campania" placeholder="Ej: 25/26"></div>
+            <div style="display:flex;gap:6px;padding-bottom:2px">
+              <button class="btn btn-primary" onclick="guardarNuevoPrecio()">Guardar</button>
+              <button class="btn btn-secondary" onclick="abrirFormNuevoPrecio()">✕</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Producto</th><th>Rubro</th><th>Unidad</th><th style="text-align:right">Precio</th><th>Moneda</th><th>Campaña</th><th>Origen</th><th></th>
+            </tr></thead>
+            <tbody id="tabla-precios-body">
+              <tr><td colspan="8"><div class="empty-state"><div class="icon">💰</div><h3>Sin precios cargados</h3></div></td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -1912,6 +1977,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 <script src="js/ganaderia/hoteleria.js"></script>
 <script src="js/ganaderia/alimentacion.js"></script>
 <script src="js/agricultura/trabajos.js"></script>
+<script src="js/agricultura/tabla-precios.js"></script>
 <script src="js/agricultura/agro-dashboard.js"></script>
 <script src="js/agricultura/lotes.js"></script>
 <script src="js/agricultura/certificaciones.js"></script>
