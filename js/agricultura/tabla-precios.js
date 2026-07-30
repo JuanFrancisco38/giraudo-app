@@ -3,6 +3,31 @@ const UNIDADES_PRECIOS = ['','kg','lts','tt','unidad','bolsa','tn'];
 
 let tablaPreciosTodos = [];
 let tablaPreciosCampania = '';
+let tipoCambioHoy = 0;
+
+async function fetchTipoCambio() {
+  const btn = document.getElementById('btn-tp-tc');
+  try {
+    btn.textContent = '⏳';
+    const res = await fetch('https://dolarapi.com/v1/dolares/oficial');
+    const data = await res.json();
+    const tc = data.venta || data.promedio || 0;
+    if (tc) {
+      tipoCambioHoy = tc;
+      document.getElementById('tp-tc').value = tc;
+      renderTablaPrecios();
+      toast(`✅ TC del día: $${tc}`);
+    }
+  } catch(e) {
+    toast('No se pudo obtener el TC automático', 'var(--tierra)');
+  }
+  btn.textContent = '🔄';
+}
+
+function actualizarTC() {
+  tipoCambioHoy = parseFloat(document.getElementById('tp-tc').value) || 0;
+  renderTablaPrecios();
+}
 
 async function cargarTablaPrecios() {
   const rows = await sb('GET', 'tabla_precios', '', '?order=rubro,producto');
@@ -36,6 +61,14 @@ function renderTablaPrecios() {
   tbody.innerHTML = rows.map(r => {
     const precio = r.precio != null ? Number(r.precio) : null;
     const moneda = r.moneda || 'ARS';
+    const tc = tipoCambioHoy;
+    let precioARS = null, precioUSD = null;
+    if (precio != null) {
+      if (moneda === 'ARS') { precioARS = precio; precioUSD = tc ? precio / tc : null; }
+      else                  { precioUSD = precio; precioARS = tc ? precio * tc : null; }
+    }
+    const fmtARS = v => v != null ? '$ ' + v.toLocaleString('es-AR', {minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+    const fmtUSD = v => v != null ? 'U$D ' + v.toLocaleString('es-AR', {minimumFractionDigits:2,maximumFractionDigits:2}) : (tc ? '—' : 'sin TC');
     const origenBadge = r.origen === 'factura'
       ? '<span class="badge badge-blue" style="font-size:10px">Factura</span>'
       : '<span class="badge badge-gris" style="font-size:10px">Manual</span>';
@@ -45,6 +78,8 @@ function renderTablaPrecios() {
       <td>${selectTPUnidad(r.id,'unidad',r.unidad)}</td>
       <td style="text-align:right">${inputTPNum(r.id,'precio',precio,90)}</td>
       <td>${selectTPMoneda(r.id,'moneda',moneda)}</td>
+      <td style="text-align:right;color:var(--verde);font-weight:600;font-size:13px">${fmtARS(precioARS)}</td>
+      <td style="text-align:right;color:#1a6abf;font-weight:600;font-size:13px">${fmtUSD(precioUSD)}</td>
       <td>${inputTP(r.id,'campania',r.campania,70)}</td>
       <td style="text-align:center">${origenBadge}</td>
       <td><button class="btn btn-secondary" style="padding:3px 8px;font-size:12px" onclick="borrarPrecio('${r.id}')">🗑️</button></td>
