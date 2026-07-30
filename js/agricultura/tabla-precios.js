@@ -192,7 +192,8 @@ async function sincronizarDesdeFacturas() {
     let obs = {};
     try { obs = JSON.parse(b.observaciones || '{}'); } catch(e) {}
     const camp = normCamp(obs.campania || '');
-    const clave = `${(b.concepto||'').trim()}||${b.categoria||''}||${obs.unidad||''}||${camp}`;
+    const conceptoNorm = (b.concepto||'').trim().toLowerCase().replace(/\s+/g,' ');
+    const clave = `${conceptoNorm}||${b.categoria||''}||${obs.unidad||''}||${camp}`;
     if (!grupos[clave]) grupos[clave] = {
       producto: (b.concepto||'').trim(), rubro: b.categoria||'',
       unidad: obs.unidad||'', moneda: obs.moneda_costo||'ARS',
@@ -203,6 +204,10 @@ async function sincronizarDesdeFacturas() {
     if (!pu && b.monto && obs.cantidad) pu = Number(b.monto) / Number(obs.cantidad);
     if (pu > 0) grupos[clave].precios.push(pu);
   });
+
+  // Borrar registros anteriores de origen 'factura' para evitar duplicados
+  const queryBorrar = campania ? `?origen=eq.factura&campania=eq.${encodeURIComponent(campania)}` : '?origen=eq.factura';
+  await sb('DELETE', 'tabla_precios', null, queryBorrar);
 
   let ok = 0;
   for (const g of Object.values(grupos)) {
