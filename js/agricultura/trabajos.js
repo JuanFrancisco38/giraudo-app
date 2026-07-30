@@ -125,7 +125,21 @@ async function cargarPanelPreciosInsumos() {
   if (!_boletasInsumos) {
     const rubros = ['Agroquímicos', 'Semillas', 'Fertilizantes'];
     const todas = await sb('GET', 'boletas', '', '?order=fecha.desc') || [];
-    _boletasInsumos = todas.filter(b => rubros.includes(b.rubro));
+    _boletasInsumos = todas.filter(b => rubros.includes(b.categoria)).map(b => {
+      let obs = {};
+      try { obs = JSON.parse(b.observaciones || '[]'); } catch(e) {}
+      // observaciones puede ser array de items o un objeto
+      const items = Array.isArray(obs) ? obs : (obs.items || [obs]);
+      return items.map(it => ({
+        descripcion_a: it.descripcion_a || b.concepto || '—',
+        costo_unitario: it.costo_unitario ?? null,
+        unidad: it.unidad || '',
+        moneda: it.moneda_costo || 'ARS',
+        campania: it.campania || b.campania || null,
+        fecha: b.fecha,
+        categoria: b.categoria,
+      }));
+    }).flat().filter(i => i.descripcion_a && i.descripcion_a !== '—');
     // Poblar select de campañas
     const camps = [...new Set(_boletasInsumos.map(b => b.campania).filter(Boolean))].sort().reverse();
     const sel = document.getElementById('panel-insumos-camp');
@@ -154,7 +168,7 @@ function renderPanelInsumos() {
   const q = (document.getElementById('panel-insumos-busca')?.value || '').toLowerCase().trim();
   const camp = document.getElementById('panel-insumos-camp')?.value || '';
   const items = (_boletasInsumos || []).filter(b => {
-    if (b.rubro !== _rubroActivoPanel) return false;
+    if (b.categoria !== _rubroActivoPanel) return false;
     if (camp && b.campania !== camp) return false;
     if (q && !(b.descripcion_a || '').toLowerCase().includes(q)) return false;
     return true;
@@ -164,14 +178,12 @@ function renderPanelInsumos() {
     return;
   }
   lista.innerHTML = items.map(b => {
-    let obs = {};
-    try { obs = JSON.parse(b.observaciones || '{}'); } catch(e) {}
-    const precioUnit = obs.precio_unitario ?? obs.costo_unitario ?? b.precio_unitario ?? null;
-    const unidad = obs.unidad || b.unidad || '';
-    const moneda = obs.moneda_costo || obs.moneda || b.moneda || 'ARS';
+    const precioUnit = b.costo_unitario;
+    const unidad = b.unidad || '';
+    const moneda = b.moneda || 'ARS';
     const campania = b.campania || '—';
     return `<div style="padding:8px 14px;border-bottom:1px solid #f0f0f0;font-size:12px">
-      <div style="font-weight:600;color:#222;margin-bottom:2px">${b.descripcion_a || '—'}</div>
+      <div style="font-weight:600;color:#222;margin-bottom:2px">${b.descripcion_a}</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;color:#555">
         <span style="color:#2a6f2a;font-weight:600">${precioUnit != null ? fmtMonto(precioUnit, moneda) + (unidad ? '/' + unidad : '') : '—'}</span>
         <span style="color:#888">📅 ${campania}</span>
