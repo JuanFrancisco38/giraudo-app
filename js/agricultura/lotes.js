@@ -1,4 +1,5 @@
 let tarifasTrabajos = [];
+let tablaPrecios = []; // precios corregidos desde tabla_precios
 
 async function cargarTarifas() {
   tarifasTrabajos = await sb('GET', 'tarifas_trabajos', '', '?order=tipo') || [];
@@ -57,11 +58,12 @@ async function cargarDatosCostosInsumos() {
 }
 
 async function cargarLotes() {
-  const [lotes, trabajos, boletas, liqs] = await Promise.all([
+  const [lotes, trabajos, boletas, liqs, precios] = await Promise.all([
     sb('GET', 'lotes', '', '?order=campo,lote'),
     sb('GET', 'trabajos_agricolas', '', '?tipo=neq.alimentacion'),
     sb('GET', 'boletas', ''),
-    sb('GET', 'liquidaciones_granos', '')
+    sb('GET', 'liquidaciones_granos', ''),
+    sb('GET', 'tabla_precios', '', '')
   ]);
   lotesData = lotes || [];
   trabajosParaLotes = trabajos || [];
@@ -69,6 +71,7 @@ async function cargarLotes() {
     try { return JSON.parse(b.observaciones || '{}').tipo_factura === 'recibida'; } catch(e) { return false; }
   });
   liqGranosParaLotes = liqs || [];
+  tablaPrecios = precios || [];
   cargarTarifas();
   renderLotes();
 }
@@ -111,6 +114,26 @@ function buscarCostoUnitarioInsumo(descripcion, campania) {
   const needle = normalizarTexto(descripcion);
   if (needle.length < 3) return null;
 
+  // Primero buscar en tabla_precios (precios corregidos)
+  const tc = (() => { try { return parseFloat(localStorage.getItem('tc_dolar') || '0') || 1; } catch(e) { return 1; } })();
+  const campN = normalizarCampania(campania);
+  const matchesTP = tablaPrecios.filter(p => normalizarTexto(p.producto || '').includes(needle));
+  if (matchesTP.length) {
+    const deCampania = matchesTP.filter(p => normalizarCampania(p.campania) === campN);
+    const lista = deCampania.length ? deCampania : matchesTP;
+    const precios = lista.map(p => {
+      const precio = p.moneda === 'USD' ? (p.precio || 0) * tc : (p.precio || 0);
+      return { precio, unidad: EQUIVALENCIAS_UNIDAD[(p.unidad || '').toLowerCase()] || (p.unidad || '').toLowerCase() };
+    }).filter(p => p.precio > 0);
+    if (precios.length) {
+      return {
+        precio: precios.reduce((s, x) => s + x.precio, 0) / precios.length,
+        unidad: precios.find(x => x.unidad)?.unidad || ''
+      };
+    }
+  }
+
+  // Fallback: buscar en boletas
   const porCampania = {};
   boletasParaLotes.forEach(b => {
     if (!normalizarTexto(b.concepto).includes(needle)) return;
