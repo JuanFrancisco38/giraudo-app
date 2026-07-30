@@ -521,20 +521,55 @@ function renderTabAnimales(rodeoId, animales) {
           const ultimoSrv = servicios[0];
           const _ref = a.caravana_interna || a.caravana_electronica;
           const crias = _ref ? animalesRodeo.filter(x => x.caravana_madre === _ref).length : 0;
-          return `<div style="${cardStyle}" onclick="seleccionarAnimal('${a.id}')">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-              <span class="badge badge-${color}">${a.categoria || a.sexo || '—'}</span>
-              <button class="btn btn-danger" style="padding:1px 6px;font-size:11px" onclick="event.stopPropagation();borrarAnimalManga('${a.id}')">🗑️</button>
+          const esHembraCard = a.sexo === 'Hembra';
+
+          // Estado reproductivo
+          const resUlt = ultimoSrv?.resultado || '';
+          const estadoReprod = resUlt || (esHembraCard ? 'Sin datos' : '');
+          const colReprod = resUlt === 'Preñada' ? '#1a7a3a' : resUlt === 'Vacía' ? '#b32b2b' : resUlt === 'Pendiente' ? '#7a5a00' : resUlt === 'Abortó' ? '#7a2020' : '#666';
+          const bgReprod  = resUlt === 'Preñada' ? '#d4edda' : resUlt === 'Vacía' ? '#fce8e8' : resUlt === 'Pendiente' ? '#fff3cd' : resUlt === 'Abortó' ? '#fce8e8' : '#f0f0f0';
+
+          // Estado fisiológico
+          let estadoFisio = '', colFisio = '', bgFisio = '';
+          if (esHembraCard) {
+            if (crias > 0) { estadoFisio = 'En lactancia'; colFisio = '#1a5f8a'; bgFisio = '#d0eaf8'; }
+            else           { estadoFisio = 'Seca';         colFisio = '#5a4a1a'; bgFisio = '#f5ecd5'; }
+          }
+
+          // Fecha probable de parto
+          let fppHtml = '';
+          if (resUlt === 'Preñada' && ultimoSrv?.fecha) {
+            const fSrv = new Date(ultimoSrv.fecha);
+            const fParto = new Date(fSrv); fParto.setDate(fParto.getDate() + 270);
+            const hoyCard = new Date(); hoyCard.setHours(0,0,0,0);
+            const diasG = Math.floor((hoyCard - fSrv) / 86400000);
+            const diasR = Math.floor((fParto - hoyCard) / 86400000);
+            const fmtFP = d => d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+            fppHtml = `<div style="margin-top:6px;text-align:center">
+              <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px">Parto probable</div>
+              <div style="font-size:14px;font-weight:700;color:#1a7a3a">${fmtFP(fParto)}</div>
+              <div style="font-size:11px;color:#555">${diasG} días gest. · ${diasR > 0 ? diasR + ' días' : '¡Vencida!'}</div>
+            </div>`;
+          }
+
+          return `<div style="${cardStyle};display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="seleccionarAnimal('${a.id}')">
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+                <span class="badge badge-${color}">${a.categoria || a.sexo || '—'}</span>
+                <button class="btn btn-danger" style="padding:1px 6px;font-size:11px" onclick="event.stopPropagation();borrarAnimalManga('${a.id}')">🗑️</button>
+              </div>
+              <div style="font-size:18px;font-weight:700;color:var(--${color});margin-bottom:2px">#${caravanaDisplay(a)}</div>
+              ${a.caravana_interna && a.caravana_electronica ? `<div style="font-size:11px;color:var(--texto-suave)">E: ${a.caravana_electronica}</div>` : ''}
+              <div style="font-size:12px;color:var(--texto-suave)">${a.raza || ''}</div>
+              ${a.caravana_madre ? `<div style="font-size:11px;color:var(--texto-suave);margin-top:2px">Madre: ${a.caravana_madre}</div>` : ''}
+              ${a.renspa_id ? `<div style="font-size:11px;color:var(--cielo);margin-top:2px">🏷️ ${renspaLabel(a.renspa_id) || ''}</div>` : ''}
+              ${crias ? `<div style="font-size:11px;color:var(--verde);margin-top:2px">🐣 ${crias} cría${crias !== 1 ? 's' : ''}</div>` : ''}
             </div>
-            <div style="font-size:18px;font-weight:700;color:var(--${color});margin-bottom:2px">#${caravanaDisplay(a)}</div>
-            ${a.caravana_interna && a.caravana_electronica ? `<div style="font-size:11px;color:var(--texto-suave)">E: ${a.caravana_electronica}</div>` : ''}
-            <div style="font-size:12px;color:var(--texto-suave)">${a.raza || ''}</div>
-            ${a.caravana_madre ? `<div style="font-size:11px;color:var(--texto-suave);margin-top:4px">Madre: ${a.caravana_madre}</div>` : ''}
-            ${a.renspa_id ? `<div style="font-size:11px;color:var(--cielo);margin-top:2px">🏷️ ${renspaLabel(a.renspa_id) || ''}</div>` : ''}
-            ${ultimoSrv ? `<div style="font-size:11px;margin-top:4px">
-              <span class="badge badge-${ultimoSrv.resultado === 'Preñada' ? 'verde' : ultimoSrv.resultado === 'Vacía' ? 'rojo' : 'gray'}" style="font-size:10px">${ultimoSrv.resultado || 'Pendiente'}</span>
+            ${esHembraCard && (estadoReprod || estadoFisio) ? `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:110px">
+              ${estadoReprod ? `<div style="background:${bgReprod};color:${colReprod};border-radius:8px;padding:5px 10px;font-size:15px;font-weight:800;text-align:center;width:100%;box-sizing:border-box">${estadoReprod}</div>` : ''}
+              ${estadoFisio ? `<div style="background:${bgFisio};color:${colFisio};border-radius:8px;padding:5px 10px;font-size:13px;font-weight:700;text-align:center;width:100%;box-sizing:border-box">${estadoFisio}</div>` : ''}
+              ${fppHtml}
             </div>` : ''}
-            ${crias ? `<div style="font-size:11px;color:var(--verde);margin-top:4px">🐣 ${crias} cría${crias !== 1 ? 's' : ''}</div>` : ''}
           </div>`;
         }).join('')}</div>
         <div style="font-size:12px;color:var(--texto-suave);margin-top:8px">Tocá una tarjeta para ver la ficha del animal</div>`
