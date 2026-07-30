@@ -169,7 +169,7 @@ tr:hover td{background:var(--gris)}
 
   <div class="sidebar-section" onclick="toggleNav(this)">Carga de trabajos <span class="nav-chevron">▾</span></div>
   <div class="sidebar-group">
-    <div class="nav-item" onclick="showSection('trabajos_agri',this)">🌾 Trabajos lotes</div>
+    <div class="nav-item" onclick="showSection('trabajos_agri',this)">🌾 Trabajos</div>
     <div class="nav-item" onclick="showSection('manga',this)">🐄 Ganadería</div>
     <div class="nav-item" onclick="showSection('maquinaria',this)">🚜 Maquinaria</div>
     <div class="nav-item" onclick="showSection('importar',this)">📥 Importar jornada (IA)</div>
@@ -191,7 +191,7 @@ tr:hover td{background:var(--gris)}
 
   <div class="sidebar-section" onclick="toggleNav(this)">Ver / Analizar <span class="nav-chevron">▾</span></div>
   <div class="sidebar-group">
-    <div class="nav-item" onclick="showSection('trabajos_agri',this)">🌾 Trabajos lotes</div>
+    <div class="nav-item" onclick="showSection('trabajos_agri',this)">🌾 Trabajos</div>
     <div class="nav-item" onclick="showSection('lotes',this)">🗺️ Historial lotes</div>
     <div class="nav-item" onclick="showSection('tabla_precios',this)">💰 Tabla de precios</div>
     <div class="nav-item" onclick="showSection('agro_dash',this)">📊 Análisis económicos</div>
@@ -1040,7 +1040,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
     <!-- TRABAJOS AGRICOLAS -->
     <div id="section-trabajos_agri" class="section">
       <div class="card">
-        <div class="card-header"><h3>🌾 Trabajos de campo</h3>
+        <div class="card-header"><h3>🌾 Trabajos</h3>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <input type="text" id="trab-filtro-busca" placeholder="🔎 Buscar lote, cultivo o contratista..." oninput="filtrarTrabajosReset()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;width:220px">
             <select id="trab-filtro-tipo" onchange="filtrarTrabajosReset()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px">
