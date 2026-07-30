@@ -274,6 +274,10 @@ function renderTrabajos() {
 
   const colors = {Siembra:'green',Pulverización:'blue',Fertilización:'yellow',Cosecha:'tierra',Henificación:'bordo'};
   tbody.innerHTML = pagina.map(t => {
+    // Costo del trabajo desde tabla de tarifas
+    const tarifaRow = (tarifasTrabajos || []).find(r => r.tipo === t.tipo);
+    const costoTrabajo = tarifaRow?.tarifa_ha && t.hectareas ? tarifaRow.tarifa_ha * t.hectareas : null;
+    // Costo de insumos (para referencia)
     let precioUnit = t.precio_unitario;
     let cantidad = parseNumeroDeTexto(t.consumo_total) || parseNumeroDeTexto(t.dosis) * (t.hectareas || 0);
     if (precioUnit == null && t.descripcion) {
@@ -284,11 +288,20 @@ function renderTrabajos() {
         precioUnit = r.precio;
       }
     }
-    const costoTotal = precioUnit != null && cantidad ? precioUnit * cantidad : null;
+    const costoInsumos = precioUnit != null && cantidad ? precioUnit * cantidad : null;
+    // Total: para terceros = tarifa cobrada × has; para propios = tarifa tabla + insumos
+    let totalMostrar;
+    if (t.tarifa_cobrada && t.hectareas) {
+      totalMostrar = fmtMonto(t.tarifa_cobrada * t.hectareas, t.moneda_cobrada || 'ARS');
+    } else {
+      const total = (costoTrabajo || 0) + (costoInsumos || 0);
+      totalMostrar = total ? fmtMonto(total, 'ARS') : '—';
+    }
+    const tarifaLabel = tarifaRow ? `<small style="color:#888;display:block">${fmtMonto(tarifaRow.tarifa_ha,'ARS')}/ha</small>` : '';
     return `
     <tr>
       <td>${fmtFecha(t.fecha)}</td>
-      <td><span class="badge badge-${colors[t.tipo] || 'gray'}">${t.tipo}</span></td>
+      <td><span class="badge badge-${colors[t.tipo] || 'gray'}">${t.tipo}</span>${tarifaLabel}</td>
       <td>${t.cliente ? `<span title="Trabajo a terceros" style="color:#b8860b;font-weight:600">👤 ${t.cliente}</span><br><small style="color:#888">${t.campo || ''}</small>` : (t.campo || '—')}</td>
       <td>${inputEditableTrabajo(t.id, 'lote', t.lote, 50)}</td>
       <td>${t.hectareas ? t.hectareas + ' has' : '—'}</td>
@@ -298,7 +311,7 @@ function renderTrabajos() {
       <td>${inputEditableTrabajo(t.id, 'dosis', t.dosis, 70, 'Ej: 3 lt/ha')}</td>
       <td>${inputEditableTrabajo(t.id, 'consumo_total', t.consumo_total, 80, 'Ej: 270 lts')}</td>
       <td>${inputEditableTrabajoNum(t.id, 'precio_unitario', precioUnit, 80)}</td>
-      <td>${t.tarifa_cobrada && t.hectareas ? fmtMonto(t.tarifa_cobrada * t.hectareas, t.moneda_cobrada || 'ARS') : costoTotal ? fmtMonto(costoTotal, 'ARS') : '—'}</td>
+      <td>${totalMostrar}</td>
       <td>${inputEditableTrabajo(t.id, 'campania', t.campania, 70, 'Ej: 25/26')}</td>
       <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarTrabajo('${t.id}')">🗑️</button></td>
     </tr>`;
