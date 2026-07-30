@@ -191,13 +191,6 @@ async function sincronizarDesdeFacturas() {
     if (pu > 0) grupos[clave].precios.push(pu);
   });
 
-  const nGrupos = Object.keys(grupos).length;
-  if (!nGrupos) {
-    toast(`⚠️ 197 recibidas pero concepto vacío en todas. Primer concepto: "${recibidas[0]?.concepto}"`, 'var(--tierra)');
-    btn.disabled = false; btn.textContent = '🔄 Sincronizar desde facturas';
-    return;
-  }
-
   let ok = 0;
   for (const g of Object.values(grupos)) {
     const promedio = g.precios.length ? g.precios.reduce((a,b) => a+b, 0) / g.precios.length : null;
@@ -209,7 +202,7 @@ async function sincronizarDesdeFacturas() {
     if (r) ok++;
   }
 
-  toast(ok ? `✅ ${ok} productos sincronizados` : `❌ ${nGrupos} grupos pero todos fallaron al guardar`);
+  toast(ok ? `✅ ${ok} productos sincronizados desde facturas` : '❌ Error al guardar');
   btn.disabled = false; btn.textContent = '🔄 Sincronizar desde facturas';
   cargarTablaPrecios();
 }
