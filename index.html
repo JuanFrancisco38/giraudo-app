@@ -1039,6 +1039,18 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 
     <!-- TRABAJOS AGRICOLAS -->
     <div id="section-trabajos_agri" class="section">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header"><h3>💲 Tarifas propias por tipo de trabajo</h3><button class="btn btn-secondary" onclick="toggleForm('form-tarifa')">+ Agregar</button></div>
+        <div id="form-tarifa" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
+          <div class="form-grid">
+            <div class="form-group"><label>Tipo de trabajo</label><select id="tar-tipo"><option>Siembra</option><option>Pulverización</option><option>Fertilización</option><option>Cosecha</option><option>Doble acción</option><option>Cincel</option><option>Corte</option><option>Enrollado</option><option>Henificación</option><option>Picado de forraje</option><option>Labranza</option><option>Otro</option></select></div>
+            <div class="form-group"><label>Tarifa $/ha</label><input type="number" id="tar-precio" placeholder="Ej: 25000"></div>
+          </div>
+          <div class="form-actions"><button class="btn btn-primary" onclick="guardarTarifaTrabajo()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-tarifa')">Cancelar</button></div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Tipo de trabajo</th><th>Tarifa $/ha</th><th></th></tr></thead>
+        <tbody id="tabla-tarifas"><tr><td colspan="3"><div class="empty-state"><div class="icon">💲</div><h3>Sin tarifas cargadas</h3></div></td></tr></tbody></table></div>
+      </div>
       <div class="card">
         <div class="card-header"><h3>🌾 Trabajos</h3>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -1146,18 +1158,6 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 
     <!-- LOTES -->
     <div id="section-lotes" class="section">
-      <div class="card" style="margin-bottom:16px">
-        <div class="card-header"><h3>💲 Tarifas propias por tipo de trabajo</h3><button class="btn btn-secondary" onclick="toggleForm('form-tarifa')">+ Agregar</button></div>
-        <div id="form-tarifa" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
-          <div class="form-grid">
-            <div class="form-group"><label>Tipo de trabajo</label><select id="tar-tipo"><option>Siembra</option><option>Pulverización</option><option>Fertilización</option><option>Cosecha</option><option>Henificación</option><option>Enrollado</option><option>Labranza</option><option>Otro</option></select></div>
-            <div class="form-group"><label>Tarifa $/ha</label><input type="number" id="tar-precio" placeholder="Ej: 5000"></div>
-          </div>
-          <div class="form-actions"><button class="btn btn-primary" onclick="guardarTarifaTrabajo()">Guardar</button><button class="btn btn-secondary" onclick="toggleForm('form-tarifa')">Cancelar</button></div>
-        </div>
-        <div class="table-wrap"><table><thead><tr><th>Tipo de trabajo</th><th>Tarifa $/ha</th><th></th></tr></thead>
-        <tbody id="tabla-tarifas"><tr><td colspan="3"><div class="empty-state"><div class="icon">💲</div><h3>Sin tarifas cargadas</h3></div></td></tr></tbody></table></div>
-      </div>
 
       <div class="card">
         <div class="card-header"><h3>🗺️ Lotes por campo</h3>

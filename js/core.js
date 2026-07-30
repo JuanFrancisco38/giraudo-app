@@ -123,7 +123,7 @@ function showSection(id, el) {
     dashboard:'Dashboard', importar:'Importar jornada', ia:'Consultas IA',
     animales:'Animales', eventos:'Eventos manga', pesadas:'Pesadas',
     hoteleria:'Hotelería', alimentacion:'Alimentación',
-    liq_hacienda:'Liquidaciones hacienda', trabajos_agri:'Trabajos de campo',
+    liq_hacienda:'Liquidaciones hacienda', trabajos_agri:'Trabajos',
     agro_dash:'Resumen agrícola',
     lotes:'Lotes / Historia', tabla_precios:'Tabla de precios', manga:'Ganadería', liq_granos:'Liquidaciones granos',
     certificaciones:'Certificaciones', maquinaria:'Maquinaria',
@@ -134,7 +134,7 @@ function showSection(id, el) {
   };
   if (id === 'boletas') cargarBoletas();
   if (id === 'precios') cargarHistorialPrecios();
-  if (id === 'trabajos_agri') cargarTrabajos();
+  if (id === 'trabajos_agri') { cargarTrabajos(); cargarTarifas(); }
   if (id === 'lotes') cargarLotes();
   if (id === 'tabla_precios') cargarTablaPrecios();
   if (id === 'manga') cargarManga();
