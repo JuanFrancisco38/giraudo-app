@@ -727,12 +727,117 @@ function renderContenidoFicha(tab) {
   }
 
   if (tab === 'reproductivo' && esHembra) {
+    const ref = a.caravana_interna || a.caravana_electronica;
+
+    // ── Armar ciclos reproductivos ──────────────────────────
+    // Ordenar servicios cronológicamente (más antiguo primero)
+    const srvOrdenados = [...servicios].sort((x, y) => new Date(x.fecha) - new Date(y.fecha));
+
+    // Agrupar: cada IATF/Toro abre un nuevo ciclo; Tacto se adhiere al ciclo anterior
+    const ciclos = [];
+    srvOrdenados.forEach(s => {
+      const esTacto = (s.metodo || '').toLowerCase() === 'tacto';
+      if (!esTacto || !ciclos.length) {
+        ciclos.push({ srv: s, tactos: esTacto ? [] : [], srvId: s.id });
+        if (esTacto) ciclos[ciclos.length - 1].tactos.push(s);
+      } else {
+        ciclos[ciclos.length - 1].tactos.push(s);
+      }
+    });
+
+    // Para cada ciclo buscar parición entre las crías de este animal
+    const refMadre = a.caravana_interna || a.caravana_electronica;
+    const criasAnimal = animalesRodeo.filter(x => x.caravana_madre && refMadre &&
+      (x.caravana_madre === a.caravana_interna || x.caravana_madre === a.caravana_electronica));
+
+    function paricionDeCiclo(ciclo) {
+      if (!ciclo.srv.fecha) return null;
+      const fSrv = new Date(ciclo.srv.fecha);
+      // Buscar cría nacida entre 180 y 340 días después del servicio
+      return criasAnimal.find(c => {
+        if (!c.fecha_nacimiento) return false;
+        const dias = (new Date(c.fecha_nacimiento) - fSrv) / 86400000;
+        return dias >= 180 && dias <= 340;
+      }) || null;
+    }
+
+    // Banner de gestación activa (ciclo más reciente con Preñada/Pendiente)
+    const cicloActivo = [...ciclos].reverse().find(c => {
+      const resUlt = c.tactos.length
+        ? c.tactos[c.tactos.length - 1].resultado
+        : c.srv.resultado;
+      return resUlt === 'Preñada' || resUlt === 'Pendiente';
+    });
+    const bannerHtml = (() => {
+      if (!cicloActivo || !cicloActivo.srv.fecha) return '';
+      const fSrv = new Date(cicloActivo.srv.fecha);
+      const fParto = new Date(fSrv); fParto.setDate(fParto.getDate() + 270);
+      const hoy = new Date(); hoy.setHours(0,0,0,0);
+      const diasG = Math.floor((hoy - fSrv) / 86400000);
+      const diasR = Math.floor((fParto - hoy) / 86400000);
+      const fmtD = d => d.toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'});
+      const badge = diasG >= 270
+        ? `<span class="badge badge-bordo" style="font-size:13px">¡Parto vencido!</span>`
+        : diasR <= 30
+          ? `<span class="badge badge-tierra" style="font-size:13px">Próxima al parto (${diasR} días)</span>`
+          : `<span class="badge badge-verde" style="font-size:13px">En gestación</span>`;
+      return `<div style="background:var(--fondo);border:1px solid var(--gris-borde);border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:16px;align-items:center">
+        ${badge}
+        <div style="display:flex;flex-wrap:wrap;gap:20px">
+          <div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Servicio</div><div style="font-size:15px;font-weight:700">${fmtD(fSrv)}</div></div>
+          <div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Días gestantes</div><div style="font-size:22px;font-weight:800;color:${diasG>=270?'var(--bordo)':'var(--verde)'}">${diasG}</div></div>
+          <div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Parto probable</div><div style="font-size:15px;font-weight:700">${fmtD(fParto)}</div></div>
+        </div>
+      </div>`;
+    })();
+
+    // Tabla de ciclos
+    const colRes = { 'Preñada':'verde','Vacía':'rojo','Repetidora':'tierra','Pendiente':'gray','Abortó':'bordo' };
+    const ciclosHtml = ciclos.length ? `<div class="table-wrap"><table>
+      <thead><tr>
+        <th style="width:28px">#</th>
+        <th>Inseminación</th><th>Método</th><th>Toro / Semen</th>
+        <th>Fecha tacto</th><th>Resultado</th>
+        <th>Parición</th><th>Cría</th>
+        <th>Obs.</th><th></th>
+      </tr></thead>
+      <tbody>${[...ciclos].reverse().map((c, i) => {
+        const num = ciclos.length - i;
+        // Resultado final: último tacto o el del propio servicio
+        const ultimoTacto = c.tactos.length ? c.tactos[c.tactos.length - 1] : null;
+        const resultado = ultimoTacto?.resultado || c.srv.resultado || '—';
+        const fechaTacto = ultimoTacto?.fecha_tacto || ultimoTacto?.fecha || c.srv.fecha_tacto;
+        const paricion = paricionDeCiclo(c);
+        const bgRow = resultado === 'Preñada' ? 'background:#f6fdf8'
+          : resultado === 'Vacía' ? 'background:#fdf6f6'
+          : resultado === 'Abortó' ? 'background:#fdf3f0'
+          : '';
+        // Tactos adicionales (puede haber más de uno)
+        const tactoExtra = c.tactos.length > 1
+          ? c.tactos.slice(0, -1).map(t => `<div style="font-size:11px;color:var(--texto-suave);margin-top:2px">${fmtFecha(t.fecha_tacto || t.fecha)} → <span class="badge badge-${colRes[t.resultado]||'gray'}" style="font-size:9px">${t.resultado}</span></div>`).join('')
+          : '';
+        return `<tr style="${bgRow}">
+          <td style="font-weight:700;color:var(--texto-suave);font-size:13px">${num}</td>
+          <td style="font-weight:600">${fmtFecha(c.srv.fecha)}</td>
+          <td><span class="badge badge-cielo" style="font-size:11px">${c.srv.metodo || '—'}</span></td>
+          <td>${c.srv.toro || '—'}</td>
+          <td>${fmtFecha(fechaTacto)}${tactoExtra}</td>
+          <td><span class="badge badge-${colRes[resultado]||'gray'}">${resultado}</span></td>
+          <td style="font-weight:${paricion?'600':'400'};color:${paricion?'var(--verde)':'var(--texto-suave)'}">${paricion ? fmtFecha(paricion.fecha_nacimiento) : (resultado === 'Preñada' ? '<span style="color:var(--verde);font-size:11px">Pendiente</span>' : '—')}</td>
+          <td>${paricion ? `<span class="badge badge-${paricion.sexo==='Hembra'?'bordo':'cielo'}" style="font-size:11px;cursor:pointer" onclick="seleccionarAnimal('${paricion.id}')">#${caravanaDisplay(paricion)}</span>` : '—'}</td>
+          <td style="font-size:12px;color:var(--texto-suave)">${c.srv.observaciones || '—'}</td>
+          <td><button class="btn btn-danger" style="padding:2px 8px;font-size:11px" onclick="borrarServicio('${c.srv.id}')">🗑️</button></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>`
+    : `<div class="empty-state" style="padding:24px"><div class="icon">🐄</div><p>Sin ciclos reproductivos registrados</p></div>`;
+
     return `<div class="card-body" style="padding-top:12px">
-      <button class="btn btn-secondary" style="font-size:12px;margin-bottom:12px" onclick="toggleFormServicio()">+ Registrar servicio</button>
+      <button class="btn btn-secondary" style="font-size:12px;margin-bottom:12px" onclick="toggleFormServicio()">+ Registrar servicio / tacto</button>
       <div id="form-servicio" style="display:none;background:var(--fondo);border-radius:8px;padding:12px;margin-bottom:16px">
         <div class="form-grid">
           <div class="form-group"><label>Fecha servicio</label><input type="date" id="srv-fecha"></div>
-          <div class="form-group"><label>Método</label><select id="srv-metodo"><option>IATF</option><option>Toro</option></select></div>
+          <div class="form-group"><label>Método</label><select id="srv-metodo"><option>IATF</option><option>Toro</option><option>Tacto</option></select></div>
           <div class="form-group"><label>Toro / Semen</label><input type="text" id="srv-toro" placeholder="Ej: Tornado, ABS-1234"></div>
           <div class="form-group"><label>Resultado tacto</label><select id="srv-resultado">
             <option>Pendiente</option><option>Preñada</option><option>Vacía</option><option>Repetidora</option><option>Abortó</option>
@@ -743,48 +848,8 @@ function renderContenidoFicha(tab) {
         <button class="btn btn-primary" style="font-size:13px" onclick="guardarServicio('${a.id}')">Guardar</button>
         <button class="btn btn-secondary" style="font-size:13px;margin-left:8px" onclick="toggleFormServicio()">Cancelar</button>
       </div>
-      ${(() => {
-        // Buscar el servicio más reciente que indique gestación activa
-        const srvActivo = servicios.find(s => s.resultado === 'Preñada' || s.resultado === 'Pendiente');
-        if (!srvActivo || !srvActivo.fecha) return '';
-        const fechaSrv = new Date(srvActivo.fecha);
-        const fechaParto = new Date(fechaSrv);
-        fechaParto.setDate(fechaParto.getDate() + 270);
-        const hoy = new Date();
-        hoy.setHours(0,0,0,0);
-        const diasGestantes = Math.floor((hoy - fechaSrv) / 86400000);
-        const diasRestantes = Math.floor((fechaParto - hoy) / 86400000);
-        const fmtD = d => d.toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'});
-        const colorDias = diasGestantes >= 270 ? 'var(--bordo)' : 'var(--verde)';
-        const estadoLabel = diasGestantes >= 270
-          ? `<span class="badge badge-bordo" style="font-size:13px">¡Parto vencido!</span>`
-          : diasRestantes <= 30
-            ? `<span class="badge badge-tierra" style="font-size:13px">Próxima al parto (${diasRestantes} días)</span>`
-            : `<span class="badge badge-verde" style="font-size:13px">En gestación</span>`;
-        return `<div style="background:var(--fondo);border:1px solid var(--gris-borde);border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:16px;align-items:center">
-          ${estadoLabel}
-          <div style="display:flex;flex-wrap:wrap;gap:20px">
-            <div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Fecha de servicio</div><div style="font-size:15px;font-weight:700">${fmtD(fechaSrv)}</div></div>
-            <div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Días gestantes</div><div style="font-size:22px;font-weight:800;color:${colorDias}">${diasGestantes}</div></div>
-            <div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Parto probable</div><div style="font-size:15px;font-weight:700">${fmtD(fechaParto)}</div></div>
-          </div>
-        </div>`;
-      })()}
-      ${servicios.length ? `<div class="table-wrap"><table>
-        <thead><tr><th>Fecha</th><th>Método</th><th>Toro / Semen</th><th>Resultado</th><th>Fecha tacto</th><th>Obs.</th><th></th></tr></thead>
-        <tbody>${servicios.map(s => {
-          const colRes = { 'Preñada': 'verde', 'Vacía': 'rojo', 'Repetidora': 'tierra', 'Pendiente': 'gray' };
-          return `<tr>
-            <td>${fmtFecha(s.fecha)}</td>
-            <td><span class="badge badge-cielo">${s.metodo || '—'}</span></td>
-            <td>${s.toro || '—'}</td>
-            <td><span class="badge badge-${colRes[s.resultado] || 'gray'}">${s.resultado || '—'}</span></td>
-            <td>${fmtFecha(s.fecha_tacto)}</td>
-            <td>${s.observaciones || '—'}</td>
-            <td><button class="btn btn-danger" style="padding:2px 8px;font-size:11px" onclick="borrarServicio('${s.id}')">🗑️</button></td>
-          </tr>`;
-        }).join('')}</tbody>
-      </table></div>` : `<div class="empty-state" style="padding:24px"><div class="icon">🐄</div><p>Sin servicios registrados</p></div>`}
+      ${bannerHtml}
+      ${ciclosHtml}
     </div>`;
   }
 
