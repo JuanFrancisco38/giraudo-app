@@ -86,7 +86,7 @@ function renderTablaPrecios() {
       ? '<span class="badge badge-blue" style="font-size:10px">Factura</span>'
       : '<span class="badge badge-gris" style="font-size:10px">Manual</span>';
     return `<tr>
-      <td>${inputTP(r.id,'producto',r.producto,160)}</td>
+      <td>${inputTP(r.id,'producto',r.producto,260)}</td>
       <td>${selectTP(r.id,'rubro',r.rubro)}</td>
       <td>${selectTPUnidad(r.id,'unidad',r.unidad)}</td>
       <td style="text-align:right">${inputTPNum(r.id,'precio',precio,90)}</td>
