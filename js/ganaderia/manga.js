@@ -5,6 +5,7 @@ let novedadesGanaderas = [];
 let serviciosAnimal = [];
 let sanidadAnimal = [];
 let renspas = [];
+let pesadasAnimal = [];
 
 const TIPOS_REPRODUCTIVO = ['Inseminación (IATF)', 'Servicio'];
 const TIPOS_SANIDAD = ['Vacunación', 'Desparasitación', 'Tratamiento', 'Caravana electrónica', 'Tacto / Preñez', 'Otro'];
@@ -40,14 +41,15 @@ const COLORES_RODEO = {
 };
 
 async function cargarManga() {
-  [rodeos, trabajosManga, animalesRodeo, novedadesGanaderas, serviciosAnimal, sanidadAnimal, renspas] = await Promise.all([
+  [rodeos, trabajosManga, animalesRodeo, novedadesGanaderas, serviciosAnimal, sanidadAnimal, renspas, pesadasAnimal] = await Promise.all([
     sb('GET', 'rodeos', null, '?order=created_at.asc&activo=eq.true'),
     sb('GET', 'trabajos_manga', null, '?order=fecha.desc'),
     sb('GET', 'animales_rodeo', null, '?activo=eq.true&order=caravana_interna.asc.nullslast'),
     sb('GET', 'novedades_ganaderas', null, '?order=fecha.desc'),
     sb('GET', 'servicios_animal', null, '?order=fecha.desc'),
     sb('GET', 'sanidad_animal', null, '?order=fecha.desc'),
-    sb('GET', 'renspas', null, '?order=propietario.asc')
+    sb('GET', 'renspas', null, '?order=propietario.asc'),
+    sb('GET', 'pesadas_animal', null, '?order=fecha.asc')
   ]);
   rodeos = rodeos || [];
   trabajosManga = trabajosManga || [];
@@ -56,6 +58,7 @@ async function cargarManga() {
   serviciosAnimal = serviciosAnimal || [];
   sanidadAnimal = sanidadAnimal || [];
   renspas = renspas || [];
+  pesadasAnimal = pesadasAnimal || [];
 
   _poblarSelectsRodeo();
   _poblarSelectsRenspa();
@@ -658,8 +661,9 @@ function renderFichaAnimal(animalId) {
   const crias = cria_ref ? animalesRodeo.filter(x => x.caravana_madre === cria_ref) : [];
   const servicios = serviciosAnimal.filter(s => s.animal_id === animalId);
   const sanidadDelAnimal = sanidadAnimal.filter(s => s.animal_id === animalId);
+  const pesadasDelAnimal = pesadasAnimal.filter(p => p.animal_id === animalId).sort((x,y) => new Date(x.fecha)-new Date(y.fecha));
 
-  window._fichaAnimal = { a, madre, crias, servicios, sanidadDelAnimal, esHembra };
+  window._fichaAnimal = { a, madre, crias, servicios, sanidadDelAnimal, esHembra, pesadasDelAnimal };
 
   return `<div id="ficha-animal" class="card" style="margin-top:12px;border-top:3px solid var(--cielo)">
     <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
@@ -673,6 +677,7 @@ function renderFichaAnimal(animalId) {
       <div class="tab${tabAnimalActiva === 'datos' ? ' active' : ''}" onclick="switchTabAnimal('datos')">Datos</div>
       ${esHembra ? `<div class="tab${tabAnimalActiva === 'reproductivo' ? ' active' : ''}" onclick="switchTabAnimal('reproductivo')">Reproductivo <span style="font-size:11px;color:var(--texto-suave)">(${servicios.length})</span></div>` : ''}
       ${!esHembra && a.categoria === 'Toro' || a.categoria === 'Torito' ? `<div class="tab${tabAnimalActiva === 'servicios-toro' ? ' active' : ''}" onclick="switchTabAnimal('servicios-toro')">Servicios realizados</div>` : ''}
+      <div class="tab${tabAnimalActiva === 'pesadas' ? ' active' : ''}" onclick="switchTabAnimal('pesadas')">Pesadas <span style="font-size:11px;color:var(--texto-suave)">(${pesadasDelAnimal.length})</span></div>
       <div class="tab${tabAnimalActiva === 'medico' ? ' active' : ''}" onclick="switchTabAnimal('medico')">Historial médico <span style="font-size:11px;color:var(--texto-suave)">(${sanidadDelAnimal.length})</span></div>
     </div>
     <div id="ficha-animal-body">${renderContenidoFicha(tabAnimalActiva)}</div>
@@ -680,7 +685,7 @@ function renderFichaAnimal(animalId) {
 }
 
 function renderContenidoFicha(tab) {
-  const { a, madre, crias, servicios, sanidadDelAnimal, esHembra } = window._fichaAnimal || {};
+  const { a, madre, crias, servicios, sanidadDelAnimal, esHembra, pesadasDelAnimal } = window._fichaAnimal || {};
   if (!a) return '';
 
   if (tab === 'datos') {
@@ -884,6 +889,65 @@ function renderContenidoFicha(tab) {
         }).join('')}</tbody>
       </table></div>`
       : `<div class="empty-state" style="padding:24px"><div class="icon">🐂</div><p>Sin historial de servicios registrado</p></div>`}
+    </div>`;
+  }
+
+  if (tab === 'pesadas') {
+    const pesadas = pesadasDelAnimal || [];
+    // Edad del animal
+    const edadHtml = (() => {
+      if (!a.fecha_nacimiento) return '';
+      const hoy = new Date(); hoy.setHours(0,0,0,0);
+      const nac = new Date(a.fecha_nacimiento);
+      const dias = Math.floor((hoy - nac) / 86400000);
+      const meses = Math.floor(dias / 30.44);
+      return `<div style="display:inline-flex;gap:16px;background:var(--fondo);border:1px solid var(--gris-borde);border-radius:8px;padding:10px 16px;margin-bottom:14px;align-items:center">
+        <div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Edad</div><div style="font-size:20px;font-weight:800;color:var(--cielo)">${dias} días <span style="font-size:14px;font-weight:500;color:var(--texto-suave)">(${meses} meses)</span></div></div>
+        ${pesadas.length ? (() => {
+          const ult = pesadas[pesadas.length-1];
+          const primera = pesadas[0];
+          const diasTotal = Math.floor((new Date(ult.fecha) - new Date(primera.fecha)) / 86400000);
+          const gdpTotal = diasTotal > 0 ? ((ult.peso_kg - primera.peso_kg) / diasTotal).toFixed(2) : '—';
+          return `<div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Último peso</div><div style="font-size:20px;font-weight:800;color:var(--verde)">${ult.peso_kg} kg</div><div style="font-size:11px;color:var(--texto-suave)">${fmtFecha(ult.fecha)}</div></div>
+          <div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">GDP promedio</div><div style="font-size:20px;font-weight:800;color:var(--tierra)">${gdpTotal} kg/día</div></div>`;
+        })() : ''}
+      </div>`;
+    })();
+
+    const tablaPesadas = pesadas.length ? `<div class="table-wrap"><table>
+      <thead><tr><th>Fecha</th><th>Peso (kg)</th><th>Días desde anterior</th><th>Ganancia</th><th>GDP</th><th>Obs.</th><th></th></tr></thead>
+      <tbody>${pesadas.map((p, i) => {
+        const prev = i > 0 ? pesadas[i-1] : null;
+        const dias = prev ? Math.floor((new Date(p.fecha)-new Date(prev.fecha))/86400000) : '—';
+        const gan = prev ? (p.peso_kg - prev.peso_kg).toFixed(1) : '—';
+        const gdp = prev && dias > 0 ? ((p.peso_kg - prev.peso_kg) / dias).toFixed(2) : '—';
+        const colGan = prev ? (p.peso_kg >= prev.peso_kg ? 'color:var(--verde)' : 'color:var(--rojo)') : '';
+        return `<tr>
+          <td>${fmtFecha(p.fecha)}</td>
+          <td style="font-weight:700">${p.peso_kg} kg</td>
+          <td style="color:var(--texto-suave)">${dias}</td>
+          <td style="${colGan};font-weight:600">${gan !== '—' ? (p.peso_kg >= (prev?.peso_kg||0) ? '+' : '') + gan + ' kg' : '—'}</td>
+          <td style="font-weight:600">${gdp !== '—' ? gdp + ' kg/día' : '—'}</td>
+          <td style="font-size:12px;color:var(--texto-suave)">${p.observaciones || '—'}</td>
+          <td><button class="btn btn-danger" style="padding:2px 8px;font-size:11px" onclick="borrarPesadaAnimal('${p.id}','${a.id}')">🗑️</button></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>`
+    : `<div class="empty-state" style="padding:24px"><div class="icon">⚖️</div><p>Sin pesadas registradas</p></div>`;
+
+    return `<div class="card-body" style="padding-top:12px">
+      <button class="btn btn-secondary" style="font-size:12px;margin-bottom:12px" onclick="toggleFormPesada()">+ Registrar pesada</button>
+      <div id="form-pesada" style="display:none;background:var(--fondo);border-radius:8px;padding:12px;margin-bottom:16px">
+        <div class="form-grid">
+          <div class="form-group"><label>Fecha</label><input type="date" id="pes-fecha" value="${new Date().toISOString().split('T')[0]}"></div>
+          <div class="form-group"><label>Peso (kg)</label><input type="number" id="pes-peso" step="0.1" placeholder="Ej: 185.5"></div>
+          <div class="form-group"><label>Observaciones</label><input type="text" id="pes-obs" placeholder="Opcional"></div>
+        </div>
+        <button class="btn btn-primary" style="font-size:13px" onclick="guardarPesadaAnimal('${a.id}')">Guardar</button>
+        <button class="btn btn-secondary" style="font-size:13px;margin-left:8px" onclick="toggleFormPesada()">Cancelar</button>
+      </div>
+      ${edadHtml}
+      ${tablaPesadas}
     </div>`;
   }
 
@@ -1752,6 +1816,36 @@ async function borrarServicio(id) {
   await sb('DELETE', 'servicios_animal', null, `?id=eq.${id}`);
   serviciosAnimal = serviciosAnimal.filter(s => s.id !== id);
   renderDetalleManga();
+}
+
+// ── Pesadas por animal ────────────────────────────────────
+
+function toggleFormPesada() {
+  const f = document.getElementById('form-pesada');
+  if (f) f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+async function guardarPesadaAnimal(animalId) {
+  const fecha = document.getElementById('pes-fecha').value;
+  const peso = parseFloat(document.getElementById('pes-peso').value);
+  const obs = document.getElementById('pes-obs').value.trim();
+  if (!fecha || !peso) { toast('Completá fecha y peso', 'var(--tierra)'); return; }
+  const r = await sb('POST', 'pesadas_animal', { animal_id: animalId, fecha, peso_kg: peso, observaciones: obs || null });
+  if (r) {
+    pesadasAnimal.push(...(Array.isArray(r) ? r : [r]));
+    pesadasAnimal.sort((a,b) => new Date(a.fecha)-new Date(b.fecha));
+    window._fichaAnimal.pesadasDelAnimal = pesadasAnimal.filter(p => p.animal_id === animalId).sort((a,b) => new Date(a.fecha)-new Date(b.fecha));
+    toast('✅ Pesada registrada');
+    document.getElementById('ficha-animal-body').innerHTML = renderContenidoFicha('pesadas');
+  } else toast('❌ Error al guardar', 'var(--rojo)');
+}
+
+async function borrarPesadaAnimal(id, animalId) {
+  if (!confirm('¿Borrar esta pesada?')) return;
+  await sb('DELETE', 'pesadas_animal', null, `?id=eq.${id}`);
+  pesadasAnimal = pesadasAnimal.filter(p => p.id !== id);
+  window._fichaAnimal.pesadasDelAnimal = pesadasAnimal.filter(p => p.animal_id === animalId).sort((a,b) => new Date(a.fecha)-new Date(b.fecha));
+  document.getElementById('ficha-animal-body').innerHTML = renderContenidoFicha('pesadas');
 }
 
 // ── Distribuir trabajo a animales ─────────────────────────
