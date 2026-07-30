@@ -927,16 +927,21 @@ function renderContenidoFicha(tab) {
       <thead><tr><th>Fecha</th><th>Peso (kg)</th><th>Días desde anterior</th><th>Ganancia</th><th>GDP</th><th>Obs.</th><th></th></tr></thead>
       <tbody>${pesadas.map((p, i) => {
         const prev = i > 0 ? pesadas[i-1] : null;
-        const dias = prev ? Math.floor((new Date(p.fecha)-new Date(prev.fecha))/86400000) : '—';
+        const nacDate = a.fecha_nacimiento ? new Date(a.fecha_nacimiento) : null;
+        // Primera pesada: calcular desde nacimiento si hay fecha
+        const diasDesdeNac = !prev && nacDate ? Math.floor((new Date(p.fecha)-nacDate)/86400000) : null;
+        const dias = prev ? Math.floor((new Date(p.fecha)-new Date(prev.fecha))/86400000) : (diasDesdeNac != null ? diasDesdeNac : '—');
         const gan = prev ? (p.peso_kg - prev.peso_kg).toFixed(1) : '—';
-        const gdp = prev && dias > 0 ? ((p.peso_kg - prev.peso_kg) / dias).toFixed(2) : '—';
+        const gdp = prev && dias > 0 ? ((p.peso_kg - prev.peso_kg) / dias).toFixed(2)
+          : (!prev && diasDesdeNac > 0 ? (p.peso_kg / diasDesdeNac).toFixed(2) : '—');
+        const gdpLabel = !prev && diasDesdeNac != null ? 'desde nac.' : 'kg/día';
         const colGan = prev ? (p.peso_kg >= prev.peso_kg ? 'color:var(--verde)' : 'color:var(--rojo)') : '';
         return `<tr>
           <td>${fmtFecha(p.fecha)}</td>
           <td style="font-weight:700">${p.peso_kg} kg</td>
           <td style="color:var(--texto-suave)">${dias}</td>
           <td style="${colGan};font-weight:600">${gan !== '—' ? (p.peso_kg >= (prev?.peso_kg||0) ? '+' : '') + gan + ' kg' : '—'}</td>
-          <td style="font-weight:600">${gdp !== '—' ? gdp + ' kg/día' : '—'}</td>
+          <td style="font-weight:600">${gdp !== '—' ? gdp + ' ' + gdpLabel : '—'}</td>
           <td style="font-size:12px;color:var(--texto-suave)">${p.observaciones || '—'}</td>
           <td><button class="btn btn-danger" style="padding:2px 8px;font-size:11px" onclick="borrarPesadaAnimal('${p.id}','${a.id}')">🗑️</button></td>
         </tr>`;
