@@ -559,6 +559,31 @@ function renderTabAnimales(rodeoId, animales) {
             </div>`;
           }
 
+          // Datos de pesadas para la tarjeta
+          const pesadasCard = pesadasAnimal.filter(p => p.animal_id === a.id).sort((x,y) => new Date(x.fecha)-new Date(y.fecha));
+          const ultPesCard = pesadasCard.length ? pesadasCard[pesadasCard.length-1] : null;
+          const pesadasCardHtml = (() => {
+            if (!ultPesCard) return '';
+            const hoyC = new Date(); hoyC.setHours(0,0,0,0);
+            const nacC = a.fecha_nacimiento ? new Date(a.fecha_nacimiento) : null;
+            const diasEdad = nacC ? Math.floor((hoyC - nacC) / 86400000) : null;
+            const mesesEdad = diasEdad != null ? Math.floor(diasEdad / 30.44) : null;
+            let gdpCard = '—';
+            if (pesadasCard.length >= 2) {
+              const primera = pesadasCard[0];
+              const d = Math.floor((new Date(ultPesCard.fecha)-new Date(primera.fecha))/86400000);
+              if (d > 0) gdpCard = ((ultPesCard.peso_kg - primera.peso_kg) / d).toFixed(2) + ' kg/día';
+            } else if (nacC) {
+              const d = Math.floor((new Date(ultPesCard.fecha) - nacC) / 86400000);
+              if (d > 0) gdpCard = (ultPesCard.peso_kg / d).toFixed(2) + ' kg/día';
+            }
+            return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:110px">
+              ${diasEdad != null ? `<div style="text-align:center"><div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px">Edad</div><div style="font-size:15px;font-weight:800;color:var(--cielo)">${diasEdad} d <span style="font-size:12px;font-weight:500">(${mesesEdad}m)</span></div></div>` : ''}
+              <div style="text-align:center"><div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px">Último peso</div><div style="font-size:18px;font-weight:800;color:var(--verde)">${ultPesCard.peso_kg} kg</div></div>
+              <div style="text-align:center"><div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px">GDP</div><div style="font-size:13px;font-weight:700;color:var(--tierra)">${gdpCard}</div></div>
+            </div>`;
+          })();
+
           const catAmarilla = ['Ternero','Novillito','Novillo'].includes(a.categoria);
           const catNaranja  = ['Ternera','Vaquillona'].includes(a.categoria);
           const bgCard = resUlt === 'Pre' + '\u00f1' + 'ada' ? '#f0faf3'
@@ -591,11 +616,12 @@ function renderTabAnimales(rodeoId, animales) {
               ${a.renspa_id ? `<div style="font-size:12px;color:var(--cielo);margin-top:3px">🏷️ ${renspaLabel(a.renspa_id) || ''}</div>` : ''}
               ${crias ? `<div style="font-size:12px;color:var(--verde);margin-top:3px">🐣 ${crias} cría${crias !== 1 ? 's' : ''}</div>` : ''}
             </div>
-            ${esHembraCard && ultimoSrv && (estadoReprod || estadoFisio) ? `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:120px">
-              ${estadoReprod ? `<div style="background:${bgReprod};color:${colReprod};border-radius:8px;padding:7px 12px;font-size:17px;font-weight:800;text-align:center;width:100%;box-sizing:border-box">${estadoReprod}</div>` : ''}
-              ${estadoFisio ? `<div style="background:${bgFisio};color:${colFisio};border-radius:8px;padding:6px 12px;font-size:14px;font-weight:700;text-align:center;width:100%;box-sizing:border-box">${estadoFisio}</div>` : ''}
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:120px">
+              ${esHembraCard && ultimoSrv && estadoReprod ? `<div style="background:${bgReprod};color:${colReprod};border-radius:8px;padding:7px 12px;font-size:17px;font-weight:800;text-align:center;width:100%;box-sizing:border-box">${estadoReprod}</div>` : ''}
+              ${esHembraCard && ultimoSrv && estadoFisio ? `<div style="background:${bgFisio};color:${colFisio};border-radius:8px;padding:6px 12px;font-size:14px;font-weight:700;text-align:center;width:100%;box-sizing:border-box">${estadoFisio}</div>` : ''}
               ${fppHtml}
-            </div>` : ''}
+              ${pesadasCardHtml}
+            </div>
           </div>`;
         }).join('')}</div>
         <div style="font-size:12px;color:var(--texto-suave);margin-top:8px">Tocá una tarjeta para ver la ficha del animal</div>`
