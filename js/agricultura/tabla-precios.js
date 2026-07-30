@@ -155,8 +155,6 @@ async function guardarNuevoPrecio() {
 
 async function sincronizarDesdeFacturas() {
   const campania = document.getElementById('tp-filtro-campania').value;
-  if (!campania) { toast('Seleccioná una campaña primero', 'var(--tierra)'); return; }
-
   const btn = document.getElementById('btn-tp-sincronizar');
   btn.disabled = true; btn.textContent = '⏳ Sincronizando...';
 
@@ -166,25 +164,33 @@ async function sincronizarDesdeFacturas() {
     try {
       const e = JSON.parse(b.observaciones || '{}');
       const tipOk = !e.tipo_factura || e.tipo_factura === 'recibida';
+      if (!tipOk) return false;
+      if (!campania) return true; // sin filtro de campaña → todas
       const campNorm = (e.campania || '').replace(/20(\d\d)/g,'$1').trim();
-      const filtNorm = (campania || '').replace(/20(\d\d)/g,'$1').trim();
-      return tipOk && campNorm === filtNorm;
+      const filtNorm = campania.replace(/20(\d\d)/g,'$1').trim();
+      return campNorm === filtNorm;
     } catch(e) { return false; }
   });
 
   if (!recibidas.length) {
-    toast('No hay facturas para esa campaña', 'var(--tierra)');
+    toast('No hay facturas recibidas cargadas', 'var(--tierra)');
     btn.disabled = false; btn.textContent = '🔄 Sincronizar desde facturas';
     return;
   }
 
-  // Agrupar por producto+rubro+unidad → lista de precios
+  // Agrupar por producto+rubro+unidad+campaña → promedio de precios
   const grupos = {};
   recibidas.forEach(b => {
-    const obs = JSON.parse(b.observaciones || '{}');
+    let obs;
+    try { obs = JSON.parse(b.observaciones || '{}'); } catch(e) { return; }
     if (!obs.costo_unitario || !b.concepto) return;
-    const clave = `${(b.concepto||'').trim()}||${b.categoria||''}||${obs.unidad||''}`;
-    if (!grupos[clave]) grupos[clave] = { producto: (b.concepto||'').trim(), rubro: b.categoria||'', unidad: obs.unidad||'', moneda: obs.moneda_costo||'ARS', precios: [] };
+    const camp = obs.campania || '';
+    const clave = `${(b.concepto||'').trim()}||${b.categoria||''}||${obs.unidad||''}||${camp}`;
+    if (!grupos[clave]) grupos[clave] = {
+      producto: (b.concepto||'').trim(), rubro: b.categoria||'',
+      unidad: obs.unidad||'', moneda: obs.moneda_costo||'ARS',
+      campania: camp, precios: []
+    };
     grupos[clave].precios.push(Number(obs.costo_unitario));
   });
 
@@ -194,7 +200,7 @@ async function sincronizarDesdeFacturas() {
     const r = await sb('POST', 'tabla_precios', {
       producto: g.producto, rubro: g.rubro, unidad: g.unidad,
       precio: Math.round(promedio * 100) / 100, moneda: g.moneda,
-      campania, origen: 'factura'
+      campania: g.campania, origen: 'factura'
     });
     if (r) ok++;
   }
