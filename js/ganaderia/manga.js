@@ -175,10 +175,14 @@ function renderEstadisticasManga() {
     return Object.entries(porRenspa).map(([k, v]) => `${v} ${k}`).join(' · ');
   }
 
+  const refsPorAnimal = {};
+  animalesRodeo.forEach(a => { const r = a.caravana_interna || a.caravana_electronica; if (r) refsPorAnimal[r] = a.id; });
+  const tieneCria = id => animalesRodeo.some(x => x.caravana_madre && (x.caravana_madre === animalesRodeo.find(a=>a.id===id)?.caravana_interna || x.caravana_madre === animalesRodeo.find(a=>a.id===id)?.caravana_electronica));
+
   const ORDEN_CATS = [
-    { label: 'Vacas preñadas', filtro: a => a.categoria === 'Vaca' && ultimoSrvPorAnimal[a.id]?.resultado === 'Preñada', color: 'verde' },
-    { label: 'Vacas vacías', filtro: a => a.categoria === 'Vaca' && ultimoSrvPorAnimal[a.id]?.resultado === 'Vacía', color: 'rojo' },
-    { label: 'Vacas s/dato', filtro: a => a.categoria === 'Vaca' && !['Preñada','Vacía'].includes(ultimoSrvPorAnimal[a.id]?.resultado), color: 'bordo' },
+    { label: 'Vacas preñadas',    filtro: a => a.categoria === 'Vaca' && ultimoSrvPorAnimal[a.id]?.resultado === 'Preñada', color: 'verde' },
+    { label: 'Vacas vacías',      filtro: a => a.categoria === 'Vaca' && ultimoSrvPorAnimal[a.id]?.resultado !== 'Preñada', color: 'rojo' },
+    { label: 'Vacas en lactancia',filtro: a => a.categoria === 'Vaca' && tieneCria(a.id), color: 'cielo' },
     { label: 'Vaquillonas', filtro: a => a.categoria === 'Vaquillona', color: 'tierra' },
     { label: 'Terneras', filtro: a => a.categoria === 'Ternera', color: 'verde' },
     { label: 'Terneros', filtro: a => a.categoria === 'Ternero', color: 'verde' },
@@ -230,8 +234,8 @@ function renderListaStatAnimales(label, ultimoSrvPorAnimal) {
   const FILTROS = {
     'total': a => true,
     'Vacas preñadas': a => a.categoria === 'Vaca' && ultimoSrvPorAnimal[a.id]?.resultado === 'Preñada',
-    'Vacas vacías': a => a.categoria === 'Vaca' && ultimoSrvPorAnimal[a.id]?.resultado === 'Vacía',
-    'Vacas s/dato': a => a.categoria === 'Vaca' && !['Preñada','Vacía'].includes(ultimoSrvPorAnimal[a.id]?.resultado),
+    'Vacas vacías': a => a.categoria === 'Vaca' && ultimoSrvPorAnimal[a.id]?.resultado !== 'Preñada',
+    'Vacas en lactancia': a => a.categoria === 'Vaca' && animalesRodeo.some(x => x.caravana_madre && (x.caravana_madre === a.caravana_interna || x.caravana_madre === a.caravana_electronica)),
     'Vaquillonas': a => a.categoria === 'Vaquillona',
     'Terneras': a => a.categoria === 'Ternera',
     'Terneros': a => a.categoria === 'Ternero',
