@@ -798,7 +798,7 @@ function renderContenidoFicha(tab) {
         <th style="width:28px">#</th>
         <th>Inseminación</th><th>Método</th><th>Toro / Semen</th>
         <th>Fecha tacto</th><th>Resultado</th>
-        <th>Parición</th><th>Cría</th>
+        <th>Parto probable</th><th>Parición</th><th>Cría</th>
         <th>Obs.</th><th></th>
       </tr></thead>
       <tbody>${[...ciclos].reverse().map((c, i) => {
@@ -823,6 +823,7 @@ function renderContenidoFicha(tab) {
           <td>${c.srv.toro || '—'}</td>
           <td>${fmtFecha(fechaTacto)}${tactoExtra}</td>
           <td><span class="badge badge-${colRes[resultado]||'gray'}">${resultado}</span></td>
+          <td style="font-weight:600;color:var(--verde)">${c.srv.fecha ? fmtFecha(new Date(new Date(c.srv.fecha).setDate(new Date(c.srv.fecha).getDate()+270))) : '—'}</td>
           <td style="font-weight:${paricion?'600':'400'};color:${paricion?'var(--verde)':'var(--texto-suave)'}">${paricion ? fmtFecha(paricion.fecha_nacimiento) : (resultado === 'Preñada' ? '<span style="color:var(--verde);font-size:11px">Pendiente</span>' : '—')}</td>
           <td>${paricion ? `<span class="badge badge-${paricion.sexo==='Hembra'?'bordo':'cielo'}" style="font-size:11px;cursor:pointer" onclick="seleccionarAnimal('${paricion.id}')">#${caravanaDisplay(paricion)}</span>` : '—'}</td>
           <td style="font-size:12px;color:var(--texto-suave)">${c.srv.observaciones || '—'}</td>
