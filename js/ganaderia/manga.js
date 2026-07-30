@@ -556,17 +556,23 @@ function renderTabAnimales(rodeoId, animales) {
             </div>`;
           }
 
+          const catAmarilla = ['Ternero','Novillito','Novillo'].includes(a.categoria);
+          const catNaranja  = ['Ternera','Vaquillona'].includes(a.categoria);
           const bgCard = resUlt === 'Pre' + '\u00f1' + 'ada' ? '#f0faf3'
             : resUlt === 'Vac' + '\u00ed' + 'a' ? '#fdf3f3'
             : resUlt === 'Abort' + '\u00f3' ? '#fdf3f3'
             : resUlt === 'Pendiente' ? '#fdfaf0'
             : crias > 0 ? '#eef5fb'
+            : catAmarilla ? '#fdfbe8'
+            : catNaranja  ? '#fdf3e8'
             : '#fafafa';
           const borderCard = resUlt === 'Pre' + '\u00f1' + 'ada' ? '#7dc89a'
             : resUlt === 'Vac' + '\u00ed' + 'a' ? '#e8a0a0'
             : resUlt === 'Abort' + '\u00f3' ? '#e8a0a0'
             : resUlt === 'Pendiente' ? '#d4c060'
             : crias > 0 ? '#7ab0d8'
+            : catAmarilla ? '#d4c840'
+            : catNaranja  ? '#d4904a'
             : '#ccc';
 
           return `<div style="${cardStyle};background:${bgCard};border-color:${borderCard};display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="seleccionarAnimal('${a.id}')">
