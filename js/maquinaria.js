@@ -202,12 +202,7 @@ function renderContenidoFichaMaq(tab) {
       </table></div>`;
 
   } else if (tab === 'trabajos') {
-    const nombre3 = m.nombre.toLowerCase().split(' ').slice(0,3).join(' ');
-    const registros = trabajosMaq.filter(t =>
-      t.maquina_id === m.id ||
-      (t.descripcion && t.descripcion.toLowerCase().includes(nombre3)) ||
-      (t.detalle?.maquinaria && t.detalle.maquinaria.toLowerCase().includes(nombre3))
-    );
+    const registros = trabajosMaq.filter(t => t.maquina_id === m.id);
     const rows = registros.length
       ? registros.map(t => `<tr>
           <td>${fmtFecha(t.fecha)}</td>
