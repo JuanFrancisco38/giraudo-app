@@ -1,6 +1,10 @@
 const RUBROS_PRECIOS = ['Agroquímicos','Semillas','Fertilizantes','Combustibles y Lubricantes','Fletes','Insumos Varios','Reparaciones','Repuestos','Servicios Rurales','Servicios Varios','Insumos Veterinarios','Otro'];
 const UNIDADES_PRECIOS = ['','kg','lts','tt','unidad','bolsa','tn'];
 
+function normCamp(c) {
+  return (c || '').split('/').map(p => p.trim().replace(/^20(\d\d)$/, '$1')).join('/');
+}
+
 let tablaPreciosTodos = [];
 let tablaPreciosCampania = '';
 let tipoCambioHoy = parseFloat(localStorage.getItem('tc_dolar') || '0');
@@ -40,7 +44,7 @@ async function cargarTablaPrecios() {
   }
   const rows = await sb('GET', 'tabla_precios', '', '?order=rubro,producto');
   tablaPreciosTodos = rows || [];
-  const camps = [...new Set(tablaPreciosTodos.map(r => r.campania).filter(Boolean))].sort();
+  const camps = [...new Set(tablaPreciosTodos.map(r => normCamp(r.campania)).filter(Boolean))].sort();
   const sel = document.getElementById('tp-filtro-campania');
   const actual = sel.value;
   sel.innerHTML = '<option value="">Todas las campañas</option>' + camps.map(c => `<option${c===actual?' selected':''}>${c}</option>`).join('');
@@ -54,7 +58,7 @@ function renderTablaPrecios() {
   const fBusca = (document.getElementById('tp-filtro-busca')?.value || '').toLowerCase();
   const fRubro = document.getElementById('tp-filtro-rubro')?.value || '';
   const rows = tablaPreciosTodos.filter(r => {
-    if (tablaPreciosCampania && r.campania !== tablaPreciosCampania) return false;
+    if (tablaPreciosCampania && normCamp(r.campania) !== tablaPreciosCampania) return false;
     if (fRubro && r.rubro !== fRubro) return false;
     if (fBusca && !(r.producto || '').toLowerCase().includes(fBusca)) return false;
     return true;
@@ -186,7 +190,7 @@ async function sincronizarDesdeFacturas() {
     if (!b.concepto) return;
     let obs = {};
     try { obs = JSON.parse(b.observaciones || '{}'); } catch(e) {}
-    const camp = obs.campania || '';
+    const camp = normCamp(obs.campania || '');
     const clave = `${(b.concepto||'').trim()}||${b.categoria||''}||${obs.unidad||''}||${camp}`;
     if (!grupos[clave]) grupos[clave] = {
       producto: (b.concepto||'').trim(), rubro: b.categoria||'',
