@@ -2045,22 +2045,39 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 
       <!-- SECCIÓN 1: EL TRABAJO -->
       <div style="margin-bottom:20px">
-        <div style="font-weight:700;font-size:13px;color:#8B1A2F;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #e0e0e0">📋 Datos del trabajo</div>
+        <div style="font-weight:700;font-size:13px;color:#8B1A2F;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #e0e0e0;display:flex;align-items:center;justify-content:space-between">
+          <span>📋 Datos del trabajo</span>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#555;text-transform:none;cursor:pointer">
+            <input type="checkbox" id="mtr-tercero" onchange="toggleTerceroModal()" style="width:16px;height:16px;cursor:pointer">
+            Trabajo a terceros
+          </label>
+        </div>
+        <!-- Panel tercero -->
+        <div id="mtr-panel-tercero" style="display:none;background:#fff8e1;border:1px solid #f0c040;border-radius:8px;padding:12px;margin-bottom:12px">
+          <div style="font-size:12px;font-weight:700;color:#b8860b;margin-bottom:8px">👤 DATOS DEL CLIENTE</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="form-group" style="margin:0"><label>Cliente</label><input type="text" id="mtr-cliente" placeholder="Nombre del cliente"></div>
+            <div class="form-group" style="margin:0"><label>Campo / Establecimiento</label><input type="text" id="mtr-campo-tercero" placeholder="Nombre del campo"></div>
+            <div class="form-group" style="margin:0"><label>Tarifa cobrada $/ha</label><input type="number" id="mtr-tarifa-cobrada" placeholder="Ej: 30000" step="0.01"></div>
+            <div class="form-group" style="margin:0"><label>Moneda</label><select id="mtr-moneda-cobrada"><option value="ARS">ARS $</option><option value="USD">USD U$S</option></select></div>
+          </div>
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <div class="form-group" style="margin:0"><label>Fecha</label><input type="date" id="mtr-fecha"></div>
           <div class="form-group" style="margin:0"><label>Tipo de trabajo</label>
             <select id="mtr-tipo" onchange="actualizarSelectMaquinaria(this.value)">
               <option value="">— Seleccioná —</option>
               <option>Siembra</option><option>Pulverización</option><option>Fertilización</option>
-              <option>Cosecha</option><option>Henificación</option><option>Enrollado</option>
-              <option>Labranza</option><option>Otro</option>
+              <option>Cosecha</option><option>Doble acción</option><option>Cincel</option>
+              <option>Corte</option><option>Enrollado</option><option>Henificación</option>
+              <option>Picado de forraje</option><option>Labranza</option><option>Otro</option>
             </select>
           </div>
           <div class="form-group" style="margin:0"><label>Herramienta / Maquinaria</label>
             <select id="mtr-herramienta"><option value="">— Seleccioná tipo primero —</option></select>
           </div>
           <div class="form-group" style="margin:0"><label>Contratista</label><input type="text" id="mtr-cont" placeholder="Dejar vacío = Propio"></div>
-          <div class="form-group" style="margin:0"><label>Campo</label>
+          <div id="mtr-campo-propio-wrap" class="form-group" style="margin:0"><label>Campo</label>
             <select id="mtr-campo">
               <option>Don Alfredo (Azcona)</option><option>Doña Vica</option><option>Sant-Yago</option>
             </select>

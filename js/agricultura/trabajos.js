@@ -105,12 +105,17 @@ async function abrirModalTrabajo() {
   await cargarMaquinariaModal();
 
   // Limpiar campos
-  ['mtr-cultivo','mtr-campania','mtr-cont'].forEach(id => {
+  ['mtr-cultivo','mtr-campania','mtr-cont','mtr-cliente','mtr-campo-tercero','mtr-tarifa-cobrada'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   document.getElementById('mtr-tipo').value = '';
   document.getElementById('mtr-fecha').value = new Date().toISOString().split('T')[0];
   actualizarSelectMaquinaria('');
+
+  // Reset tercero
+  const chk = document.getElementById('mtr-tercero');
+  if (chk) chk.checked = false;
+  toggleTerceroModal();
 
   // Lotes: una fila inicial
   document.getElementById('mtr-lotes-list').innerHTML = '';
@@ -119,6 +124,12 @@ async function abrirModalTrabajo() {
   // Insumos: una fila inicial
   document.getElementById('mtr-insumos-list').innerHTML = '';
   agregarFilaInsumoModal();
+}
+
+function toggleTerceroModal() {
+  const esTercero = document.getElementById('mtr-tercero')?.checked;
+  document.getElementById('mtr-panel-tercero').style.display = esTercero ? 'block' : 'none';
+  document.getElementById('mtr-campo-propio-wrap').style.display = esTercero ? 'none' : '';
 }
 
 function cerrarModalTrabajo() {
@@ -148,14 +159,18 @@ async function guardarTrabajoModal() {
     precio_unitario: parseFloat(f.querySelector('.ins-precio').value) || null,
   })).filter(i => i.descripcion || i.dosis);
 
+  const esTercero = document.getElementById('mtr-tercero')?.checked;
   const baseHeader = {
     tipo,
     fecha,
-    campo: document.getElementById('mtr-campo').value,
+    campo: esTercero ? (document.getElementById('mtr-campo-tercero').value || 'Tercero') : document.getElementById('mtr-campo').value,
     cultivo: document.getElementById('mtr-cultivo').value,
     contratista: document.getElementById('mtr-cont').value || 'Propio',
     campania: document.getElementById('mtr-campania').value,
     herramienta: document.getElementById('mtr-herramienta').value,
+    cliente: esTercero ? document.getElementById('mtr-cliente').value : null,
+    tarifa_cobrada: esTercero ? (parseFloat(document.getElementById('mtr-tarifa-cobrada').value) || null) : null,
+    moneda_cobrada: esTercero ? document.getElementById('mtr-moneda-cobrada').value : null,
   };
 
   // Generar registros: un registro por lote × insumo (o uno por lote si no hay insumos)
