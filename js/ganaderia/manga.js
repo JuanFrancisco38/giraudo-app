@@ -571,20 +571,20 @@ function renderTabAnimales(rodeoId, animales) {
 
           return `<div style="${cardStyle};background:${bgCard};border-color:${borderCard};display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="seleccionarAnimal('${a.id}')">
             <div style="flex:1;min-width:0">
-              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
-                <span class="badge badge-${color}">${a.categoria || a.sexo || '—'}</span>
-                <button class="btn btn-danger" style="padding:1px 6px;font-size:11px" onclick="event.stopPropagation();borrarAnimalManga('${a.id}')">🗑️</button>
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+                <span class="badge badge-${color}" style="font-size:13px;padding:4px 10px">${a.categoria || a.sexo || '—'}</span>
+                <button class="btn btn-danger" style="padding:2px 7px;font-size:12px" onclick="event.stopPropagation();borrarAnimalManga('${a.id}')">🗑️</button>
               </div>
-              <div style="font-size:18px;font-weight:700;color:var(--${color});margin-bottom:2px">#${caravanaDisplay(a)}</div>
-              ${a.caravana_interna && a.caravana_electronica ? `<div style="font-size:11px;color:var(--texto-suave)">E: ${a.caravana_electronica}</div>` : ''}
-              <div style="font-size:12px;color:var(--texto-suave)">${a.raza || ''}</div>
-              ${a.caravana_madre ? `<div style="font-size:11px;color:var(--texto-suave);margin-top:2px">Madre: ${a.caravana_madre}</div>` : ''}
-              ${a.renspa_id ? `<div style="font-size:11px;color:var(--cielo);margin-top:2px">🏷️ ${renspaLabel(a.renspa_id) || ''}</div>` : ''}
-              ${crias ? `<div style="font-size:11px;color:var(--verde);margin-top:2px">🐣 ${crias} cría${crias !== 1 ? 's' : ''}</div>` : ''}
+              <div style="font-size:22px;font-weight:800;color:var(--${color});margin-bottom:3px">#${caravanaDisplay(a)}</div>
+              ${a.caravana_interna && a.caravana_electronica ? `<div style="font-size:12px;color:var(--texto-suave)">E: ${a.caravana_electronica}</div>` : ''}
+              <div style="font-size:13px;color:var(--texto-suave)">${a.raza || ''}</div>
+              ${a.caravana_madre ? `<div style="font-size:12px;color:var(--texto-suave);margin-top:3px">Madre: ${a.caravana_madre}</div>` : ''}
+              ${a.renspa_id ? `<div style="font-size:12px;color:var(--cielo);margin-top:3px">🏷️ ${renspaLabel(a.renspa_id) || ''}</div>` : ''}
+              ${crias ? `<div style="font-size:12px;color:var(--verde);margin-top:3px">🐣 ${crias} cría${crias !== 1 ? 's' : ''}</div>` : ''}
             </div>
-            ${esHembraCard && (estadoReprod || estadoFisio) ? `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:110px">
-              ${estadoReprod ? `<div style="background:${bgReprod};color:${colReprod};border-radius:8px;padding:5px 10px;font-size:15px;font-weight:800;text-align:center;width:100%;box-sizing:border-box">${estadoReprod}</div>` : ''}
-              ${estadoFisio ? `<div style="background:${bgFisio};color:${colFisio};border-radius:8px;padding:5px 10px;font-size:13px;font-weight:700;text-align:center;width:100%;box-sizing:border-box">${estadoFisio}</div>` : ''}
+            ${esHembraCard && (estadoReprod || estadoFisio) ? `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:120px">
+              ${estadoReprod ? `<div style="background:${bgReprod};color:${colReprod};border-radius:8px;padding:7px 12px;font-size:17px;font-weight:800;text-align:center;width:100%;box-sizing:border-box">${estadoReprod}</div>` : ''}
+              ${estadoFisio ? `<div style="background:${bgFisio};color:${colFisio};border-radius:8px;padding:6px 12px;font-size:14px;font-weight:700;text-align:center;width:100%;box-sizing:border-box">${estadoFisio}</div>` : ''}
               ${fppHtml}
             </div>` : ''}
           </div>`;
