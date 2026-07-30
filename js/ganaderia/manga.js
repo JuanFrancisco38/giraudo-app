@@ -548,7 +548,7 @@ function renderTabAnimales(rodeoId, animales) {
             const hoyCard = new Date(); hoyCard.setHours(0,0,0,0);
             const diasG = Math.floor((hoyCard - fSrv) / 86400000);
             const diasR = Math.floor((fParto - hoyCard) / 86400000);
-            const fmtFP = d => d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
+            const fmtFP = d => { const dd=String(d.getDate()).padStart(2,'0'),mm=String(d.getMonth()+1).padStart(2,'0'),aa=String(d.getFullYear()).slice(-2); return `${dd}/${mm}/${aa}`; };
             fppHtml = `<div style="margin-top:6px;text-align:center">
               <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px">Parto probable</div>
               <div style="font-size:14px;font-weight:700;color:#1a7a3a">${fmtFP(fParto)}</div>
