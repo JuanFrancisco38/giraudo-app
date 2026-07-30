@@ -172,8 +172,8 @@ async function sincronizarDesdeFacturas() {
     } catch(e) { return false; }
   });
 
+  toast(`🔍 Total boletas: ${(boletas||[]).length} | Recibidas: ${recibidas.length}`, 'var(--tierra)');
   if (!recibidas.length) {
-    toast('No hay facturas recibidas cargadas', 'var(--tierra)');
     btn.disabled = false; btn.textContent = '🔄 Sincronizar desde facturas';
     return;
   }
