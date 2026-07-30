@@ -119,23 +119,46 @@ function agregarFilaLoteModal() {
 }
 
 let _boletasInsumos = null;
+let _rubroActivoPanel = 'Agroquímicos';
 
 async function cargarPanelPreciosInsumos() {
   if (!_boletasInsumos) {
     const rubros = ['Agroquímicos', 'Semillas', 'Fertilizantes'];
     const todas = await sb('GET', 'boletas', '', '?order=fecha.desc') || [];
     _boletasInsumos = todas.filter(b => rubros.includes(b.rubro));
+    // Poblar select de campañas
+    const camps = [...new Set(_boletasInsumos.map(b => b.campania).filter(Boolean))].sort().reverse();
+    const sel = document.getElementById('panel-insumos-camp');
+    if (sel) camps.forEach(c => sel.insertAdjacentHTML('beforeend', `<option value="${c}">${c}</option>`));
   }
-  renderPanelInsumos('');
+  renderPanelInsumos();
 }
 
-function renderPanelInsumos(busca) {
+function toggleRubroPanel(rubro) {
+  _rubroActivoPanel = rubro;
+  ['Agroquímicos','Semillas','Fertilizantes'].forEach(r => {
+    const ids = {'Agroquímicos':'btn-pi-agro','Semillas':'btn-pi-semi','Fertilizantes':'btn-pi-fert'};
+    const btn = document.getElementById(ids[r]);
+    if (!btn) return;
+    const activo = r === rubro;
+    btn.style.background = activo ? '#8B1A2F' : '#fff';
+    btn.style.color = activo ? '#fff' : '#555';
+    btn.style.border = activo ? '1px solid #8B1A2F' : '1px solid #ccc';
+  });
+  renderPanelInsumos();
+}
+
+function renderPanelInsumos() {
   const lista = document.getElementById('panel-insumos-lista');
   if (!lista) return;
-  const q = (busca || '').toLowerCase().trim();
-  const items = (_boletasInsumos || []).filter(b =>
-    !q || (b.descripcion_a || '').toLowerCase().includes(q)
-  );
+  const q = (document.getElementById('panel-insumos-busca')?.value || '').toLowerCase().trim();
+  const camp = document.getElementById('panel-insumos-camp')?.value || '';
+  const items = (_boletasInsumos || []).filter(b => {
+    if (b.rubro !== _rubroActivoPanel) return false;
+    if (camp && b.campania !== camp) return false;
+    if (q && !(b.descripcion_a || '').toLowerCase().includes(q)) return false;
+    return true;
+  });
   if (!items.length) {
     lista.innerHTML = `<div style="padding:20px;text-align:center;color:#aaa;font-size:13px">Sin resultados</div>`;
     return;
@@ -143,15 +166,15 @@ function renderPanelInsumos(busca) {
   lista.innerHTML = items.map(b => {
     let obs = {};
     try { obs = JSON.parse(b.observaciones || '{}'); } catch(e) {}
-    const precioUnit = obs.precio_unitario ?? b.precio_unitario ?? b.costo_unitario ?? null;
+    const precioUnit = obs.precio_unitario ?? obs.costo_unitario ?? b.precio_unitario ?? null;
     const unidad = obs.unidad || b.unidad || '';
-    const moneda = obs.moneda || b.moneda || 'ARS';
-    const campania = b.campania || obs.campania || '—';
+    const moneda = obs.moneda_costo || obs.moneda || b.moneda || 'ARS';
+    const campania = b.campania || '—';
     return `<div style="padding:8px 14px;border-bottom:1px solid #f0f0f0;font-size:12px">
       <div style="font-weight:600;color:#222;margin-bottom:2px">${b.descripcion_a || '—'}</div>
-      <div style="display:flex;gap:12px;color:#555">
-        <span>${precioUnit != null ? fmtMonto(precioUnit, moneda) + (unidad ? '/' + unidad : '') : '—'}</span>
-        <span style="color:#888">Camp: ${campania}</span>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;color:#555">
+        <span style="color:#2a6f2a;font-weight:600">${precioUnit != null ? fmtMonto(precioUnit, moneda) + (unidad ? '/' + unidad : '') : '—'}</span>
+        <span style="color:#888">📅 ${campania}</span>
         <span style="color:#aaa">${fmtFecha(b.fecha)}</span>
       </div>
     </div>`;
@@ -159,8 +182,7 @@ function renderPanelInsumos(busca) {
 }
 
 function filtrarPanelInsumos() {
-  const q = document.getElementById('panel-insumos-busca')?.value || '';
-  renderPanelInsumos(q);
+  renderPanelInsumos();
 }
 
 async function abrirModalTrabajo() {

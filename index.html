@@ -2037,12 +2037,20 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 <div id="modal-trabajo" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 0">
   <div style="display:flex;gap:16px;margin:auto;align-items:flex-start;max-width:98vw">
   <!-- Panel lateral: precios de insumos -->
-  <div id="panel-precios-insumos" style="background:#fff;border-radius:14px;width:340px;max-height:90vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,0.5);border:1px solid #ccc;color:#111;flex-shrink:0">
-    <div style="padding:14px 16px 10px;border-bottom:2px solid #8B1A2F;position:sticky;top:0;background:#fff;z-index:1">
-      <div style="font-weight:700;font-size:13px;color:#8B1A2F">🧾 Precios de insumos</div>
-      <input type="text" id="panel-insumos-busca" placeholder="Buscar producto..." oninput="filtrarPanelInsumos()" style="margin-top:8px;width:100%;padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;box-sizing:border-box">
+  <div id="panel-precios-insumos" style="background:#fff;border-radius:14px;width:340px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,0.5);border:1px solid #ccc;color:#111;flex-shrink:0">
+    <div style="padding:14px 16px 10px;border-bottom:2px solid #8B1A2F">
+      <div style="font-weight:700;font-size:13px;color:#8B1A2F;margin-bottom:8px">🧾 Precios de insumos</div>
+      <select id="panel-insumos-camp" onchange="filtrarPanelInsumos()" style="width:100%;padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;margin-bottom:8px;box-sizing:border-box">
+        <option value="">Todas las campañas</option>
+      </select>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <button id="btn-pi-agro" onclick="toggleRubroPanel('Agroquímicos')" style="flex:1;padding:5px 4px;font-size:11px;font-weight:600;border-radius:6px;cursor:pointer;border:1px solid #8B1A2F;background:#8B1A2F;color:#fff">Agroquímicos</button>
+        <button id="btn-pi-semi" onclick="toggleRubroPanel('Semillas')" style="flex:1;padding:5px 4px;font-size:11px;font-weight:600;border-radius:6px;cursor:pointer;border:1px solid #ccc;background:#fff;color:#555">Semillas</button>
+        <button id="btn-pi-fert" onclick="toggleRubroPanel('Fertilizantes')" style="flex:1;padding:5px 4px;font-size:11px;font-weight:600;border-radius:6px;cursor:pointer;border:1px solid #ccc;background:#fff;color:#555">Fertilizantes</button>
+      </div>
+      <input type="text" id="panel-insumos-busca" placeholder="🔎 Buscar producto..." oninput="filtrarPanelInsumos()" style="width:100%;padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;box-sizing:border-box">
     </div>
-    <div id="panel-insumos-lista" style="padding:8px 0">
+    <div id="panel-insumos-lista" style="overflow-y:auto;flex:1;padding:4px 0">
       <div style="padding:20px;text-align:center;color:#aaa;font-size:13px">Cargando...</div>
     </div>
   </div>
