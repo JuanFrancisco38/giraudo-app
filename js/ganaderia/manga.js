@@ -1310,6 +1310,12 @@ async function guardarNovedad() {
   else if (tipo === 'Pesada') await procesarNovPesada(rodeoId, fecha);
 }
 
+function aplicarPesoPromedioATodos() {
+  const val = document.getElementById('pes-promedio-global')?.value;
+  if (!val || parseFloat(val) <= 0) { toast('Ingresá un peso promedio válido', 'var(--tierra)'); return; }
+  document.querySelectorAll('.pes-nov-input').forEach(inp => inp.value = val);
+}
+
 async function procesarNovPesada(rodeoId, fecha) {
   const inputs = document.querySelectorAll('.pes-nov-input');
   const registros = [];
