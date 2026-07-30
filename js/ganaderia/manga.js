@@ -591,7 +591,7 @@ function renderTabAnimales(rodeoId, animales) {
               ${a.renspa_id ? `<div style="font-size:12px;color:var(--cielo);margin-top:3px">🏷️ ${renspaLabel(a.renspa_id) || ''}</div>` : ''}
               ${crias ? `<div style="font-size:12px;color:var(--verde);margin-top:3px">🐣 ${crias} cría${crias !== 1 ? 's' : ''}</div>` : ''}
             </div>
-            ${esHembraCard && (estadoReprod || estadoFisio) ? `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:120px">
+            ${esHembraCard && ultimoSrv && (estadoReprod || estadoFisio) ? `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:120px">
               ${estadoReprod ? `<div style="background:${bgReprod};color:${colReprod};border-radius:8px;padding:7px 12px;font-size:17px;font-weight:800;text-align:center;width:100%;box-sizing:border-box">${estadoReprod}</div>` : ''}
               ${estadoFisio ? `<div style="background:${bgFisio};color:${colFisio};border-radius:8px;padding:6px 12px;font-size:14px;font-weight:700;text-align:center;width:100%;box-sizing:border-box">${estadoFisio}</div>` : ''}
               ${fppHtml}
