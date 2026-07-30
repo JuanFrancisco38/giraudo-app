@@ -1,4 +1,4 @@
-const RUBROS_PRECIOS = ['Agroquímicos','Semillas','Fertilizantes','Combustibles y Lubricantes','Fletes','Insumos Varios','Reparaciones','Repuestos','Servicios Rurales','Servicios Varios','Insumos Veterinarios','Otro'];
+const RUBROS_PRECIOS = ['Agroquímicos','Semillas','Fertilizantes','Arrendamientos Rurales','Combustibles y Lubricantes','Fletes','Gastos de Comercialización','Insumos Varios','Inversiones Inmobiliarias','Inversiones Mobiliarias','Reparaciones','Repuestos','Seguros','Servicios Profesionales','Servicios Rurales','Servicios Varios','Ponedoras','Servicios de Acondicionamiento de Granos','Insumos Balanceado','Insumos Veterinarios','Servicios Energéticos','Otro'];
 const UNIDADES_PRECIOS = ['','kg','lts','tt','unidad','bolsa','tn'];
 
 function normCamp(c) {

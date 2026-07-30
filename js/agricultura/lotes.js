@@ -120,7 +120,16 @@ function buscarCostoUnitarioInsumo(descripcion, campania) {
   const matchesTP = tablaPrecios.filter(p => normalizarTexto(p.producto || '').includes(needle));
   if (matchesTP.length) {
     const deCampania = matchesTP.filter(p => normalizarCampania(p.campania) === campN);
-    const lista = deCampania.length ? deCampania : matchesTP;
+    let lista;
+    if (deCampania.length) {
+      lista = deCampania;
+    } else {
+      // Sin datos para esta campaña → usar la campaña más reciente disponible
+      const camps = [...new Set(matchesTP.map(p => normalizarCampania(p.campania)).filter(Boolean))];
+      camps.sort((a, b) => campaniaAnio(b) - campaniaAnio(a));
+      const masReciente = camps[0];
+      lista = masReciente ? matchesTP.filter(p => normalizarCampania(p.campania) === masReciente) : matchesTP;
+    }
     const precios = lista.map(p => {
       const precio = p.moneda === 'USD' ? (p.precio || 0) * tc : (p.precio || 0);
       return { precio, unidad: EQUIVALENCIAS_UNIDAD[(p.unidad || '').toLowerCase()] || (p.unidad || '').toLowerCase() };

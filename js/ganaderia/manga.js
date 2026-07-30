@@ -691,6 +691,33 @@ function renderContenidoFicha(tab) {
         <button class="btn btn-primary" style="font-size:13px" onclick="guardarServicio('${a.id}')">Guardar</button>
         <button class="btn btn-secondary" style="font-size:13px;margin-left:8px" onclick="toggleFormServicio()">Cancelar</button>
       </div>
+      ${(() => {
+        // Buscar el servicio más reciente que indique gestación activa
+        const srvActivo = servicios.find(s => s.resultado === 'Preñada' || s.resultado === 'Pendiente');
+        if (!srvActivo || !srvActivo.fecha) return '';
+        const fechaSrv = new Date(srvActivo.fecha);
+        const fechaParto = new Date(fechaSrv);
+        fechaParto.setDate(fechaParto.getDate() + 270);
+        const hoy = new Date();
+        hoy.setHours(0,0,0,0);
+        const diasGestantes = Math.floor((hoy - fechaSrv) / 86400000);
+        const diasRestantes = Math.floor((fechaParto - hoy) / 86400000);
+        const fmtD = d => d.toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'});
+        const colorDias = diasGestantes >= 270 ? 'var(--bordo)' : 'var(--verde)';
+        const estadoLabel = diasGestantes >= 270
+          ? `<span class="badge badge-bordo" style="font-size:13px">¡Parto vencido!</span>`
+          : diasRestantes <= 30
+            ? `<span class="badge badge-tierra" style="font-size:13px">Próxima al parto (${diasRestantes} días)</span>`
+            : `<span class="badge badge-verde" style="font-size:13px">En gestación</span>`;
+        return `<div style="background:var(--fondo);border:1px solid var(--gris-borde);border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:16px;align-items:center">
+          ${estadoLabel}
+          <div style="display:flex;flex-wrap:wrap;gap:20px">
+            <div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Fecha de servicio</div><div style="font-size:15px;font-weight:700">${fmtD(fechaSrv)}</div></div>
+            <div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Días gestantes</div><div style="font-size:22px;font-weight:800;color:${colorDias}">${diasGestantes}</div></div>
+            <div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Parto probable</div><div style="font-size:15px;font-weight:700">${fmtD(fechaParto)}</div></div>
+          </div>
+        </div>`;
+      })()}
       ${servicios.length ? `<div class="table-wrap"><table>
         <thead><tr><th>Fecha</th><th>Método</th><th>Toro / Semen</th><th>Resultado</th><th>Fecha tacto</th><th>Obs.</th><th></th></tr></thead>
         <tbody>${servicios.map(s => {
