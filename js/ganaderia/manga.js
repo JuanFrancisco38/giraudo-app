@@ -1,4 +1,4 @@
-let rodeos = [];
+﻿let rodeos = [];
 let trabajosManga = [];
 let animalesRodeo = [];
 let novedadesGanaderas = [];
@@ -437,7 +437,7 @@ function filtrarAnimales(rodeoId) {
 }
 
 function renderTabAnimales(rodeoId, animales) {
-  const cardStyle = 'background:var(--fondo);border:1px solid var(--borde);border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .15s';
+  const cardStyle = 'border:1.5px solid #ccc;border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .15s,border-color .15s';
 
   // Leer filtros activos
   const fCar = (document.getElementById(`f-caravana-${rodeoId}`)?.value || '').toLowerCase().trim();
@@ -556,7 +556,18 @@ function renderTabAnimales(rodeoId, animales) {
             </div>`;
           }
 
-          return `<div style="${cardStyle};display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="seleccionarAnimal('${a.id}')">
+          const bgCard = resUlt === 'Pre' + '\u00f1' + 'ada' ? '#f0faf3'
+            : resUlt === 'Vac' + '\u00ed' + 'a' ? '#fdf3f3'
+            : resUlt === 'Abort' + '\u00f3' ? '#fdf3f3'
+            : resUlt === 'Pendiente' ? '#fdfaf0'
+            : '#fafafa';
+          const borderCard = resUlt === 'Pre' + '\u00f1' + 'ada' ? '#7dc89a'
+            : resUlt === 'Vac' + '\u00ed' + 'a' ? '#e8a0a0'
+            : resUlt === 'Abort' + '\u00f3' ? '#e8a0a0'
+            : resUlt === 'Pendiente' ? '#d4c060'
+            : '#ccc';
+
+          return `<div style="${cardStyle};background:${bgCard};border-color:${borderCard};display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="seleccionarAnimal('${a.id}')">
             <div style="flex:1;min-width:0">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
                 <span class="badge badge-${color}">${a.categoria || a.sexo || '—'}</span>
