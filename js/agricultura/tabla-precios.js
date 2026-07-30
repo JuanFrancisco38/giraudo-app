@@ -7,7 +7,8 @@ function normCamp(c) {
 
 let tablaPreciosTodos = [];
 let tablaPreciosCampania = '';
-let tipoCambioHoy = parseFloat(localStorage.getItem('tc_dolar') || '0');
+let tipoCambioHoy = 0;
+try { tipoCambioHoy = parseFloat(localStorage.getItem('tc_dolar') || '0') || 0; } catch(e) {}
 
 async function fetchTipoCambio() {
   const btn = document.getElementById('btn-tp-tc');
@@ -18,7 +19,7 @@ async function fetchTipoCambio() {
     const tc = data.venta || data.promedio || 0;
     if (tc) {
       tipoCambioHoy = tc;
-      localStorage.setItem('tc_dolar', tc);
+      try { localStorage.setItem('tc_dolar', tc); } catch(e) {}
       document.getElementById('tp-tc').value = tc;
       renderTablaPrecios();
       toast(`✅ TC actualizado: $${tc}`);
@@ -31,17 +32,17 @@ async function fetchTipoCambio() {
 
 function actualizarTC() {
   tipoCambioHoy = parseFloat(document.getElementById('tp-tc').value) || 0;
-  localStorage.setItem('tc_dolar', tipoCambioHoy);
+  try { localStorage.setItem('tc_dolar', tipoCambioHoy); } catch(e) {}
   renderTablaPrecios();
 }
 
 async function cargarTablaPrecios() {
   // Restaurar TC guardado
-  const tcGuardado = parseFloat(localStorage.getItem('tc_dolar') || '0');
-  if (tcGuardado) {
-    tipoCambioHoy = tcGuardado;
-    document.getElementById('tp-tc').value = tcGuardado;
-  }
+  try {
+    const tcGuardado = parseFloat(localStorage.getItem('tc_dolar') || '0') || 0;
+    if (tcGuardado) tipoCambioHoy = tcGuardado;
+  } catch(e) {}
+  if (tipoCambioHoy) document.getElementById('tp-tc').value = tipoCambioHoy;
   const rows = await sb('GET', 'tabla_precios', '', '?order=rubro,producto');
   tablaPreciosTodos = rows || [];
   const camps = [...new Set(tablaPreciosTodos.map(r => normCamp(r.campania)).filter(Boolean))].sort();
