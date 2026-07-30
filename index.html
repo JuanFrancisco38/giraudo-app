@@ -555,6 +555,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
                 <option>Cambio de categoría</option>
                 <option>Entrada de toros</option>
                 <option>Retiro de toros</option>
+                <option>Pesada</option>
               </select></div>
             </div>
 
@@ -692,6 +693,12 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
                 <div class="form-group"><label>Nueva categoría</label><select id="cat-nueva"><option>Vacas</option><option>Vaquillonas</option><option>Terneros</option><option>Terneras</option><option>Toros</option><option>Otro</option></select></div>
                 <div class="form-group"><label>Rodeo destino (opcional)</label><select id="cat-rodeo-destino"><option value="">— Mismo rodeo —</option></select></div>
               </div>
+            </div>
+
+            <!-- Panel: Pesada -->
+            <div id="nov-panel-pesada" style="display:none;margin-top:12px">
+              <div style="font-size:13px;color:var(--texto-suave);margin-bottom:10px">Ingresá el peso de cada animal. Los que queden en blanco se omiten.</div>
+              <div id="nov-pesada-lista"></div>
             </div>
 
             <div class="form-actions" style="margin-top:16px">

@@ -390,7 +390,7 @@ const ICONOS_NOV = {
   'Trabajo de manga': '💉', 'Nacimiento': '🐣', 'Ingreso': '⬇️',
   'Destete': '🐂', 'Aborto': '⚠️', 'Muerte': '💀',
   'Entrada de toros': '🐂', 'Retiro de toros': '🔙', 'Venta / Salida': '🚛', 'Traslado': '🔄',
-  'Cambio de categoría': '🔀'
+  'Cambio de categoría': '🔀', 'Pesada': '⚖️'
 };
 
 function renderTabNovedades(novedades) {
@@ -995,7 +995,7 @@ function abrirNuevoNovedad(rodeoId) {
 
 function onChangeTipoNovedad() {
   const tipo = document.getElementById('nov-tipo-main')?.value;
-  const panels = ['nov-panel-trabajo', 'nov-panel-nacimiento', 'nov-panel-ingreso', 'nov-panel-destete', 'nov-panel-aborto', 'nov-panel-baja', 'nov-panel-traslado', 'nov-panel-categoria', 'nov-panel-entrada-toros', 'nov-panel-retiro-toros'];
+  const panels = ['nov-panel-trabajo', 'nov-panel-nacimiento', 'nov-panel-ingreso', 'nov-panel-destete', 'nov-panel-aborto', 'nov-panel-baja', 'nov-panel-traslado', 'nov-panel-categoria', 'nov-panel-entrada-toros', 'nov-panel-retiro-toros', 'nov-panel-pesada'];
   const mapa = {
     'Trabajo de manga': 'nov-panel-trabajo',
     'Nacimiento': 'nov-panel-nacimiento',
@@ -1007,7 +1007,8 @@ function onChangeTipoNovedad() {
     'Traslado': 'nov-panel-traslado',
     'Cambio de categoría': 'nov-panel-categoria',
     'Entrada de toros': 'nov-panel-entrada-toros',
-    'Retiro de toros': 'nov-panel-retiro-toros'
+    'Retiro de toros': 'nov-panel-retiro-toros',
+    'Pesada': 'nov-panel-pesada'
   };
   panels.forEach(id => {
     const el = document.getElementById(id);
@@ -1019,6 +1020,30 @@ function onChangeTipoNovedad() {
     if (el) el.style.display = '';
   }
   if (tipo === 'Trabajo de manga') onChangeSubtipoNovedad();
+  if (tipo === 'Pesada') {
+    const rodeoId = document.getElementById('nov-rodeo-main')?.value;
+    if (rodeoId) renderListaPesadaNov(rodeoId);
+  }
+}
+
+function renderListaPesadaNov(rodeoId) {
+  const lista = document.getElementById('nov-pesada-lista');
+  if (!lista) return;
+  const animales = animalesRodeo.filter(a => a.rodeo_id === rodeoId)
+    .sort((a,b) => (a.caravana_interna||'').localeCompare(b.caravana_interna||'', undefined, {numeric:true}));
+  if (!animales.length) { lista.innerHTML = '<div style="color:var(--texto-suave)">Sin animales identificados en este rodeo.</div>'; return; }
+  lista.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Caravana</th><th>Categoría</th><th>Último peso</th><th>Peso hoy (kg)</th></tr></thead>
+    <tbody>${animales.map(a => {
+      const ultPes = pesadasAnimal.filter(p => p.animal_id === a.id).sort((x,y) => new Date(y.fecha)-new Date(x.fecha))[0];
+      return `<tr>
+        <td style="font-weight:700">#${caravanaDisplay(a)}</td>
+        <td><span class="badge badge-${a.sexo==='Hembra'?'bordo':'cielo'}" style="font-size:11px">${a.categoria||a.sexo}</span></td>
+        <td style="color:var(--texto-suave)">${ultPes ? ultPes.peso_kg + ' kg · ' + fmtFecha(ultPes.fecha) : '—'}</td>
+        <td><input type="number" step="0.1" min="0" placeholder="kg" data-animal-id="${a.id}" class="pes-nov-input" style="width:90px;border:1px solid var(--gris-borde);border-radius:4px;padding:4px 6px;font-size:13px"></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
 }
 
 function onChangeSubtipoNovedad() {
@@ -1063,12 +1088,16 @@ function renderListaInseminacion(rodeoId, subtipo) {
 }
 
 function onChangeRodeoNovedad() {
-  // Limpiar selectores al cambiar rodeo
   ['sel-trab','sel-destete','sel-aborto','sel-et','sel-rt','sel-baja','sel-traslado','sel-cat'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.innerHTML = ''; el.style.display = 'none'; }
   });
   onChangeTipoNovedad();
+  const tipo = document.getElementById('nov-tipo-main')?.value;
+  if (tipo === 'Pesada') {
+    const rodeoId = document.getElementById('nov-rodeo-main')?.value;
+    if (rodeoId) renderListaPesadaNov(rodeoId);
+  }
 }
 
 // ── Selector de animales para novedades ───────────────────
@@ -1278,6 +1307,37 @@ async function guardarNovedad() {
   else if (tipo === 'Cambio de categoría') await procesarNovCambioCategoria(rodeoId, fecha);
   else if (tipo === 'Entrada de toros') await procesarNovEntradaToros(rodeoId, fecha);
   else if (tipo === 'Retiro de toros') await procesarNovRetiroToros(rodeoId, fecha);
+  else if (tipo === 'Pesada') await procesarNovPesada(rodeoId, fecha);
+}
+
+async function procesarNovPesada(rodeoId, fecha) {
+  const inputs = document.querySelectorAll('.pes-nov-input');
+  const registros = [];
+  inputs.forEach(inp => {
+    const peso = parseFloat(inp.value);
+    if (peso > 0) registros.push({ animal_id: inp.dataset.animalId, fecha, peso_kg: peso });
+  });
+  if (!registros.length) { toast('Ingresá al menos un peso', 'var(--tierra)'); return; }
+
+  // Guardar novedad resumen
+  const novRes = await sb('POST', 'novedades_ganaderas', {
+    rodeo_id: rodeoId, fecha, tipo: 'Pesada',
+    cantidad: registros.length,
+    descripcion: `${registros.length} animal${registros.length !== 1 ? 'es' : ''} pesados`
+  });
+
+  // Guardar pesadas individuales
+  let ok = 0;
+  for (const r of registros) {
+    const res = await sb('POST', 'pesadas_animal', r);
+    if (res) { pesadasAnimal.push(...(Array.isArray(res) ? res : [res])); ok++; }
+  }
+
+  toast(`✅ Pesada registrada · ${ok} animal${ok !== 1 ? 'es' : ''}`);
+  resetFormNovedad();
+  document.getElementById('form-novedad-wrap').style.display = 'none';
+  tabRodeoActiva = 'novedades';
+  await cargarManga();
 }
 
 // ── Procesadores por tipo ─────────────────────────────────
