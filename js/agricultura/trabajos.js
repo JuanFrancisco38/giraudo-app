@@ -98,7 +98,8 @@ function actualizarSelectMaquinaria(tipo) {
     og.label = cat;
     items.forEach(m => {
       const opt = document.createElement('option');
-      opt.value = m.nombre;
+      opt.value = m.id;
+      opt.dataset.nombre = m.nombre;
       opt.textContent = m.nombre;
       og.appendChild(opt);
     });
@@ -271,7 +272,8 @@ async function guardarTrabajoModal() {
     cultivo: document.getElementById('mtr-cultivo').value,
     contratista: document.getElementById('mtr-cont').value || 'Propio',
     campania: document.getElementById('mtr-campania').value,
-    herramienta: document.getElementById('mtr-herramienta').value,
+    herramienta: document.getElementById('mtr-herramienta').selectedOptions[0]?.dataset.nombre || '',
+    maquina_id: document.getElementById('mtr-herramienta').value || null,
     cliente: esTercero ? document.getElementById('mtr-cliente').value : null,
     tarifa_cobrada: esTercero ? (parseFloat(document.getElementById('mtr-tarifa-cobrada').value) || null) : null,
     moneda_cobrada: esTercero ? document.getElementById('mtr-moneda-cobrada').value : null,
