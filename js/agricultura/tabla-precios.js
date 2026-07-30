@@ -172,12 +172,6 @@ async function sincronizarDesdeFacturas() {
     } catch(e) { return false; }
   });
 
-  toast(`🔍 Total boletas: ${(boletas||[]).length} | Recibidas: ${recibidas.length}`, 'var(--tierra)');
-  if (!recibidas.length) {
-    btn.disabled = false; btn.textContent = '🔄 Sincronizar desde facturas';
-    return;
-  }
-
   // Agrupar por producto+rubro+unidad+campaña → promedio de precios
   const grupos = {};
   recibidas.forEach(b => {
@@ -197,18 +191,25 @@ async function sincronizarDesdeFacturas() {
     if (pu > 0) grupos[clave].precios.push(pu);
   });
 
+  const nGrupos = Object.keys(grupos).length;
+  if (!nGrupos) {
+    toast(`⚠️ 197 recibidas pero concepto vacío en todas. Primer concepto: "${recibidas[0]?.concepto}"`, 'var(--tierra)');
+    btn.disabled = false; btn.textContent = '🔄 Sincronizar desde facturas';
+    return;
+  }
+
   let ok = 0;
   for (const g of Object.values(grupos)) {
     const promedio = g.precios.length ? g.precios.reduce((a,b) => a+b, 0) / g.precios.length : null;
     const r = await sb('POST', 'tabla_precios', {
       producto: g.producto, rubro: g.rubro, unidad: g.unidad,
-      precio: Math.round(promedio * 100) / 100, moneda: g.moneda,
-      campania: g.campania, origen: 'factura'
+      precio: promedio != null ? Math.round(promedio * 100) / 100 : null,
+      moneda: g.moneda, campania: g.campania, origen: 'factura'
     });
     if (r) ok++;
   }
 
-  toast(`✅ ${ok} productos sincronizados desde facturas`);
+  toast(ok ? `✅ ${ok} productos sincronizados` : `❌ ${nGrupos} grupos pero todos fallaron al guardar`);
   btn.disabled = false; btn.textContent = '🔄 Sincronizar desde facturas';
   cargarTablaPrecios();
 }
