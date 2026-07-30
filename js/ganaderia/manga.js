@@ -560,11 +560,13 @@ function renderTabAnimales(rodeoId, animales) {
             : resUlt === 'Vac' + '\u00ed' + 'a' ? '#fdf3f3'
             : resUlt === 'Abort' + '\u00f3' ? '#fdf3f3'
             : resUlt === 'Pendiente' ? '#fdfaf0'
+            : crias > 0 ? '#eef5fb'
             : '#fafafa';
           const borderCard = resUlt === 'Pre' + '\u00f1' + 'ada' ? '#7dc89a'
             : resUlt === 'Vac' + '\u00ed' + 'a' ? '#e8a0a0'
             : resUlt === 'Abort' + '\u00f3' ? '#e8a0a0'
             : resUlt === 'Pendiente' ? '#d4c060'
+            : crias > 0 ? '#7ab0d8'
             : '#ccc';
 
           return `<div style="${cardStyle};background:${bgCard};border-color:${borderCard};display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="seleccionarAnimal('${a.id}')">
