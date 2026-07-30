@@ -289,7 +289,7 @@ function renderTrabajos() {
     <tr>
       <td>${fmtFecha(t.fecha)}</td>
       <td><span class="badge badge-${colors[t.tipo] || 'gray'}">${t.tipo}</span></td>
-      <td>${t.campo || '—'}</td>
+      <td>${t.cliente ? `<span title="Trabajo a terceros" style="color:#b8860b;font-weight:600">👤 ${t.cliente}</span><br><small style="color:#888">${t.campo || ''}</small>` : (t.campo || '—')}</td>
       <td>${inputEditableTrabajo(t.id, 'lote', t.lote, 50)}</td>
       <td>${t.hectareas ? t.hectareas + ' has' : '—'}</td>
       <td>${inputEditableTrabajo(t.id, 'cultivo', t.cultivo, 70)}</td>
@@ -298,7 +298,7 @@ function renderTrabajos() {
       <td>${inputEditableTrabajo(t.id, 'dosis', t.dosis, 70, 'Ej: 3 lt/ha')}</td>
       <td>${inputEditableTrabajo(t.id, 'consumo_total', t.consumo_total, 80, 'Ej: 270 lts')}</td>
       <td>${inputEditableTrabajoNum(t.id, 'precio_unitario', precioUnit, 80)}</td>
-      <td>${costoTotal ? fmtMonto(costoTotal, 'ARS') : '—'}</td>
+      <td>${t.tarifa_cobrada && t.hectareas ? fmtMonto(t.tarifa_cobrada * t.hectareas, t.moneda_cobrada || 'ARS') : costoTotal ? fmtMonto(costoTotal, 'ARS') : '—'}</td>
       <td>${inputEditableTrabajo(t.id, 'campania', t.campania, 70, 'Ej: 25/26')}</td>
       <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarTrabajo('${t.id}')">🗑️</button></td>
     </tr>`;
