@@ -1,8 +1,8 @@
 function filaInsumoModalHTML() {
   return `<div class="insumo-row" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:6px;margin-bottom:8px;align-items:flex-end">
     <div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;color:#555;font-weight:600">Insumo / Producto</label><input type="text" class="ins-desc" style="border:1px solid #ccc;border-radius:5px;padding:5px 7px;font-size:13px"></div>
-    <div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;color:#555;font-weight:600">Dosis</label><input type="text" class="ins-dosis" placeholder="3 lt/ha" style="border:1px solid #ccc;border-radius:5px;padding:5px 7px;font-size:13px"></div>
-    <div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;color:#555;font-weight:600">Consumo total</label><input type="text" class="ins-consumo" placeholder="270 lts" style="border:1px solid #ccc;border-radius:5px;padding:5px 7px;font-size:13px"></div>
+    <div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;color:#555;font-weight:600">Dosis</label><input type="text" class="ins-dosis" placeholder="3 lt/ha" style="border:1px solid #ccc;border-radius:5px;padding:5px 7px;font-size:13px" oninput="calcConsumoInsumo(this)"></div>
+    <div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;color:#555;font-weight:600">Consumo total</label><input type="text" class="ins-consumo" placeholder="Auto" style="border:1px solid #ccc;border-radius:5px;padding:5px 7px;font-size:13px;background:#f8f8f8" readonly></div>
     <div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;color:#555;font-weight:600">$ Unitario</label><input type="number" class="ins-precio" placeholder="0" style="border:1px solid #ccc;border-radius:5px;padding:5px 7px;font-size:13px" oninput="calcTotalInsumo(this)"></div>
     <div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;color:#555;font-weight:600">$ Total</label><input type="number" class="ins-total" placeholder="0" style="border:1px solid #ccc;border-radius:5px;padding:5px 7px;font-size:13px;background:#f8f8f8" readonly></div>
     <button type="button" onclick="this.closest('.insumo-row').remove()" style="padding:5px 8px;border:1px solid #ccc;background:#fff;border-radius:5px;cursor:pointer;font-size:14px;color:#999;align-self:flex-end">🗑️</button>
@@ -11,6 +11,28 @@ function filaInsumoModalHTML() {
 
 function agregarFilaInsumoModal() {
   document.getElementById('mtr-insumos-list').insertAdjacentHTML('beforeend', filaInsumoModalHTML());
+}
+
+function getTotalHectareas() {
+  const filas = [...document.querySelectorAll('#mtr-lotes-list .lote-row')];
+  return filas.reduce((s, f) => s + (parseFloat(f.querySelector('.lot-has').value) || 0), 0);
+}
+
+function recalcularTodosInsumos() {
+  document.querySelectorAll('#mtr-insumos-list .insumo-row').forEach(row => {
+    const dosisInput = row.querySelector('.ins-dosis');
+    if (dosisInput.value) calcConsumoInsumo(dosisInput);
+  });
+}
+
+function calcConsumoInsumo(input) {
+  const row = input.closest('.insumo-row');
+  const dosis = parseNumeroDeTexto(input.value) || 0;
+  const unidad = (input.value.match(/[a-zA-Z]+/) || [''])[0];
+  const has = getTotalHectareas();
+  const consumo = dosis && has ? dosis * has : 0;
+  row.querySelector('.ins-consumo').value = consumo ? `${consumo} ${unidad}`.trim() : '';
+  calcTotalInsumo(row.querySelector('.ins-precio'));
 }
 
 function calcTotalInsumo(input) {
@@ -87,7 +109,7 @@ function actualizarSelectMaquinaria(tipo) {
 function filaLoteModalHTML() {
   return `<div class="lote-row" style="display:grid;grid-template-columns:1fr 1fr auto;gap:6px;margin-bottom:6px;align-items:flex-end">
     <div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;color:#555;font-weight:600">Lote</label><input type="text" class="lot-num" placeholder="Ej: 3" style="border:1px solid #ccc;border-radius:5px;padding:5px 7px;font-size:13px"></div>
-    <div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;color:#555;font-weight:600">Hectáreas</label><input type="number" class="lot-has" placeholder="Ej: 78" style="border:1px solid #ccc;border-radius:5px;padding:5px 7px;font-size:13px"></div>
+    <div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;color:#555;font-weight:600">Hectáreas</label><input type="number" class="lot-has" placeholder="Ej: 78" style="border:1px solid #ccc;border-radius:5px;padding:5px 7px;font-size:13px" oninput="recalcularTodosInsumos()"></div>
     <button type="button" onclick="this.closest('.lote-row').remove()" style="padding:5px 8px;border:1px solid #ccc;background:#fff;border-radius:5px;cursor:pointer;font-size:14px;color:#999;align-self:flex-end">🗑️</button>
   </div>`;
 }
