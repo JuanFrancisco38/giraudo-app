@@ -91,10 +91,10 @@ async function cargarProyecciones() {
   _proyData = { facturas, cheques: cqs, fijos, total };
 
   const GRAFICOS = [
+    { id:'total',    titulo:'Total consolidado',                   color:'#444',    icon:'📊', datos: total   },
     { id:'facturas', titulo:'Facturas a pagar',                   color:'#8B1A2F', icon:'🧾', datos: facturas },
     { id:'cheques',  titulo:'Cheques emitidos pendientes',         color:'#1a5f8b', icon:'💳', datos: cqs     },
     { id:'fijos',    titulo:'Costos fijos',                       color:'#5f7a1a', icon:'📌', datos: fijos   },
-    { id:'total',    titulo:'Total consolidado',                   color:'#444',    icon:'📊', datos: total   },
   ];
 
   const totalAnio = _proyMeses12.reduce((s,k) => s + (total[k]?.total||0), 0);
