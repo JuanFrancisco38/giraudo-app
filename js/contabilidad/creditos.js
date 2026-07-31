@@ -131,6 +131,11 @@ async function abrirModalCredito(id) {
   document.getElementById('cred-gasto-monto').value   = '';
   document.getElementById('modal-credito-titulo').textContent = '🏦 Nuevo crédito';
   document.getElementById('cred-resumen').style.display = 'none';
+  document.getElementById('cred-sim-panel').style.display = 'none';
+  document.getElementById('cred-btn-simular').style.display = '';
+  document.getElementById('cred-btn-volver').style.display = 'none';
+  document.getElementById('cred-btn-guardar').style.display = 'none';
+  document.querySelectorAll('#modal-credito .overflow-y-auto').forEach(el => el.style.display = '');
   _renderGastosCredito();
 
   if (id) {
@@ -213,6 +218,116 @@ function _renderGastosCredito() {
         <button type="button" onclick="eliminarGastoCredito(${i})" style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:15px;line-height:1">×</button>
       </div>
     </div>`).join('');
+}
+
+// ── SIMULACIÓN ───────────────────────────────────────────────
+
+function simularCredito() {
+  const banco    = document.getElementById('cred-banco').value.trim();
+  const monto    = parseFloat(document.getElementById('cred-monto').value);
+  const cuotas   = parseInt(document.getElementById('cred-cuotas').value);
+  const moneda   = document.getElementById('cred-moneda').value;
+  const frecuencia = document.getElementById('cred-frecuencia').value;
+  const cuotaInput = parseFloat(document.getElementById('cred-monto-cuota').value);
+  const fecha    = document.getElementById('cred-fecha').value;
+  const tasa     = parseFloat(document.getElementById('cred-tasa').value) || 0;
+  const tipoTasa = document.getElementById('cred-tipo-tasa').value;
+
+  if (!banco || !monto) { toast('Completá al menos banco y monto'); return; }
+  if (!cuotas || !fecha) { toast('Completá fecha de inicio y cantidad de cuotas para simular'); return; }
+
+  const montoCuota = cuotaInput || (monto / cuotas);
+  const totalAPagar = montoCuota * cuotas;
+  const interesTotal = totalAPagar - monto;
+
+  const MESES_FREC = { mensual:1, trimestral:3, semestral:6, anual:12 };
+  const mesesSalto = MESES_FREC[frecuencia] || 1;
+  const FREC_LABEL = { mensual:'Mensual', trimestral:'Trimestral', semestral:'Semestral', anual:'Anual' };
+  const inicio = new Date(fecha + 'T12:00:00');
+
+  // Generar cronograma
+  const filas = [];
+  let saldo = monto;
+  for (let i = 0; i < cuotas; i++) {
+    const fechaCuota = new Date(inicio.getFullYear(), inicio.getMonth() + i * mesesSalto, inicio.getDate());
+    const interesCuota = tasa ? saldo * (tasa / 100 / (12 / mesesSalto)) : (interesTotal / cuotas);
+    const capitalCuota = montoCuota - interesCuota;
+    saldo = Math.max(saldo - capitalCuota, 0);
+    filas.push({ num: i+1, fecha: fechaCuota, cuota: montoCuota, interes: interesCuota, capital: capitalCuota, saldo });
+  }
+
+  const filaHTML = filas.map((f,i) => `
+    <tr style="border-bottom:1px solid #f0f0f0;${i===0?'background:#fef8e4;font-weight:600':''}">
+      <td style="padding:7px 10px;text-align:center;color:#888">${f.num}</td>
+      <td style="padding:7px 10px">${f.fecha.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'})}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:600">${fmtMonto(f.cuota,moneda)}</td>
+      <td style="padding:7px 10px;text-align:right;color:#27ae60">${fmtMonto(f.capital,moneda)}</td>
+      <td style="padding:7px 10px;text-align:right;color:#c0392b">${fmtMonto(f.interes,moneda)}</td>
+      <td style="padding:7px 10px;text-align:right;color:#555">${fmtMonto(f.saldo,moneda)}</td>
+    </tr>`).join('');
+
+  document.getElementById('cred-sim-contenido').innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+      <div style="background:#f5e6e9;border-radius:9px;padding:10px 16px;flex:1;min-width:120px">
+        <div style="font-size:10px;color:#8B1A2F;font-weight:600;text-transform:uppercase">Monto del crédito</div>
+        <div style="font-size:18px;font-weight:800;color:#8B1A2F">${fmtMonto(monto,moneda)}</div>
+      </div>
+      <div style="background:#f8f8f8;border-radius:9px;padding:10px 16px;flex:1;min-width:120px">
+        <div style="font-size:10px;color:#555;font-weight:600;text-transform:uppercase">Total a pagar</div>
+        <div style="font-size:18px;font-weight:800">${fmtMonto(totalAPagar,moneda)}</div>
+      </div>
+      <div style="background:#fdecea;border-radius:9px;padding:10px 16px;flex:1;min-width:120px">
+        <div style="font-size:10px;color:#c0392b;font-weight:600;text-transform:uppercase">Interés total</div>
+        <div style="font-size:18px;font-weight:800;color:#c0392b">${fmtMonto(interesTotal,moneda)}</div>
+      </div>
+      <div style="background:#e8f5e0;border-radius:9px;padding:10px 16px;flex:1;min-width:120px">
+        <div style="font-size:10px;color:#27ae60;font-weight:600;text-transform:uppercase">Cuota ${FREC_LABEL[frecuencia]}</div>
+        <div style="font-size:18px;font-weight:800;color:#27ae60">${fmtMonto(montoCuota,moneda)}</div>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="background:#f4f4f2;border-bottom:2px solid #e0e0dc">
+            <th style="padding:8px 10px;text-align:center">#</th>
+            <th style="padding:8px 10px;text-align:left">Fecha de pago</th>
+            <th style="padding:8px 10px;text-align:right">Cuota</th>
+            <th style="padding:8px 10px;text-align:right">Capital</th>
+            <th style="padding:8px 10px;text-align:right">Interés</th>
+            <th style="padding:8px 10px;text-align:right">Saldo</th>
+          </tr>
+        </thead>
+        <tbody>${filaHTML}</tbody>
+        <tfoot>
+          <tr style="background:#f4f4f2;font-weight:700;border-top:2px solid #e0e0dc">
+            <td colspan="2" style="padding:8px 10px">TOTALES</td>
+            <td style="padding:8px 10px;text-align:right">${fmtMonto(totalAPagar,moneda)}</td>
+            <td style="padding:8px 10px;text-align:right;color:#27ae60">${fmtMonto(monto,moneda)}</td>
+            <td style="padding:8px 10px;text-align:right;color:#c0392b">${fmtMonto(interesTotal,moneda)}</td>
+            <td style="padding:8px 10px;text-align:right">—</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
+
+  // Mostrar panel simulación, ocultar form
+  document.querySelector('#modal-credito .overflow-y-auto, #modal-credito > div > div:nth-child(2)');
+  document.getElementById('cred-sim-panel').style.display = '';
+  // Ocultar el panel del form
+  document.querySelectorAll('#modal-credito .overflow-y-auto').forEach(el => el.style.display = 'none');
+  document.getElementById('cred-sim-panel').style.display = 'flex';
+  document.getElementById('cred-sim-panel').style.flexDirection = 'column';
+  document.getElementById('cred-btn-simular').style.display = 'none';
+  document.getElementById('cred-btn-volver').style.display = '';
+  document.getElementById('cred-btn-guardar').style.display = '';
+}
+
+function volverFormCredito() {
+  document.getElementById('cred-sim-panel').style.display = 'none';
+  document.querySelectorAll('#modal-credito .overflow-y-auto').forEach(el => el.style.display = '');
+  document.getElementById('cred-btn-simular').style.display = '';
+  document.getElementById('cred-btn-volver').style.display = 'none';
+  document.getElementById('cred-btn-guardar').style.display = 'none';
 }
 
 // ── GUARDAR ──────────────────────────────────────────────────

@@ -2151,9 +2151,19 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             <textarea id="cred-obs" rows="2" placeholder="Garantías, condiciones especiales..." style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;resize:vertical"></textarea>
           </div>
         </div>
-        <div style="padding:14px 20px;border-top:1px solid #eee;display:flex;justify-content:flex-end;gap:10px">
+
+        <!-- PANEL SIMULACIÓN -->
+        <div id="cred-sim-panel" style="display:none;overflow-y:auto;flex:1;padding:20px">
+          <div id="cred-sim-contenido"></div>
+        </div>
+
+        <div style="padding:14px 20px;border-top:1px solid #eee;display:flex;justify-content:space-between;align-items:center;gap:10px">
           <button class="btn btn-secondary" onclick="cerrarModalCredito()">Cancelar</button>
-          <button class="btn btn-primary" onclick="guardarCredito()">💾 Guardar</button>
+          <div style="display:flex;gap:10px">
+            <button id="cred-btn-volver" class="btn btn-secondary" onclick="volverFormCredito()" style="display:none">← Volver a editar</button>
+            <button id="cred-btn-simular" class="btn btn-secondary" onclick="simularCredito()" style="background:#1a5f8b;color:#fff;border-color:#1a5f8b">📊 Simular</button>
+            <button id="cred-btn-guardar" class="btn btn-primary" onclick="guardarCredito()" style="display:none">💾 Guardar crédito</button>
+          </div>
         </div>
       </div>
     </div>
