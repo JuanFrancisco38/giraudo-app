@@ -36,7 +36,16 @@ async function cargarProyecciones() {
   });
 
   _proyDatos = porMes;
-  const meses = Object.keys(porMes).sort();
+
+  // Generar los 12 meses siguientes aunque no tengan datos
+  const meses = [];
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() + i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    meses.push(key);
+    if (!porMes[key]) porMes[key] = { total: 0, items: [] };
+  }
+
   const totalGeneral = vencimientos.reduce((s, v) => s + v.monto, 0);
   const maxMes = Math.max(...meses.map(m => porMes[m].total));
   const MESES_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
