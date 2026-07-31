@@ -85,6 +85,7 @@ async function cargarCreditos() {
           </div>
         </div>
       </div>
+      ${r.fecha_inicio && r.cuotas_total && r.monto_cuota ? _htmlCronograma(r) : ''}
       ${r.observaciones?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid #f0f0f0;font-size:11px;color:var(--texto-suave)">📝 ${r.observaciones}</div>`:''}
     </div>`;
   }).join('');
@@ -261,6 +262,45 @@ async function registrarPagoCuota(id, pagadas, total) {
   await sb('PATCH', 'creditos', { cuotas_pagadas: nuevas }, `?id=eq.${id}`);
   toast(`Cuota ${nuevas} registrada`);
   cargarCreditos();
+}
+
+function _htmlCronograma(r) {
+  const MESES_FREC = { mensual:1, trimestral:3, semestral:6, anual:12 };
+  const mesesSalto = MESES_FREC[r.frecuencia_cuota||'mensual'];
+  const inicio     = new Date(r.fecha_inicio + 'T12:00:00');
+  const hoy        = new Date(); hoy.setHours(0,0,0,0);
+  const pagadas    = r.cuotas_pagadas || 0;
+
+  const cuotas = [];
+  for (let i = 0; i < r.cuotas_total; i++) {
+    const fecha = new Date(inicio.getFullYear(), inicio.getMonth() + i * mesesSalto, inicio.getDate());
+    const vencida  = fecha < hoy && i >= pagadas;
+    const pagada   = i < pagadas;
+    const proxima  = i === pagadas;
+    cuotas.push({ num: i+1, fecha, pagada, vencida, proxima });
+  }
+
+  const items = cuotas.map(c => {
+    const bg    = c.pagada  ? '#e8f5e0' : c.vencida ? '#fdecea' : c.proxima ? '#fef8e4' : '#f4f4f2';
+    const color = c.pagada  ? '#27ae60' : c.vencida ? '#c0392b' : c.proxima ? '#d4a017' : '#888';
+    const icon  = c.pagada  ? '✓' : c.vencida ? '!' : c.proxima ? '→' : '○';
+    const label = c.pagada  ? 'Pagada' : c.vencida ? 'Vencida' : c.proxima ? 'Próxima' : '';
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:64px">
+      <div style="background:${bg};border:1.5px solid ${color};border-radius:6px;padding:5px 6px;text-align:center;width:100%">
+        <div style="font-size:10px;font-weight:700;color:${color}">${icon} ${c.num}</div>
+        <div style="font-size:9px;color:#555;margin-top:1px">${c.fecha.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'})}</div>
+        ${label?`<div style="font-size:8px;color:${color};font-weight:600">${label}</div>`:''}
+      </div>
+      <div style="font-size:9px;color:#888">${fmtMonto(r.monto_cuota,r.moneda)}</div>
+    </div>`;
+  }).join('');
+
+  return `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0">
+    <div style="font-size:11px;font-weight:600;color:var(--texto-suave);margin-bottom:8px">CRONOGRAMA DE CUOTAS</div>
+    <div style="overflow-x:auto;padding-bottom:4px">
+      <div style="display:flex;gap:6px;min-width:max-content">${items}</div>
+    </div>
+  </div>`;
 }
 
 async function toggleActivoCredito(id, activo) {
