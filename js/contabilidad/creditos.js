@@ -82,6 +82,7 @@ async function cargarCreditos() {
             ${r.cuotas_total && (r.cuotas_pagadas||0) < r.cuotas_total ? `<button class="btn btn-secondary" style="font-size:11px;padding:4px 10px" onclick="registrarPagoCuota('${r.id}',${r.cuotas_pagadas||0},${r.cuotas_total})">✓ Pagar cuota</button>` : ''}
             <button class="btn btn-secondary" style="font-size:11px;padding:4px 10px" onclick="abrirModalCredito('${r.id}')">✏ Editar</button>
             <button class="btn btn-secondary" style="font-size:11px;padding:4px 10px;color:#c0392b" onclick="toggleActivoCredito('${r.id}',${r.activo})">${r.activo?'🗑 Cancelar':'↩ Reactivar'}</button>
+            <button class="btn btn-secondary" style="font-size:11px;padding:4px 10px;color:#c0392b;border-color:#c0392b" onclick="eliminarCredito('${r.id}')">🗑 Eliminar</button>
           </div>
         </div>
       </div>
@@ -416,6 +417,13 @@ function _htmlCronograma(r) {
       <div style="display:flex;gap:6px;min-width:max-content">${items}</div>
     </div>
   </div>`;
+}
+
+async function eliminarCredito(id) {
+  if (!confirm('¿Eliminar este crédito definitivamente? Esta acción no se puede deshacer.')) return;
+  await sb('DELETE', 'creditos', null, `?id=eq.${id}`);
+  toast('Crédito eliminado');
+  cargarCreditos();
 }
 
 async function toggleActivoCredito(id, activo) {
