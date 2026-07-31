@@ -113,10 +113,10 @@ async function cargarProyecciones() {
 function _htmlGrafico({ id, titulo, color, icon, datos }, HOY_KEY) {
   const maxVal = Math.max(..._proyMeses12.map(k => datos[k]?.total||0), 1);
 
-  const BAR_MAX_H = 90; // px
+  const BAR_MAX_H = 160; // px
   const bars = _proyMeses12.map(key => {
     const val   = datos[key]?.total||0;
-    const barH  = val ? Math.max(Math.round((val/maxVal)*BAR_MAX_H), 3) : 0;
+    const barH  = val ? Math.max(Math.round((val/maxVal)*BAR_MAX_H), 18) : 0;
     const label = val >= 1e6 ? (val/1e6).toFixed(1)+'M' : val >= 1e3 ? Math.round(val/1e3)+'k' : val ? String(Math.round(val)) : '';
     const mes   = MESES_ES[parseInt(key.split('-')[1])-1];
     const esHoy = key === HOY_KEY;
