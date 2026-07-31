@@ -104,25 +104,26 @@ async function cargarProyecciones() {
 function _htmlGrafico({ id, titulo, color, icon, datos }, HOY_KEY) {
   const maxVal = Math.max(..._proyMeses12.map(k => datos[k]?.total||0), 1);
 
+  const BAR_MAX_H = 90; // px
   const bars = _proyMeses12.map(key => {
     const val   = datos[key]?.total||0;
-    const pct   = (val/maxVal)*100;
+    const barH  = val ? Math.max(Math.round((val/maxVal)*BAR_MAX_H), 3) : 0;
     const label = val >= 1e6 ? (val/1e6).toFixed(1)+'M' : val >= 1e3 ? Math.round(val/1e3)+'k' : val ? String(Math.round(val)) : '';
     const mes   = MESES_ES[parseInt(key.split('-')[1])-1];
     const esHoy = key === HOY_KEY;
     return `<div class="proy-bar-col" data-graf="${id}" data-key="${key}" onclick="seleccionarMesProy('${id}','${key}')"
-      style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;cursor:pointer;padding:0 1px;gap:2px" title="${mes}: ${fmtMonto(val,'ARS')}">
-      <div class="proy-bar-lbl" style="font-size:9px;font-weight:700;color:#bbb;min-height:12px;white-space:nowrap">${label}</div>
-      <div class="proy-bar" style="width:82%;border-radius:4px 4px 0 0;background:${color}33;height:${Math.max(pct,val?1.5:0)}%;min-height:${val?2:0}px;transition:background .15s,height .15s"></div>
-      <div style="font-size:9px;color:${esHoy?color:'#aaa'};font-weight:${esHoy?'700':'400'};text-align:center;line-height:1.2;padding-top:3px">
+      style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;cursor:pointer;padding:0 1px" title="${mes}: ${fmtMonto(val,'ARS')}">
+      <div class="proy-bar-lbl" style="font-size:9px;font-weight:700;color:#bbb;min-height:13px;white-space:nowrap;text-align:center">${label}</div>
+      <div class="proy-bar" style="width:80%;border-radius:4px 4px 0 0;background:${color}44;height:${barH}px;transition:background .15s"></div>
+      <div style="font-size:9px;color:${esHoy?color:'#aaa'};font-weight:${esHoy?'700':'400'};text-align:center;line-height:1.3;padding-top:4px;border-top:2px solid #ddd;width:100%">
         ${mes}${esHoy?`<br><span style="background:${color};color:#fff;border-radius:4px;padding:0 3px;font-size:7px">hoy</span>`:''}
       </div>
     </div>`;
   }).join('');
 
   return `<div id="proy-card-${id}" style="margin-bottom:20px;background:var(--bg-card,#fff);border:1px solid var(--gris-borde,#e0e0e0);border-radius:12px;padding:16px">
-    <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:${color}">${icon} ${titulo}</div>
-    <div style="overflow-x:auto"><div style="min-width:460px;height:120px;display:flex;align-items:flex-end;gap:2px">${bars}</div></div>
+    <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:${color}">${icon} ${titulo}</div>
+    <div style="overflow-x:auto"><div style="min-width:460px;display:flex;align-items:flex-end;gap:3px;padding-bottom:2px">${bars}</div></div>
     <div id="proy-det-${id}" style="margin-top:12px"></div>
   </div>`;
 }
@@ -140,8 +141,9 @@ function seleccionarMesProy(grafId, key) {
   const card = document.getElementById(`proy-card-${grafId}`);
   if (!card) return;
   const maxVal = Math.max(..._proyMeses12.map(k => datos[k]?.total||0), 1);
-  const GRAFICOS = { facturas:'#8B1A2F', cheques:'#1a5f8b', fijos:'#5f7a1a', total:'#444' };
-  const color = GRAFICOS[grafId] || '#555';
+  const COLORS = { facturas:'#8B1A2F', cheques:'#1a5f8b', fijos:'#5f7a1a', total:'#444' };
+  const color = COLORS[grafId] || '#555';
+  const BAR_MAX_H = 90;
 
   card.querySelectorAll(`.proy-bar-col[data-graf="${grafId}"]`).forEach(col => {
     const k   = col.dataset.key;
@@ -150,7 +152,7 @@ function seleccionarMesProy(grafId, key) {
     const lbl = col.querySelector('.proy-bar-lbl');
     if (!bar) return;
     const isActivo = k === activo;
-    bar.style.background = isActivo ? color : (val ? color+'55' : color+'22');
+    bar.style.background = isActivo ? color : (val ? color+'44' : 'transparent');
     if (lbl) lbl.style.color = isActivo ? color : '#bbb';
   });
 
