@@ -113,8 +113,8 @@ async function cargarProyecciones() {
 function _htmlGrafico({ id, titulo, color, icon, datos }, HOY_KEY) {
   const maxVal = Math.max(..._proyMeses12.map(k => datos[k]?.total||0), 1);
 
-  const CHART_H  = 140; // altura total del área de barras en px
-  const BAR_MAX_H = 110; // px máximo de la barra más alta
+  const CHART_H  = 190; // altura total del área de barras en px
+  const BAR_MAX_H = 130; // px máximo de la barra más alta
   const bars = _proyMeses12.map(key => {
     const val   = datos[key]?.total||0;
     const barH  = val ? Math.max(Math.round((val/maxVal)*BAR_MAX_H), 14) : 0;
