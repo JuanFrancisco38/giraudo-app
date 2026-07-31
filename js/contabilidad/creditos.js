@@ -52,6 +52,16 @@ async function cargarCreditos() {
             ${r.cuotas_total?`<span>📋 ${r.cuotas_pagadas||0}/${r.cuotas_total} cuotas ${r.frecuencia_cuota||'mensual'}es</span>`:''}
             ${r.monto_cuota?`<span>💵 ${fmtMonto(r.monto_cuota,r.moneda)} / cuota</span>`:''}
           </div>
+          ${(r.cuotas_pagadas>0 && r.monto_cuota && r.cuotas_total) ? (() => {
+            const totalPagado    = r.cuotas_pagadas * r.monto_cuota;
+            const capitalPagado  = (r.cuotas_pagadas / r.cuotas_total) * r.monto_total;
+            const interesPagado  = Math.max(totalPagado - capitalPagado, 0);
+            return `<div style="margin-top:8px;display:flex;gap:14px;flex-wrap:wrap;font-size:12px;background:#fef8e4;border-radius:8px;padding:7px 10px">
+              <span>💰 Total pagado: <strong>${fmtMonto(totalPagado,r.moneda)}</strong></span>
+              <span>🏦 Capital: <strong>${fmtMonto(capitalPagado,r.moneda)}</strong></span>
+              <span style="color:#c0392b">📈 Interés pagado: <strong>${fmtMonto(interesPagado,r.moneda)}</strong></span>
+            </div>`;
+          })() : ''}
           ${r.cuotas_total ? `<div style="margin-top:8px">
             <div style="background:#eee;border-radius:20px;height:6px;overflow:hidden">
               <div style="background:${pct>=100?'#27ae60':'#8B1A2F'};height:100%;width:${pct}%;border-radius:20px"></div>
