@@ -193,12 +193,17 @@ tr:hover td{background:var(--gris)}
     <div class="nav-item" onclick="showSection('balance',this)">📊 Balance mensual</div>
   </div>
 
-  <div class="sidebar-section" onclick="toggleNav(this)">Ver / Analizar <span class="nav-chevron">▾</span></div>
+  <div class="sidebar-section" onclick="toggleNav(this)">Agronomía <span class="nav-chevron">▾</span></div>
   <div class="sidebar-group">
     <div class="nav-item" onclick="showSection('trabajos_agri',this)">🌾 Trabajos</div>
     <div class="nav-item" onclick="showSection('lotes',this)">🗺️ Historial lotes</div>
-    <div class="nav-item" onclick="showSection('manga',this)">🐄 Ganadería</div>
     <div class="nav-item" onclick="showSection('maquinaria',this)">🚜 Maquinaria</div>
+  </div>
+
+  <div class="sidebar-section" onclick="toggleNav(this)">Ganadería <span class="nav-chevron">▾</span></div>
+  <div class="sidebar-group">
+    <div class="nav-item" onclick="showSection('manga',this)">🐄 Ganadería</div>
+    <div class="nav-item" onclick="showSection('pastoreos',this)">🌿 Pastoreos</div>
   </div>
 
   <div class="sidebar-footer">
@@ -403,6 +408,18 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
           </div>
           <div class="table-wrap"><table><thead><tr><th>Caravana</th><th>Categoría</th><th>Raza</th><th>Lote</th><th>Peso ini.</th><th>Propietario</th></tr></thead>
           <tbody id="tabla-animales"><tr><td colspan="6"><div class="empty-state"><div class="icon">🐄</div><h3>Sin animales registrados</h3></div></td></tr></tbody></table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASTOREOS -->
+    <div id="section-pastoreos" class="section">
+      <div class="card">
+        <div class="card-header"><h3>🌿 Pastoreos</h3></div>
+        <div style="padding:48px;text-align:center;color:var(--texto-suave)">
+          <div style="font-size:48px;margin-bottom:12px">🌿</div>
+          <h3 style="margin:0 0 8px">Sección en desarrollo</h3>
+          <p style="margin:0;font-size:13px">Próximamente vas a poder gestionar los pastoreos acá.</p>
         </div>
       </div>
     </div>
