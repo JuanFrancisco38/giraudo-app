@@ -113,27 +113,30 @@ async function cargarProyecciones() {
 function _htmlGrafico({ id, titulo, color, icon, datos }, HOY_KEY) {
   const maxVal = Math.max(..._proyMeses12.map(k => datos[k]?.total||0), 1);
 
-  const BAR_MAX_H = 160; // px
+  const CHART_H  = 140; // altura total del área de barras en px
+  const BAR_MAX_H = 110; // px máximo de la barra más alta
   const bars = _proyMeses12.map(key => {
     const val   = datos[key]?.total||0;
-    const barH  = val ? Math.max(Math.round((val/maxVal)*BAR_MAX_H), 18) : 0;
-    const label = val >= 1e6 ? (val/1e6).toFixed(1)+'M' : val >= 1e3 ? Math.round(val/1e3)+'k' : val ? String(Math.round(val)) : '';
+    const barH  = val ? Math.max(Math.round((val/maxVal)*BAR_MAX_H), 14) : 0;
+    const label = val >= 1e6 ? (val/1e6).toFixed(2)+'M' : val >= 1e3 ? Math.round(val/1e3)+'k' : val ? String(Math.round(val)) : '';
     const mes   = MESES_ES[parseInt(key.split('-')[1])-1];
     const esHoy = key === HOY_KEY;
+    // color sólido para la barra
+    const barBg = color === '#444' ? '#888' : color;
     return `<div class="proy-bar-col" data-graf="${id}" data-key="${key}" onclick="seleccionarMesProy('${id}','${key}')"
-      style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;cursor:pointer;padding:0 1px" title="${mes}: ${fmtMonto(val,'ARS')}">
-      <div class="proy-bar-lbl" style="font-size:9px;font-weight:700;color:#bbb;min-height:13px;white-space:nowrap;text-align:center">${label}</div>
-      <div class="proy-bar" style="width:80%;border-radius:4px 4px 0 0;background:${color}44;height:${barH}px;transition:background .15s"></div>
-      <div style="font-size:9px;color:${esHoy?color:'#aaa'};font-weight:${esHoy?'700':'400'};text-align:center;line-height:1.3;padding-top:4px;border-top:2px solid #ddd;width:100%">
-        ${mes}${esHoy?`<br><span style="background:${color};color:#fff;border-radius:4px;padding:0 3px;font-size:7px">hoy</span>`:''}
+      style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;cursor:pointer;padding:0 2px;height:${CHART_H}px" title="${mes}: ${fmtMonto(val,'ARS')}">
+      <div class="proy-bar-lbl" style="font-size:10px;font-weight:800;color:#444;min-height:16px;white-space:nowrap;text-align:center;line-height:1.3">${label}</div>
+      <div class="proy-bar" style="width:85%;border-radius:5px 5px 0 0;background:${barBg};opacity:0.75;height:${barH}px;transition:opacity .15s,height .15s;flex-shrink:0"></div>
+      <div style="width:100%;border-top:2px solid #ccc;padding-top:4px;font-size:10px;color:${esHoy?color:'#666'};font-weight:${esHoy?'800':'500'};text-align:center;line-height:1.3;flex-shrink:0">
+        ${mes}${esHoy?`<br><span style="background:${color};color:#fff;border-radius:4px;padding:0 4px;font-size:8px">hoy</span>`:''}
       </div>
     </div>`;
   }).join('');
 
-  return `<div id="proy-card-${id}" style="margin-bottom:20px;background:var(--bg-card,#fff);border:1px solid var(--gris-borde,#e0e0e0);border-radius:12px;padding:16px">
-    <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:${color}">${icon} ${titulo}</div>
-    <div style="overflow-x:auto"><div style="min-width:460px;display:flex;align-items:flex-end;gap:3px;padding-bottom:2px">${bars}</div></div>
-    <div id="proy-det-${id}" style="margin-top:12px"></div>
+  return `<div id="proy-card-${id}" style="margin-bottom:20px;background:var(--bg-card,#fff);border:1px solid var(--gris-borde,#e0e0e0);border-radius:12px;padding:18px">
+    <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:${color}">${icon} ${titulo}</div>
+    <div style="overflow-x:auto"><div style="min-width:520px;display:flex;align-items:flex-end;gap:4px">${bars}</div></div>
+    <div id="proy-det-${id}" style="margin-top:14px"></div>
   </div>`;
 }
 
@@ -161,8 +164,10 @@ function seleccionarMesProy(grafId, key) {
     const lbl = col.querySelector('.proy-bar-lbl');
     if (!bar) return;
     const isActivo = k === activo;
-    bar.style.background = isActivo ? color : (val ? color+'44' : 'transparent');
-    if (lbl) lbl.style.color = isActivo ? color : '#bbb';
+    const barBg = color === '#444' ? '#888' : color;
+    bar.style.opacity = isActivo ? '1' : '0.75';
+    bar.style.background = barBg;
+    if (lbl) lbl.style.color = isActivo ? color : '#444';
   });
 
   // Detalle
