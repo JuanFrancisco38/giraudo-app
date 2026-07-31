@@ -1,172 +1,204 @@
-let _proyMesActivo = null;
-let _proyDatos = null;
+let _proyMesActivo = {};
+let _proyData    = null;
+let _proyMeses12 = [];
+
+const MESES_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+function _getMeses12() {
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const out = [];
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() + i, 1);
+    out.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  return out;
+}
 
 async function cargarProyecciones() {
   const cont = document.getElementById('proy-contenido');
   if (!cont) return;
   cont.innerHTML = '<div style="text-align:center;padding:40px;color:var(--texto-suave)">Cargando...</div>';
 
-  const rows = await sb('GET', 'boletas', '', '?order=fecha.desc') || [];
-  const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const limite = new Date(hoy); limite.setFullYear(limite.getFullYear() + 1);
+  _proyMeses12 = _getMeses12();
+  const HOY_KEY = _proyMeses12[0];
+  const RUBROS_FIJOS = ['Arrendamientos Rurales','Servicios Profesionales','Seguros','Servicios Energéticos'];
 
-  const vencimientos = [];
-  rows.forEach(r => {
+  function initMeses() {
+    const m = {};
+    _proyMeses12.forEach(k => m[k] = { total: 0, items: [] });
+    return m;
+  }
+
+  const [boletas, cheques] = await Promise.all([
+    sb('GET', 'boletas', '', '?order=fecha.desc') || [],
+    sb('GET', 'cheques', '', '?tipo=eq.emitido&estado=eq.cartera&order=fecha_cobro.desc') || [],
+  ]);
+
+  // ── 1. FACTURAS A PAGAR ──────────────────────────────────────
+  const facturas = initMeses();
+  (boletas || []).forEach(r => {
     let obs = {};
     try { obs = JSON.parse(r.observaciones || '{}'); } catch(e) {}
     if (obs.pago === 'Paga') return;
     if (!obs.vencimiento) return;
-    const vto = new Date(obs.vencimiento); vto.setHours(0,0,0,0);
-    if (vto < hoy || vto > limite) return;
-    vencimientos.push({ fecha: vto, proveedor: r.proveedor || '—', concepto: obs.descripcion_a || r.concepto || '—', categoria: obs.rubro || r.categoria || '—', monto: r.monto || 0 });
-  });
-  vencimientos.sort((a, b) => a.fecha - b.fecha);
-
-  if (!vencimientos.length) {
-    cont.innerHTML = '<div style="text-align:center;padding:48px;color:var(--texto-suave)"><div style="font-size:48px">✅</div><p>Sin vencimientos pendientes en los próximos 12 meses</p></div>';
-    return;
-  }
-
-  const porMes = {};
-  vencimientos.forEach(v => {
-    const key = `${v.fecha.getFullYear()}-${String(v.fecha.getMonth()+1).padStart(2,'0')}`;
-    if (!porMes[key]) porMes[key] = { total: 0, items: [] };
-    porMes[key].total += v.monto;
-    porMes[key].items.push(v);
+    const vto = new Date(obs.vencimiento + 'T12:00:00');
+    const key = `${vto.getFullYear()}-${String(vto.getMonth()+1).padStart(2,'0')}`;
+    if (!facturas[key]) return;
+    facturas[key].total += r.monto || 0;
+    facturas[key].items.push({ fecha: obs.vencimiento, proveedor: r.proveedor||'—', concepto: r.concepto||'—', categoria: r.categoria||'—', monto: r.monto||0 });
   });
 
-  _proyDatos = porMes;
+  // ── 2. CHEQUES EMITIDOS ──────────────────────────────────────
+  const cqs = initMeses();
+  (cheques || []).forEach(c => {
+    if (!c.fecha_cobro) return;
+    const key = c.fecha_cobro.slice(0,7);
+    if (!cqs[key]) return;
+    cqs[key].total += c.monto||0;
+    cqs[key].items.push({ fecha: c.fecha_cobro, beneficiario: c.beneficiario||c.contra||'—', banco: c.banco||'—', numero: c.numero||'—', monto: c.monto||0 });
+  });
 
-  // Generar los 12 meses siguientes aunque no tengan datos
-  const meses = [];
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(hoy.getFullYear(), hoy.getMonth() + i, 1);
-    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    meses.push(key);
-    if (!porMes[key]) porMes[key] = { total: 0, items: [] };
-  }
+  // ── 3. COSTOS FIJOS ──────────────────────────────────────────
+  const fijos = initMeses();
+  (boletas || []).forEach(r => {
+    let obs = {};
+    try { obs = JSON.parse(r.observaciones || '{}'); } catch(e) {}
+    if (obs.pago === 'Paga') return;
+    if (!RUBROS_FIJOS.includes(r.categoria)) return;
+    if (!obs.vencimiento) return;
+    const vto = new Date(obs.vencimiento + 'T12:00:00');
+    const key = `${vto.getFullYear()}-${String(vto.getMonth()+1).padStart(2,'0')}`;
+    if (!fijos[key]) return;
+    fijos[key].total += r.monto||0;
+    fijos[key].items.push({ fecha: obs.vencimiento, proveedor: r.proveedor||'—', concepto: r.concepto||'—', categoria: r.categoria||'—', monto: r.monto||0 });
+  });
 
-  const totalGeneral = vencimientos.reduce((s, v) => s + v.monto, 0);
-  const maxMes = Math.max(...meses.map(m => porMes[m].total));
-  const MESES_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  const HOY_KEY = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
-  if (!_proyMesActivo || !porMes[_proyMesActivo]) _proyMesActivo = meses[0];
+  // ── 4. TOTAL CONSOLIDADO ─────────────────────────────────────
+  const total = initMeses();
+  _proyMeses12.forEach(k => {
+    total[k].total = (facturas[k]?.total||0) + (cqs[k]?.total||0) + (fijos[k]?.total||0);
+  });
 
-  // Ticks del eje Y
-  const nTicks = 5;
-  const tickStep = Math.ceil(maxMes / nTicks / 1000000) * 1000000 || Math.ceil(maxMes / nTicks / 100000) * 100000 || 1;
-  const yMax = tickStep * nTicks;
-  const ticks = Array.from({length: nTicks + 1}, (_, i) => i * tickStep).reverse();
+  _proyData = { facturas, cheques: cqs, fijos, total };
 
-  const ticksHTML = ticks.map(t => `
-    <div style="display:flex;align-items:center;gap:6px;height:${100/(nTicks)}%;box-sizing:border-box">
-      <span style="font-size:10px;color:#aaa;white-space:nowrap;min-width:60px;text-align:right">${t >= 1000000 ? (t/1000000).toFixed(1)+'M' : t >= 1000 ? (t/1000).toFixed(0)+'k' : t}</span>
-      <div style="flex:1;border-top:1px dashed #eee"></div>
-    </div>`).join('');
+  const GRAFICOS = [
+    { id:'facturas', titulo:'Facturas a pagar',                   color:'#8B1A2F', icon:'🧾', datos: facturas },
+    { id:'cheques',  titulo:'Cheques emitidos pendientes',         color:'#1a5f8b', icon:'💳', datos: cqs     },
+    { id:'fijos',    titulo:'Costos fijos',                       color:'#5f7a1a', icon:'📌', datos: fijos   },
+    { id:'total',    titulo:'Total consolidado',                   color:'#444',    icon:'📊', datos: total   },
+  ];
 
-  const barsHTML = meses.map(key => {
-    const [, mes] = key.split('-');
-    const data = porMes[key];
-    const pct = (data.total / yMax) * 100;
-    const activo = key === _proyMesActivo;
-    const esHoy = key === HOY_KEY;
-    const color = activo ? '#8B1A2F' : esHoy ? '#c0785c' : '#dba090';
-    return `<div onclick="seleccionarMesProy('${key}')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;cursor:pointer;gap:4px;padding:0 2px" title="${fmtMonto(data.total,'ARS')}">
-      <div style="font-size:10px;font-weight:700;color:${activo?'#8B1A2F':'#888'}">${fmtMonto(data.total,'ARS').replace('$ ','$')}</div>
-      <div style="width:100%;background:${color};border-radius:5px 5px 0 0;height:${pct}%;min-height:3px;transition:all 0.25s;box-shadow:${activo?'0 2px 8px rgba(139,26,47,0.3)':'none'}"></div>
-    </div>`;
-  }).join('');
-
-  const labelsHTML = meses.map(key => {
-    const [anio, mes] = key.split('-');
-    const activo = key === _proyMesActivo;
-    const esHoy = key === HOY_KEY;
-    return `<div style="flex:1;text-align:center;font-size:10px;font-weight:${activo?'700':'400'};color:${esHoy?'#8B1A2F':activo?'#333':'#999'};padding-top:4px">
-      ${MESES_ES[parseInt(mes)-1]}<br>${esHoy?'<span style="background:#8B1A2F;color:#fff;border-radius:8px;padding:0 4px;font-size:9px">HOY</span>':anio.slice(2)}
-    </div>`;
-  }).join('');
+  const totalAnio = _proyMeses12.reduce((s,k) => s + (total[k]?.total||0), 0);
 
   cont.innerHTML = `
-    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px">
-      <div class="stat-card" style="flex:1;min-width:160px">
-        <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--texto-suave);margin-bottom:4px">Total pendiente</div>
-        <div style="font-size:22px;font-weight:700;color:#8B1A2F">${fmtMonto(totalGeneral,'ARS')}</div>
-        <div style="font-size:12px;color:var(--texto-suave)">${vencimientos.length} facturas · ${meses.length} meses</div>
-      </div>
-      <div class="stat-card" style="flex:1;min-width:160px">
-        <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--texto-suave);margin-bottom:4px">Próximo vencimiento</div>
-        <div style="font-size:16px;font-weight:700">${fmtFecha(vencimientos[0].fecha.toISOString())}</div>
-        <div style="font-size:12px;color:var(--texto-suave)">${vencimientos[0].proveedor}</div>
+    <div style="background:var(--bg-card,#fff);border:1px solid var(--gris-borde,#e0e0e0);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:20px">
+      <div>
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--texto-suave)">Flujo proyectado — próximos 12 meses</div>
+        <div style="font-size:28px;font-weight:800;color:#8B1A2F;margin-top:2px">${fmtMonto(totalAnio,'ARS')}</div>
       </div>
     </div>
-
-    <!-- GRÁFICO -->
-    <div style="overflow-x:auto">
-      <div style="min-width:500px">
-        <div style="display:flex;gap:0;height:220px;align-items:stretch">
-          <!-- Eje Y -->
-          <div style="display:flex;flex-direction:column;justify-content:space-between;padding-right:8px;height:100%">
-            ${ticks.map(t => `<span style="font-size:10px;color:#aaa;white-space:nowrap;line-height:1">${t >= 1000000 ? (t/1000000).toFixed(1)+'M' : t >= 1000 ? (t/1000).toFixed(0)+'k' : t === 0 ? '0' : t}</span>`).join('')}
-          </div>
-          <!-- Barras sobre grilla -->
-          <div style="flex:1;position:relative">
-            <!-- Grilla horizontal -->
-            <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none">
-              ${ticks.map(() => `<div style="border-top:1px dashed #eee;width:100%"></div>`).join('')}
-            </div>
-            <!-- Barras -->
-            <div style="position:absolute;inset:0;display:flex;align-items:flex-end;gap:6px;padding:0 4px">
-              ${barsHTML}
-            </div>
-          </div>
-        </div>
-        <!-- Eje X -->
-        <div style="display:flex;margin-left:52px;border-top:2px solid #ccc;padding-top:4px">
-          ${labelsHTML}
-        </div>
-      </div>
-    </div>
-
-    <!-- DETALLE MES -->
-    <div id="proy-detalle" style="margin-top:20px"></div>
+    ${GRAFICOS.map(g => _htmlGrafico(g, HOY_KEY)).join('')}
   `;
-
-  renderDetalleMesProy(hoy);
 }
 
-function renderDetalleMesProy(hoy) {
-  if (!hoy) hoy = new Date(); hoy.setHours && hoy.setHours(0,0,0,0);
-  const det = document.getElementById('proy-detalle');
-  if (!det || !_proyDatos || !_proyMesActivo) return;
-  const data = _proyDatos[_proyMesActivo];
-  if (!data) return;
-  const [anio, mes] = _proyMesActivo.split('-');
-  const MESES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  const filas = data.items.map(v => {
-    const dias = Math.round((v.fecha - hoy) / 86400000);
-    const urgente = dias <= 7;
-    const label = dias === 0 ? 'Hoy' : dias < 0 ? `Vencido` : `En ${dias}d`;
-    return `<tr>
-      <td>${fmtFecha(v.fecha.toISOString())}</td>
-      <td style="font-weight:600">${v.proveedor}</td>
-      <td>${v.concepto}</td>
-      <td style="color:#888">${v.categoria}</td>
-      <td style="font-weight:700;color:#8B1A2F;text-align:right">${fmtMonto(v.monto,'ARS')}</td>
-      <td style="color:${urgente?'#c0392b':'#888'};font-weight:${urgente?'700':'400'};text-align:center">${label}</td>
-    </tr>`;
-  }).join('');
-  det.innerHTML = `
-    <div style="border-top:2px solid #8B1A2F;padding-top:14px">
-      <div style="font-weight:700;font-size:14px;margin-bottom:10px;color:#8B1A2F">${MESES_FULL[parseInt(mes)-1]} ${anio} — ${fmtMonto(data.total,'ARS')}</div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Vencimiento</th><th>Proveedor</th><th>Concepto</th><th>Categoría</th><th style="text-align:right">Monto</th><th style="text-align:center">Plazo</th></tr></thead>
-        <tbody>${filas}</tbody>
-      </table></div>
+function _htmlGrafico({ id, titulo, color, icon, datos }, HOY_KEY) {
+  const maxVal = Math.max(..._proyMeses12.map(k => datos[k]?.total||0), 1);
+
+  const bars = _proyMeses12.map(key => {
+    const val   = datos[key]?.total||0;
+    const pct   = (val/maxVal)*100;
+    const label = val >= 1e6 ? (val/1e6).toFixed(1)+'M' : val >= 1e3 ? Math.round(val/1e3)+'k' : val ? String(Math.round(val)) : '';
+    const mes   = MESES_ES[parseInt(key.split('-')[1])-1];
+    const esHoy = key === HOY_KEY;
+    return `<div class="proy-bar-col" data-graf="${id}" data-key="${key}" onclick="seleccionarMesProy('${id}','${key}')"
+      style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;cursor:pointer;padding:0 1px;gap:2px" title="${mes}: ${fmtMonto(val,'ARS')}">
+      <div class="proy-bar-lbl" style="font-size:9px;font-weight:700;color:#bbb;min-height:12px;white-space:nowrap">${label}</div>
+      <div class="proy-bar" style="width:82%;border-radius:4px 4px 0 0;background:${color}33;height:${Math.max(pct,val?1.5:0)}%;min-height:${val?2:0}px;transition:background .15s,height .15s"></div>
+      <div style="font-size:9px;color:${esHoy?color:'#aaa'};font-weight:${esHoy?'700':'400'};text-align:center;line-height:1.2;padding-top:3px">
+        ${mes}${esHoy?`<br><span style="background:${color};color:#fff;border-radius:4px;padding:0 3px;font-size:7px">hoy</span>`:''}
+      </div>
     </div>`;
+  }).join('');
+
+  return `<div id="proy-card-${id}" style="margin-bottom:20px;background:var(--bg-card,#fff);border:1px solid var(--gris-borde,#e0e0e0);border-radius:12px;padding:16px">
+    <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:${color}">${icon} ${titulo}</div>
+    <div style="overflow-x:auto"><div style="min-width:460px;height:120px;display:flex;align-items:flex-end;gap:2px">${bars}</div></div>
+    <div id="proy-det-${id}" style="margin-top:12px"></div>
+  </div>`;
 }
 
-function seleccionarMesProy(key) {
-  _proyMesActivo = key;
-  const hoy = new Date(); hoy.setHours(0,0,0,0);
-  cargarProyecciones();
+function seleccionarMesProy(grafId, key) {
+  if (!_proyData) return;
+  const datos = _proyData[grafId];
+  if (!datos) return;
+
+  // Toggle
+  _proyMesActivo[grafId] = _proyMesActivo[grafId] === key ? null : key;
+  const activo = _proyMesActivo[grafId];
+
+  // Actualizar colores de barras solo en este gráfico
+  const card = document.getElementById(`proy-card-${grafId}`);
+  if (!card) return;
+  const maxVal = Math.max(..._proyMeses12.map(k => datos[k]?.total||0), 1);
+  const GRAFICOS = { facturas:'#8B1A2F', cheques:'#1a5f8b', fijos:'#5f7a1a', total:'#444' };
+  const color = GRAFICOS[grafId] || '#555';
+
+  card.querySelectorAll(`.proy-bar-col[data-graf="${grafId}"]`).forEach(col => {
+    const k   = col.dataset.key;
+    const val = datos[k]?.total || 0;
+    const bar = col.querySelector('.proy-bar');
+    const lbl = col.querySelector('.proy-bar-lbl');
+    if (!bar) return;
+    const isActivo = k === activo;
+    bar.style.background = isActivo ? color : (val ? color+'55' : color+'22');
+    if (lbl) lbl.style.color = isActivo ? color : '#bbb';
+  });
+
+  // Detalle
+  const det = document.getElementById(`proy-det-${grafId}`);
+  if (!det) return;
+  if (!activo || !datos[activo]?.items?.length) { det.innerHTML = ''; return; }
+
+  const items = [...datos[activo].items].sort((a,b) => (a.fecha||'').localeCompare(b.fecha||''));
+  const [anio, mes] = activo.split('-');
+  const nombreMes = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][parseInt(mes)-1];
+
+  let filas = '';
+  if (grafId === 'cheques') {
+    filas = items.map(it => `<tr>
+      <td>${fmtFecha(it.fecha)}</td>
+      <td>${it.beneficiario}</td>
+      <td>${it.banco}</td>
+      <td>${it.numero}</td>
+      <td style="text-align:right;font-weight:600">${fmtMonto(it.monto,'ARS')}</td>
+    </tr>`).join('');
+    det.innerHTML = `
+      <div style="border-top:1px solid #eee;padding-top:10px">
+        <div style="font-size:11px;font-weight:700;color:${color};margin-bottom:8px">${nombreMes} ${anio} — ${items.length} cheque${items.length!==1?'s':''}</div>
+        <div style="overflow-x:auto"><table class="tabla-datos" style="width:100%;font-size:12px">
+          <thead><tr><th>Vencimiento</th><th>Beneficiario</th><th>Banco</th><th>Nro.</th><th style="text-align:right">Monto</th></tr></thead>
+          <tbody>${filas}</tbody>
+          <tfoot><tr><td colspan="4" style="font-weight:700;text-align:right">Total</td>
+            <td style="font-weight:700;text-align:right;color:${color}">${fmtMonto(datos[activo].total,'ARS')}</td></tr></tfoot>
+        </table></div>
+      </div>`;
+  } else {
+    filas = items.map(it => `<tr>
+      <td>${fmtFecha(it.fecha)}</td>
+      <td>${it.proveedor}</td>
+      <td>${it.concepto}</td>
+      <td>${it.categoria||'—'}</td>
+      <td style="text-align:right;font-weight:600">${fmtMonto(it.monto,'ARS')}</td>
+    </tr>`).join('');
+    det.innerHTML = `
+      <div style="border-top:1px solid #eee;padding-top:10px">
+        <div style="font-size:11px;font-weight:700;color:${color};margin-bottom:8px">${nombreMes} ${anio} — ${items.length} ítem${items.length!==1?'s':''}</div>
+        <div style="overflow-x:auto"><table class="tabla-datos" style="width:100%;font-size:12px">
+          <thead><tr><th>Vencimiento</th><th>Proveedor</th><th>Concepto</th><th>Categoría</th><th style="text-align:right">Monto</th></tr></thead>
+          <tbody>${filas}</tbody>
+          <tfoot><tr><td colspan="4" style="font-weight:700;text-align:right">Total</td>
+            <td style="font-weight:700;text-align:right;color:${color}">${fmtMonto(datos[activo].total,'ARS')}</td></tr></tfoot>
+        </table></div>
+      </div>`;
+  }
 }
