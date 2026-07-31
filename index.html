@@ -1992,10 +1992,35 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
       <div class="card">
         <div class="card-header">
           <h3>📅 Proyección de vencimientos</h3>
-          <span style="font-size:12px;color:var(--texto-suave)">Próximos 12 meses — solo facturas impagas</span>
+          <button class="btn btn-primary" onclick="abrirModalCostosFijos()" style="font-size:12px;padding:6px 14px">⚙️ Costos fijos recurrentes</button>
         </div>
         <div id="proy-contenido" style="padding:16px">
           <div style="text-align:center;padding:40px;color:var(--texto-suave)">Cargando...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL COSTOS FIJOS -->
+    <div id="modal-costos-fijos" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9000;align-items:center;justify-content:center">
+      <div style="background:#fff;border-radius:14px;width:520px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;overflow:hidden">
+        <div style="padding:18px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between">
+          <div style="font-weight:700;font-size:15px">⚙️ Costos fijos recurrentes</div>
+          <button onclick="cerrarModalCostosFijos()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999">×</button>
+        </div>
+        <div style="padding:16px 20px;border-bottom:1px solid #eee">
+          <div style="font-size:12px;color:var(--texto-suave);margin-bottom:10px">Se suman automáticamente a <strong>todos los meses</strong> del gráfico de Costos fijos.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input id="cf-nombre" type="text" placeholder="Nombre (ej: Sueldos empleados)" style="flex:2;min-width:160px;padding:7px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px">
+            <input id="cf-monto" type="number" placeholder="Monto" style="flex:1;min-width:100px;padding:7px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px">
+            <select id="cf-moneda" style="padding:7px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px">
+              <option value="ARS">ARS</option>
+              <option value="USD">USD</option>
+            </select>
+            <button class="btn btn-primary" onclick="guardarCostoFijo()" style="font-size:12px;padding:7px 14px">+ Agregar</button>
+          </div>
+        </div>
+        <div id="cf-lista" style="overflow-y:auto;flex:1;padding:12px 20px">
+          <div style="text-align:center;color:var(--texto-suave);padding:20px">Cargando...</div>
         </div>
       </div>
     </div>

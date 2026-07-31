@@ -29,9 +29,10 @@ async function cargarProyecciones() {
     return m;
   }
 
-  const [boletas, cheques] = await Promise.all([
+  const [boletas, cheques, costosFijos] = await Promise.all([
     sb('GET', 'boletas', '', '?order=fecha.desc') || [],
     sb('GET', 'cheques', '', '?tipo=eq.emitido&estado=eq.cartera&order=fecha_cobro.desc') || [],
+    sb('GET', 'costos_fijos', '', '?activo=eq.true&order=nombre') || [],
   ]);
 
   // ── 1. FACTURAS A PAGAR ──────────────────────────────────────
@@ -60,6 +61,7 @@ async function cargarProyecciones() {
 
   // ── 3. COSTOS FIJOS ──────────────────────────────────────────
   const fijos = initMeses();
+  // Desde boletas (arrendamientos, servicios, etc.)
   (boletas || []).forEach(r => {
     let obs = {};
     try { obs = JSON.parse(r.observaciones || '{}'); } catch(e) {}
@@ -71,6 +73,13 @@ async function cargarProyecciones() {
     if (!fijos[key]) return;
     fijos[key].total += r.monto||0;
     fijos[key].items.push({ fecha: obs.vencimiento, proveedor: r.proveedor||'—', concepto: r.concepto||'—', categoria: r.categoria||'—', monto: r.monto||0 });
+  });
+  // Costos fijos recurrentes (sueldos, etc.) — se repiten en los 12 meses
+  (costosFijos || []).forEach(cf => {
+    _proyMeses12.forEach(key => {
+      fijos[key].total += cf.monto||0;
+      fijos[key].items.push({ fecha: null, proveedor: cf.nombre, concepto: 'Recurrente mensual', categoria: cf.moneda||'ARS', monto: cf.monto||0 });
+    });
   });
 
   // ── 4. TOTAL CONSOLIDADO ─────────────────────────────────────
@@ -203,4 +212,79 @@ function seleccionarMesProy(grafId, key) {
         </table></div>
       </div>`;
   }
+}
+
+// ── MODAL COSTOS FIJOS RECURRENTES ───────────────────────────
+
+function abrirModalCostosFijos() {
+  document.getElementById('modal-costos-fijos').style.display = 'flex';
+  renderListaCostosFijos();
+}
+
+function cerrarModalCostosFijos() {
+  document.getElementById('modal-costos-fijos').style.display = 'none';
+}
+
+async function renderListaCostosFijos() {
+  const lista = document.getElementById('cf-lista');
+  lista.innerHTML = '<div style="text-align:center;color:var(--texto-suave);padding:20px">Cargando...</div>';
+  const rows = await sb('GET', 'costos_fijos', '', '?order=nombre') || [];
+  if (!rows.length) {
+    lista.innerHTML = '<div style="text-align:center;color:var(--texto-suave);padding:24px">No hay costos fijos cargados</div>';
+    return;
+  }
+  lista.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr style="border-bottom:2px solid #eee">
+      <th style="text-align:left;padding:6px 4px">Nombre</th>
+      <th style="text-align:right;padding:6px 4px">Monto mensual</th>
+      <th style="text-align:center;padding:6px 4px">Activo</th>
+      <th style="padding:6px 4px"></th>
+    </tr></thead>
+    <tbody>
+      ${rows.map(r => `<tr style="border-bottom:1px solid #f0f0f0">
+        <td style="padding:8px 4px;font-weight:500">${r.nombre}</td>
+        <td style="padding:8px 4px;text-align:right">${fmtMonto(r.monto, r.moneda||'ARS')}</td>
+        <td style="padding:8px 4px;text-align:center">
+          <input type="checkbox" ${r.activo?'checked':''} onchange="toggleCostoFijo('${r.id}',this.checked)" style="cursor:pointer;width:16px;height:16px">
+        </td>
+        <td style="padding:8px 4px;text-align:right">
+          <button onclick="eliminarCostoFijo('${r.id}')" style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:16px" title="Eliminar">🗑</button>
+        </td>
+      </tr>`).join('')}
+    </tbody>
+    <tfoot><tr>
+      <td style="padding:8px 4px;font-weight:700">Total mensual</td>
+      <td style="padding:8px 4px;text-align:right;font-weight:700;color:#5f7a1a">
+        ${fmtMonto(rows.filter(r=>r.activo).reduce((s,r)=>s+(r.monto||0),0),'ARS')}
+      </td>
+      <td colspan="2"></td>
+    </tr></tfoot>
+  </table>`;
+}
+
+async function guardarCostoFijo() {
+  const nombre = document.getElementById('cf-nombre').value.trim();
+  const monto  = parseFloat(document.getElementById('cf-monto').value);
+  const moneda = document.getElementById('cf-moneda').value;
+  if (!nombre || !monto) { toast('Completá nombre y monto'); return; }
+  const r = await sb('POST', 'costos_fijos', { nombre, monto, moneda, activo: true });
+  if (!r) { toast('Error al guardar'); return; }
+  document.getElementById('cf-nombre').value = '';
+  document.getElementById('cf-monto').value  = '';
+  toast('Costo fijo agregado');
+  renderListaCostosFijos();
+  cargarProyecciones();
+}
+
+async function toggleCostoFijo(id, activo) {
+  await sb('PATCH', 'costos_fijos', { activo }, `?id=eq.${id}`);
+  cargarProyecciones();
+}
+
+async function eliminarCostoFijo(id) {
+  if (!confirm('¿Eliminar este costo fijo?')) return;
+  await sb('DELETE', 'costos_fijos', null, `?id=eq.${id}`);
+  toast('Eliminado');
+  renderListaCostosFijos();
+  cargarProyecciones();
 }
