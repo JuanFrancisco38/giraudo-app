@@ -1,3 +1,5 @@
+let _credGastos = []; // otros gastos en edición
+
 async function cargarCreditos() {
   const cont = document.getElementById('creditos-contenido');
   if (!cont) return;
@@ -10,7 +12,6 @@ async function cargarCreditos() {
     return;
   }
 
-  // Tarjetas resumen
   const totalARS = rows.filter(r=>r.activo && r.moneda==='ARS').reduce((s,r)=>s+_saldoCredito(r),0);
   const totalUSD = rows.filter(r=>r.activo && r.moneda==='USD').reduce((s,r)=>s+_saldoCredito(r),0);
 
@@ -25,10 +26,16 @@ async function cargarCreditos() {
     </div>` : ''}
   </div>`;
 
+  const FREC = { mensual:'mensual', trimestral:'trimestral', semestral:'semestral', anual:'anual' };
+
   const filas = rows.map(r => {
-    const saldo = _saldoCredito(r);
-    const pct   = r.cuotas_total ? Math.round((r.cuotas_pagadas||0) / r.cuotas_total * 100) : 0;
+    const saldo   = _saldoCredito(r);
+    const pct     = r.cuotas_total ? Math.round((r.cuotas_pagadas||0) / r.cuotas_total * 100) : 0;
     const vencidas = _cuotasVencidas(r);
+    let gastos = [];
+    try { gastos = JSON.parse(r.otros_gastos || '[]'); } catch(e) {}
+    const totalGastos = gastos.reduce((s,g) => s+(g.monto||0), 0);
+
     return `<div style="border:1px solid ${r.activo?'#e0e0dc':'#f0f0f0'};border-radius:12px;padding:16px 18px;margin-bottom:12px;background:${r.activo?'#fff':'#fafafa'}">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
         <div style="flex:1;min-width:200px">
@@ -42,20 +49,25 @@ async function cargarCreditos() {
           <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#555">
             ${r.fecha_inicio?`<span>📅 Inicio: ${fmtFecha(r.fecha_inicio)}</span>`:''}
             ${r.tasa_interes?`<span>📊 ${r.tasa_interes}% ${r.tipo_tasa||''}</span>`:''}
-            ${r.cuotas_total?`<span>📋 Cuota ${r.cuotas_pagadas||0}/${r.cuotas_total}</span>`:''}
-            ${r.monto_cuota?`<span>💵 ${fmtMonto(r.monto_cuota, r.moneda)} / cuota</span>`:''}
+            ${r.cuotas_total?`<span>📋 ${r.cuotas_pagadas||0}/${r.cuotas_total} cuotas ${r.frecuencia_cuota||'mensual'}es</span>`:''}
+            ${r.monto_cuota?`<span>💵 ${fmtMonto(r.monto_cuota,r.moneda)} / cuota</span>`:''}
           </div>
           ${r.cuotas_total ? `<div style="margin-top:8px">
             <div style="background:#eee;border-radius:20px;height:6px;overflow:hidden">
-              <div style="background:${pct>=100?'#27ae60':'#8B1A2F'};height:100%;width:${pct}%;transition:width .3s;border-radius:20px"></div>
+              <div style="background:${pct>=100?'#27ae60':'#8B1A2F'};height:100%;width:${pct}%;border-radius:20px"></div>
             </div>
             <div style="font-size:10px;color:var(--texto-suave);margin-top:2px">${pct}% pagado</div>
+          </div>` : ''}
+          ${gastos.length ? `<div style="margin-top:8px;font-size:11px;color:#777">
+            <span style="font-weight:600">Otros gastos:</span>
+            ${gastos.map(g=>`${g.descripcion} ${fmtMonto(g.monto,r.moneda)}`).join(' · ')}
+            ${totalGastos ? `<span style="font-weight:700;color:#555"> = ${fmtMonto(totalGastos,r.moneda)}</span>` : ''}
           </div>` : ''}
         </div>
         <div style="text-align:right;min-width:140px">
           <div style="font-size:11px;color:var(--texto-suave)">Saldo pendiente</div>
-          <div style="font-size:20px;font-weight:800;color:${r.activo?'#8B1A2F':'#999'}">${fmtMonto(saldo, r.moneda)}</div>
-          <div style="font-size:11px;color:var(--texto-suave);margin-top:1px">de ${fmtMonto(r.monto_total, r.moneda)}</div>
+          <div style="font-size:20px;font-weight:800;color:${r.activo?'#8B1A2F':'#999'}">${fmtMonto(saldo,r.moneda)}</div>
+          <div style="font-size:11px;color:var(--texto-suave);margin-top:1px">de ${fmtMonto(r.monto_total,r.moneda)}</div>
           <div style="display:flex;gap:6px;margin-top:10px;justify-content:flex-end;flex-wrap:wrap">
             ${r.cuotas_total && (r.cuotas_pagadas||0) < r.cuotas_total ? `<button class="btn btn-secondary" style="font-size:11px;padding:4px 10px" onclick="registrarPagoCuota('${r.id}',${r.cuotas_pagadas||0},${r.cuotas_total})">✓ Pagar cuota</button>` : ''}
             <button class="btn btn-secondary" style="font-size:11px;padding:4px 10px" onclick="abrirModalCredito('${r.id}')">✏ Editar</button>
@@ -71,42 +83,44 @@ async function cargarCreditos() {
 }
 
 function _saldoCredito(r) {
-  if (!r.cuotas_total || !r.monto_cuota) {
-    // Sin cuotas: mostrar monto total
-    return r.monto_total || 0;
-  }
-  const restantes = Math.max((r.cuotas_total) - (r.cuotas_pagadas||0), 0);
-  return restantes * r.monto_cuota;
+  if (!r.cuotas_total || !r.monto_cuota) return r.monto_total || 0;
+  return Math.max((r.cuotas_total) - (r.cuotas_pagadas||0), 0) * r.monto_cuota;
 }
 
 function _cuotasVencidas(r) {
   if (!r.fecha_inicio || !r.cuotas_total || !r.monto_cuota) return 0;
+  const DIAS_FREC = { mensual:30.5, trimestral:91.5, semestral:182.5, anual:365 };
+  const dias = DIAS_FREC[r.frecuencia_cuota||'mensual'];
   const inicio = new Date(r.fecha_inicio + 'T12:00:00');
   const hoy    = new Date(); hoy.setHours(0,0,0,0);
-  const mesesTranscurridos = Math.floor((hoy - inicio) / (1000*60*60*24*30.5));
-  const deberiaPagar = Math.min(mesesTranscurridos, r.cuotas_total);
-  return Math.max(deberiaPagar - (r.cuotas_pagadas||0), 0);
+  const periodos = Math.floor((hoy - inicio) / (1000*60*60*24*dias));
+  return Math.max(Math.min(periodos, r.cuotas_total) - (r.cuotas_pagadas||0), 0);
 }
 
 // ── MODAL ────────────────────────────────────────────────────
 
 async function abrirModalCredito(id) {
+  _credGastos = [];
   document.getElementById('modal-credito').style.display = 'flex';
-  document.getElementById('cred-id').value = '';
-  document.getElementById('cred-banco').value = '';
-  document.getElementById('cred-titular').value = 'Giraudo SH';
-  document.getElementById('cred-motivo').value = '';
-  document.getElementById('cred-monto').value = '';
-  document.getElementById('cred-fecha').value = new Date().toISOString().split('T')[0];
-  document.getElementById('cred-moneda').value = 'ARS';
-  document.getElementById('cred-cuotas').value = '';
-  document.getElementById('cred-monto-cuota').value = '';
-  document.getElementById('cred-cuotas-pagadas').value = '0';
-  document.getElementById('cred-tasa').value = '';
-  document.getElementById('cred-tipo-tasa').value = 'TNA';
-  document.getElementById('cred-obs').value = '';
+  document.getElementById('cred-id').value            = '';
+  document.getElementById('cred-banco').value         = '';
+  document.getElementById('cred-titular').value       = 'Giraudo SH';
+  document.getElementById('cred-motivo').value        = '';
+  document.getElementById('cred-monto').value         = '';
+  document.getElementById('cred-fecha').value         = new Date().toISOString().split('T')[0];
+  document.getElementById('cred-moneda').value        = 'ARS';
+  document.getElementById('cred-cuotas').value        = '';
+  document.getElementById('cred-frecuencia').value    = 'mensual';
+  document.getElementById('cred-monto-cuota').value   = '';
+  document.getElementById('cred-cuotas-pagadas').value= '0';
+  document.getElementById('cred-tasa').value          = '';
+  document.getElementById('cred-tipo-tasa').value     = 'TNA';
+  document.getElementById('cred-obs').value           = '';
+  document.getElementById('cred-gasto-desc').value    = '';
+  document.getElementById('cred-gasto-monto').value   = '';
   document.getElementById('modal-credito-titulo').textContent = '🏦 Nuevo crédito';
   document.getElementById('cred-resumen').style.display = 'none';
+  _renderGastosCredito();
 
   if (id) {
     const rows = await sb('GET', 'creditos', '', `?id=eq.${id}`) || [];
@@ -120,11 +134,14 @@ async function abrirModalCredito(id) {
     document.getElementById('cred-fecha').value         = r.fecha_inicio||'';
     document.getElementById('cred-moneda').value        = r.moneda||'ARS';
     document.getElementById('cred-cuotas').value        = r.cuotas_total||'';
+    document.getElementById('cred-frecuencia').value    = r.frecuencia_cuota||'mensual';
     document.getElementById('cred-monto-cuota').value   = r.monto_cuota||'';
     document.getElementById('cred-cuotas-pagadas').value= r.cuotas_pagadas||0;
     document.getElementById('cred-tasa').value          = r.tasa_interes||'';
     document.getElementById('cred-tipo-tasa').value     = r.tipo_tasa||'TNA';
     document.getElementById('cred-obs').value           = r.observaciones||'';
+    try { _credGastos = JSON.parse(r.otros_gastos||'[]'); } catch(e) { _credGastos = []; }
+    _renderGastosCredito();
     calcCuotaCredito();
   }
 }
@@ -140,14 +157,12 @@ function calcCuotaCredito() {
   const moneda = document.getElementById('cred-moneda').value;
   const res    = document.getElementById('cred-resumen');
 
-  // Si hay monto y cuotas pero no monto_cuota, calcular cuota simple
-  if (monto && cuotas && !cuotaV) {
+  if (monto && cuotas && !cuotaV)
     document.getElementById('cred-monto-cuota').placeholder = fmtMonto(monto/cuotas, moneda);
-  }
 
   if (!monto || !cuotas) { res.style.display = 'none'; return; }
-  const montoCuota = cuotaV || monto/cuotas;
-  const totalAPagar = montoCuota * cuotas;
+  const montoCuota   = cuotaV || monto/cuotas;
+  const totalAPagar  = montoCuota * cuotas;
   const interesTotal = totalAPagar - monto;
 
   res.style.display = 'flex';
@@ -158,10 +173,43 @@ function calcCuotaCredito() {
   `;
 }
 
+// ── OTROS GASTOS ─────────────────────────────────────────────
+
+function agregarGastoCredito() {
+  const desc  = document.getElementById('cred-gasto-desc').value.trim();
+  const monto = parseFloat(document.getElementById('cred-gasto-monto').value);
+  if (!desc || !monto) { toast('Completá descripción y monto del gasto'); return; }
+  _credGastos.push({ descripcion: desc, monto });
+  document.getElementById('cred-gasto-desc').value  = '';
+  document.getElementById('cred-gasto-monto').value = '';
+  _renderGastosCredito();
+}
+
+function eliminarGastoCredito(idx) {
+  _credGastos.splice(idx, 1);
+  _renderGastosCredito();
+}
+
+function _renderGastosCredito() {
+  const lista  = document.getElementById('cred-gastos-lista');
+  const moneda = document.getElementById('cred-moneda')?.value || 'ARS';
+  if (!_credGastos.length) { lista.innerHTML = ''; return; }
+  lista.innerHTML = _credGastos.map((g,i) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#f8f8f8;border-radius:7px;padding:7px 10px;font-size:12px">
+      <span>${g.descripcion}</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-weight:700">${fmtMonto(g.monto,moneda)}</span>
+        <button type="button" onclick="eliminarGastoCredito(${i})" style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:15px;line-height:1">×</button>
+      </div>
+    </div>`).join('');
+}
+
+// ── GUARDAR ──────────────────────────────────────────────────
+
 async function guardarCredito() {
-  const banco  = document.getElementById('cred-banco').value.trim();
-  const monto  = parseFloat(document.getElementById('cred-monto').value);
-  const titular= document.getElementById('cred-titular').value;
+  const banco   = document.getElementById('cred-banco').value.trim();
+  const monto   = parseFloat(document.getElementById('cred-monto').value);
+  const titular = document.getElementById('cred-titular').value;
   if (!banco || !monto || !titular) { toast('Completá banco, titular y monto'); return; }
 
   const cuotaInput = parseFloat(document.getElementById('cred-monto-cuota').value);
@@ -171,26 +219,26 @@ async function guardarCredito() {
   const data = {
     banco,
     titular,
-    motivo:          document.getElementById('cred-motivo').value.trim() || null,
-    monto_total:     monto,
-    moneda:          document.getElementById('cred-moneda').value,
-    fecha_inicio:    document.getElementById('cred-fecha').value || null,
-    cuotas_total:    cuotas,
-    monto_cuota:     montoCuota || null,
-    cuotas_pagadas:  parseInt(document.getElementById('cred-cuotas-pagadas').value) || 0,
-    tasa_interes:    parseFloat(document.getElementById('cred-tasa').value) || null,
-    tipo_tasa:       document.getElementById('cred-tipo-tasa').value,
-    observaciones:   document.getElementById('cred-obs').value.trim() || null,
-    activo:          true,
+    motivo:           document.getElementById('cred-motivo').value.trim() || null,
+    monto_total:      monto,
+    moneda:           document.getElementById('cred-moneda').value,
+    fecha_inicio:     document.getElementById('cred-fecha').value || null,
+    cuotas_total:     cuotas,
+    frecuencia_cuota: document.getElementById('cred-frecuencia').value,
+    monto_cuota:      montoCuota || null,
+    cuotas_pagadas:   parseInt(document.getElementById('cred-cuotas-pagadas').value) || 0,
+    tasa_interes:     parseFloat(document.getElementById('cred-tasa').value) || null,
+    tipo_tasa:        document.getElementById('cred-tipo-tasa').value,
+    observaciones:    document.getElementById('cred-obs').value.trim() || null,
+    otros_gastos:     JSON.stringify(_credGastos),
+    activo:           true,
   };
 
   const id = document.getElementById('cred-id').value;
-  let ok;
-  if (id) {
-    ok = await sb('PATCH', 'creditos', data, `?id=eq.${id}`);
-  } else {
-    ok = await sb('POST', 'creditos', data);
-  }
+  const ok = id
+    ? await sb('PATCH', 'creditos', data, `?id=eq.${id}`)
+    : await sb('POST',  'creditos', data);
+
   if (!ok) { toast('Error al guardar'); return; }
   toast(id ? 'Crédito actualizado' : 'Crédito guardado');
   cerrarModalCredito();
@@ -206,8 +254,7 @@ async function registrarPagoCuota(id, pagadas, total) {
 }
 
 async function toggleActivoCredito(id, activo) {
-  const msg = activo ? '¿Marcar este crédito como cancelado?' : '¿Reactivar este crédito?';
-  if (!confirm(msg)) return;
+  if (!confirm(activo ? '¿Marcar como cancelado?' : '¿Reactivar este crédito?')) return;
   await sb('PATCH', 'creditos', { activo: !activo }, `?id=eq.${id}`);
   toast(activo ? 'Crédito cancelado' : 'Crédito reactivado');
   cargarCreditos();

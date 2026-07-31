@@ -2090,10 +2090,19 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
           </div>
 
           <!-- Fila 4 -->
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px">
             <div>
               <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">CANT. CUOTAS</label>
               <input id="cred-cuotas" type="number" placeholder="Ej: 12" min="1" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px" oninput="calcCuotaCredito()">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">FRECUENCIA</label>
+              <select id="cred-frecuencia" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px">
+                <option value="mensual">Mensual</option>
+                <option value="trimestral">Trimestral</option>
+                <option value="semestral">Semestral</option>
+                <option value="anual">Anual</option>
+              </select>
             </div>
             <div>
               <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">MONTO CUOTA</label>
@@ -2124,6 +2133,17 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 
           <!-- Resumen auto -->
           <div id="cred-resumen" style="display:none;background:#f8f8f8;border-radius:8px;padding:12px;font-size:12px;color:#444;display:flex;gap:20px;flex-wrap:wrap"></div>
+
+          <!-- Otros gastos -->
+          <div>
+            <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:6px">OTROS GASTOS / CARGOS</label>
+            <div id="cred-gastos-lista" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+            <div style="display:flex;gap:8px">
+              <input id="cred-gasto-desc" type="text" placeholder="Descripción (ej: Seguro de vida, Comisión bancaria...)" style="flex:2;padding:7px 10px;border:1px solid #ddd;border-radius:7px;font-size:12px">
+              <input id="cred-gasto-monto" type="number" placeholder="Monto" style="flex:1;min-width:90px;padding:7px 10px;border:1px solid #ddd;border-radius:7px;font-size:12px">
+              <button type="button" onclick="agregarGastoCredito()" class="btn btn-secondary" style="font-size:12px;padding:7px 12px;white-space:nowrap">+ Agregar</button>
+            </div>
+          </div>
 
           <!-- Observaciones -->
           <div>
