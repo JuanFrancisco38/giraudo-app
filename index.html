@@ -184,6 +184,7 @@ tr:hover td{background:var(--gris)}
     <div class="nav-item" onclick="showSection('agro_dash',this)">📊 Análisis económicos</div>
     <div class="nav-item" onclick="showSection('precios',this)">📈 Precios relativos</div>
     <div class="nav-item" onclick="showSection('balance',this)">📊 Balance mensual</div>
+    <div class="nav-item" onclick="showSection('proyecciones',this)">📅 Proyecciones</div>
   </div>
 
   <div class="sidebar-section" onclick="toggleNav(this)">Agronomía <span class="nav-chevron">▾</span></div>
@@ -1986,6 +1987,19 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
       </div>
     </div>
 
+    <!-- PROYECCIONES -->
+    <div id="section-proyecciones" class="section">
+      <div class="card">
+        <div class="card-header">
+          <h3>📅 Proyección de vencimientos</h3>
+          <span style="font-size:12px;color:var(--texto-suave)">Próximos 12 meses — solo facturas impagas</span>
+        </div>
+        <div id="proy-contenido" style="padding:16px">
+          <div style="text-align:center;padding:40px;color:var(--texto-suave)">Cargando...</div>
+        </div>
+      </div>
+    </div>
+
     <!-- BALANCE -->
     <div id="section-balance" class="section">
       <div class="card">
@@ -2033,6 +2047,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 <script src="js/contabilidad/resumen-granos.js"></script>
 <script src="js/contabilidad/movimientos.js"></script>
 <script src="js/contabilidad/boletas.js"></script>
+<script src="js/contabilidad/proyecciones.js"></script>
 <script src="js/contabilidad/facturas-emitidas.js"></script>
 <script src="js/contabilidad/notas.js"></script>
 <script src="js/contabilidad/cheques.js"></script>

@@ -135,6 +135,7 @@ function showSection(id, el) {
   if (id === 'boletas') cargarBoletas();
   if (id === 'precios') cargarHistorialPrecios();
   if (id === 'trabajos_agri') { cargarTrabajos(); cargarTarifas(); }
+  if (id === 'proyecciones') cargarProyecciones();
   if (id === 'lotes') cargarLotes();
   if (id === 'tabla_precios') cargarTablaPrecios();
   if (id === 'manga') cargarManga();
