@@ -2075,9 +2075,9 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
         <div id="mtr-panel-tercero" style="display:none;background:#fff8e1;border:1px solid #f0c040;border-radius:8px;padding:12px;margin-bottom:12px">
           <div style="font-size:12px;font-weight:700;color:#b8860b;margin-bottom:8px">👤 DATOS DEL CLIENTE</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-            <div class="form-group" style="margin:0"><label>Cliente</label><input type="text" id="mtr-cliente" placeholder="Nombre del cliente"></div>
-            <div class="form-group" style="margin:0"><label>Campo / Establecimiento</label><input type="text" id="mtr-campo-tercero" placeholder="Nombre del campo"></div>
-            <div class="form-group" style="margin:0"><label>Tarifa cobrada $/ha</label><input type="number" id="mtr-tarifa-cobrada" placeholder="Ej: 30000" step="0.01"></div>
+            <div class="form-group" style="margin:0"><label>Cliente</label><input type="text" id="mtr-cliente" placeholder="Nombre del cliente" oninput="acInput(this,'cliente')" onfocus="acInput(this,'cliente')" onblur="cerrarSugerencias()"></div>
+            <div class="form-group" style="margin:0"><label>Campo / Establecimiento</label><input type="text" id="mtr-campo-tercero" placeholder="Nombre del campo" oninput="acInput(this,'campo_tercero')" onfocus="acInput(this,'campo_tercero')" onblur="cerrarSugerencias()"></div>
+            <div class="form-group" style="margin:0"><label>Tarifa cobrada $/ha</label><input type="text" id="mtr-tarifa-cobrada" placeholder="Ej: 30000" oninput="acInput(this,'tarifa')" onfocus="acInput(this,'tarifa')" onblur="cerrarSugerencias()"></div>
             <div class="form-group" style="margin:0"><label>Moneda</label><select id="mtr-moneda-cobrada"><option value="ARS">ARS $</option><option value="USD">USD U$S</option></select></div>
           </div>
         </div>
@@ -2095,13 +2095,13 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
           <div class="form-group" style="margin:0"><label>Herramienta / Maquinaria</label>
             <select id="mtr-herramienta"><option value="">— Seleccioná tipo primero —</option></select>
           </div>
-          <div class="form-group" style="margin:0"><label>Contratista</label><input type="text" id="mtr-cont" placeholder="Dejar vacío = Propio"></div>
+          <div class="form-group" style="margin:0"><label>Contratista</label><input type="text" id="mtr-cont" placeholder="Dejar vacío = Propio" oninput="acInput(this,'contratista')" onfocus="acInput(this,'contratista')" onblur="cerrarSugerencias()"></div>
           <div id="mtr-campo-propio-wrap" class="form-group" style="margin:0"><label>Campo</label>
             <select id="mtr-campo">
               <option>Don Alfredo (Azcona)</option><option>Doña Vica</option><option>Sant-Yago</option>
             </select>
           </div>
-          <div class="form-group" style="margin:0"><label>Cultivo</label><input type="text" id="mtr-cultivo" placeholder="Ej: Maíz, Soja, Trigo"></div>
+          <div class="form-group" style="margin:0"><label>Cultivo</label><input type="text" id="mtr-cultivo" placeholder="Ej: Maíz, Soja, Trigo" oninput="acInput(this,'cultivo')" onfocus="acInput(this,'cultivo')" onblur="cerrarSugerencias()"></div>
           <div class="form-group" style="margin:0"><label>Campaña</label><input type="text" id="mtr-campania" placeholder="Ej: 25/26"></div>
         </div>
 

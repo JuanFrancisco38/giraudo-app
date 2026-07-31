@@ -1,6 +1,62 @@
+// ── AUTOCOMPLETE ──────────────────────────────────────────────
+let _acCache = {};
+
+async function cargarCacheAutocomplete() {
+  if (_acCache._cargado) return;
+  const rows = await sb('GET', 'trabajos_agricolas', '', '?order=fecha.desc&limit=500') || [];
+  const boletas = await sb('GET', 'boletas', '', '?order=fecha.desc&limit=500') || [];
+  const uniq = (arr) => [...new Set(arr.filter(Boolean))].sort();
+  _acCache.contratista  = uniq(rows.map(r => r.contratista).filter(c => c && c !== 'Propio'));
+  _acCache.cultivo      = uniq(rows.map(r => r.cultivo));
+  _acCache.cliente      = uniq(rows.map(r => r.cliente));
+  _acCache.campo_tercero= uniq(rows.map(r => r.cliente ? r.campo : null));
+  _acCache.tarifa       = uniq(rows.filter(r => r.tarifa_cobrada).map(r => String(r.tarifa_cobrada)));
+  // insumos: de trabajos + descripciones de boletas agroquímicos/semillas/fertilizantes
+  const insTrabajos = rows.map(r => r.descripcion).filter(Boolean);
+  const insBoletas  = boletas.filter(b => ['Agroquímicos','Semillas','Fertilizantes'].includes(b.categoria))
+    .map(b => { try { return JSON.parse(b.observaciones||'[]'); } catch(e){ return []; } })
+    .flat().map(i => i.descripcion_a).filter(Boolean);
+  _acCache.insumo = uniq([...insTrabajos, ...insBoletas]);
+  _acCache._cargado = true;
+}
+
+function mostrarSugerencias(input, lista) {
+  cerrarSugerencias();
+  const q = input.value.trim().toLowerCase();
+  const sugs = q
+    ? lista.filter(v => v.toLowerCase().includes(q)).slice(0, 8)
+    : lista.slice(0, 8);
+  if (!sugs.length) return;
+  const rect = input.getBoundingClientRect();
+  const div = document.createElement('div');
+  div.id = 'ac-dropdown';
+  div.style.cssText = `position:fixed;top:${rect.bottom+2}px;left:${rect.left}px;width:${rect.width}px;background:#fff;border:1px solid #ccc;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:99999;max-height:200px;overflow-y:auto`;
+  sugs.forEach(v => {
+    const item = document.createElement('div');
+    item.textContent = v;
+    item.style.cssText = 'padding:7px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid #f0f0f0';
+    item.onmousedown = (e) => { e.preventDefault(); input.value = v; input.dispatchEvent(new Event('input')); cerrarSugerencias(); };
+    item.onmouseover = () => item.style.background = '#f5f5f5';
+    item.onmouseout  = () => item.style.background = '';
+    div.appendChild(item);
+  });
+  document.body.appendChild(div);
+}
+
+function cerrarSugerencias() {
+  document.getElementById('ac-dropdown')?.remove();
+}
+
+function acInput(input, key) {
+  mostrarSugerencias(input, _acCache[key] || []);
+}
+
+document.addEventListener('click', e => { if (!e.target.closest('#ac-dropdown')) cerrarSugerencias(); });
+// ── FIN AUTOCOMPLETE ───────────────────────────────────────────
+
 function filaInsumoModalHTML() {
   return `<div class="insumo-row" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:6px;margin-bottom:8px;align-items:flex-end">
-    <div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;color:#555;font-weight:600">Insumo / Producto</label><input type="text" class="ins-desc" style="border:1px solid #ccc;border-radius:5px;padding:5px 7px;font-size:13px"></div>
+    <div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;color:#555;font-weight:600">Insumo / Producto</label><input type="text" class="ins-desc" style="border:1px solid #ccc;border-radius:5px;padding:5px 7px;font-size:13px" oninput="acInput(this,'insumo')" onfocus="acInput(this,'insumo')" onblur="cerrarSugerencias()"></div>
     <div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;color:#555;font-weight:600">Dosis</label><input type="text" class="ins-dosis" placeholder="3 lt/ha" style="border:1px solid #ccc;border-radius:5px;padding:5px 7px;font-size:13px" oninput="calcConsumoInsumo(this)"></div>
     <div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;color:#555;font-weight:600">Consumo total</label><input type="text" class="ins-consumo" placeholder="Auto" style="border:1px solid #ccc;border-radius:5px;padding:5px 7px;font-size:13px;background:#f8f8f8" readonly></div>
     <div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;color:#555;font-weight:600">$ Unitario</label><input type="number" class="ins-precio" placeholder="0" style="border:1px solid #ccc;border-radius:5px;padding:5px 7px;font-size:13px" oninput="calcTotalInsumo(this)"></div>
@@ -203,8 +259,9 @@ async function abrirModalTrabajo() {
   const m = document.getElementById('modal-trabajo');
   m.style.display = 'flex';
 
-  // Cargar panel de precios en paralelo
+  // Cargar panel de precios y cache de autocomplete en paralelo
   cargarPanelPreciosInsumos();
+  cargarCacheAutocomplete();
 
   // Cargar maquinaria si no está en caché
   await cargarMaquinariaModal();
