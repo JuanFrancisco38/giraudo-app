@@ -185,6 +185,7 @@ tr:hover td{background:var(--gris)}
     <div class="nav-item" onclick="showSection('precios',this)">📈 Precios relativos</div>
     <div class="nav-item" onclick="showSection('balance',this)">📊 Balance mensual</div>
     <div class="nav-item" onclick="showSection('proyecciones',this)">📅 Proyecciones</div>
+    <div class="nav-item" onclick="showSection('creditos',this)">🏦 Créditos</div>
   </div>
 
   <div class="sidebar-section" onclick="toggleNav(this)">Agronomía <span class="nav-chevron">▾</span></div>
@@ -2025,6 +2026,118 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
       </div>
     </div>
 
+    <!-- CRÉDITOS -->
+    <div id="section-creditos" class="section">
+      <div class="card">
+        <div class="card-header">
+          <h3>🏦 Créditos</h3>
+          <button class="btn btn-primary" onclick="abrirModalCredito(null)">+ Nuevo crédito</button>
+        </div>
+        <div id="creditos-contenido" style="padding:16px">
+          <div style="text-align:center;padding:40px;color:var(--texto-suave)">Cargando...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL CRÉDITO -->
+    <div id="modal-credito" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9000;align-items:center;justify-content:center">
+      <div style="background:#fff;border-radius:14px;width:580px;max-width:96vw;max-height:92vh;display:flex;flex-direction:column;overflow:hidden">
+        <div style="padding:18px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between">
+          <div id="modal-credito-titulo" style="font-weight:700;font-size:16px">🏦 Nuevo crédito</div>
+          <button onclick="cerrarModalCredito()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#999">×</button>
+        </div>
+        <div style="overflow-y:auto;flex:1;padding:20px;display:flex;flex-direction:column;gap:14px">
+          <input type="hidden" id="cred-id">
+
+          <!-- Fila 1 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">BANCO / ENTIDAD *</label>
+              <input id="cred-banco" type="text" placeholder="Ej: Banco Nación" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">TITULAR *</label>
+              <select id="cred-titular" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px">
+                <option value="Giraudo SH">Giraudo SH</option>
+                <option value="Francisco Giraudo">Francisco Giraudo</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Fila 2 -->
+          <div>
+            <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">MOTIVO / DESTINO</label>
+            <input id="cred-motivo" type="text" placeholder="Ej: Compra de semillas, maquinaria, capital de trabajo..." style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px">
+          </div>
+
+          <!-- Fila 3 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:12px">
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">MONTO TOTAL *</label>
+              <input id="cred-monto" type="number" placeholder="0" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">FECHA INICIO</label>
+              <input id="cred-fecha" type="date" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">MONEDA</label>
+              <select id="cred-moneda" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px">
+                <option value="ARS">ARS</option>
+                <option value="USD">USD</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Fila 4 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">CANT. CUOTAS</label>
+              <input id="cred-cuotas" type="number" placeholder="Ej: 12" min="1" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px" oninput="calcCuotaCredito()">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">MONTO CUOTA</label>
+              <input id="cred-monto-cuota" type="number" placeholder="Auto" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px" oninput="calcCuotaCredito()">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">CUOTAS PAGADAS</label>
+              <input id="cred-cuotas-pagadas" type="number" placeholder="0" min="0" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px">
+            </div>
+          </div>
+
+          <!-- Fila 5 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">TASA DE INTERÉS (%)</label>
+              <input id="cred-tasa" type="number" step="0.01" placeholder="Ej: 45.5" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">TIPO DE TASA</label>
+              <select id="cred-tipo-tasa" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px">
+                <option value="TNA">TNA (Tasa Nominal Anual)</option>
+                <option value="TEA">TEA (Tasa Efectiva Anual)</option>
+                <option value="TEM">TEM (Tasa Efectiva Mensual)</option>
+                <option value="CFT">CFT (Costo Financiero Total)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Resumen auto -->
+          <div id="cred-resumen" style="display:none;background:#f8f8f8;border-radius:8px;padding:12px;font-size:12px;color:#444;display:flex;gap:20px;flex-wrap:wrap"></div>
+
+          <!-- Observaciones -->
+          <div>
+            <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">OBSERVACIONES</label>
+            <textarea id="cred-obs" rows="2" placeholder="Garantías, condiciones especiales..." style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;resize:vertical"></textarea>
+          </div>
+        </div>
+        <div style="padding:14px 20px;border-top:1px solid #eee;display:flex;justify-content:flex-end;gap:10px">
+          <button class="btn btn-secondary" onclick="cerrarModalCredito()">Cancelar</button>
+          <button class="btn btn-primary" onclick="guardarCredito()">💾 Guardar</button>
+        </div>
+      </div>
+    </div>
+
     <!-- BALANCE -->
     <div id="section-balance" class="section">
       <div class="card">
@@ -2073,6 +2186,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 <script src="js/contabilidad/movimientos.js"></script>
 <script src="js/contabilidad/boletas.js"></script>
 <script src="js/contabilidad/proyecciones.js"></script>
+<script src="js/contabilidad/creditos.js"></script>
 <script src="js/contabilidad/facturas-emitidas.js"></script>
 <script src="js/contabilidad/notas.js"></script>
 <script src="js/contabilidad/cheques.js"></script>
