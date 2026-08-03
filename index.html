@@ -199,6 +199,7 @@ tr:hover td{background:var(--gris)}
   <div class="sidebar-group">
     <div class="nav-item" onclick="showSection('manga',this)">🐄 Ganadería</div>
     <div class="nav-item" onclick="showSection('pastoreos',this)">🌿 Pastoreos</div>
+    <div class="nav-item" onclick="showSection('indices-repro',this)">📋 Índices reproductivos</div>
   </div>
 
   <div class="sidebar-footer">
@@ -403,6 +404,144 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
           </div>
           <div class="table-wrap"><table><thead><tr><th>Caravana</th><th>Categoría</th><th>Raza</th><th>Lote</th><th>Peso ini.</th><th>Propietario</th></tr></thead>
           <tbody id="tabla-animales"><tr><td colspan="6"><div class="empty-state"><div class="icon">🐄</div><h3>Sin animales registrados</h3></div></td></tr></tbody></table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ÍNDICES REPRODUCTIVOS -->
+    <div id="section-indices-repro" class="section">
+      <div class="card">
+        <div class="card-header">
+          <h3>📋 Índices reproductivos</h3>
+          <button class="btn btn-primary" onclick="abrirModalRodeoRepro(null)">+ Nuevo rodeo</button>
+        </div>
+        <div id="repro-filtros" style="padding:12px 16px;border-bottom:1px solid var(--gris-borde);display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <select id="repro-filtro-campania" onchange="cargarIndicesRepro()" style="padding:6px 10px;border:1px solid #ddd;border-radius:7px;font-size:12px">
+            <option value="">Todas las campañas</option>
+          </select>
+          <select id="repro-filtro-campo" onchange="cargarIndicesRepro()" style="padding:6px 10px;border:1px solid #ddd;border-radius:7px;font-size:12px">
+            <option value="">Todos los campos</option>
+          </select>
+        </div>
+        <div id="repro-contenido" style="padding:16px">
+          <div style="text-align:center;padding:40px;color:var(--texto-suave)">Cargando...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL RODEO REPRODUCTIVO -->
+    <div id="modal-rodeo-repro" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9000;align-items:center;justify-content:center">
+      <div style="background:#fff;border-radius:14px;width:620px;max-width:96vw;max-height:92vh;display:flex;flex-direction:column;overflow:hidden">
+        <div style="padding:18px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between">
+          <div id="modal-rodeo-repro-titulo" style="font-weight:700;font-size:16px">📋 Nuevo rodeo</div>
+          <button onclick="cerrarModalRodeoRepro()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#999">×</button>
+        </div>
+        <div style="overflow-y:auto;flex:1;padding:20px;display:flex;flex-direction:column;gap:14px">
+          <input type="hidden" id="rr-id">
+
+          <!-- Identificación -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">CAMPAÑA *</label>
+              <input id="rr-campania" type="text" placeholder="Ej: 2024/2025" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">CAMPO</label>
+              <input id="rr-campo" type="text" placeholder="Ej: La Esperanza" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">LOTE / GRUPO</label>
+              <input id="rr-lote" type="text" placeholder="Ej: Vacas CUT, Vaquillonas" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px">
+            </div>
+          </div>
+
+          <!-- Servicio -->
+          <div style="background:#f8f8f8;border-radius:10px;padding:14px">
+            <div style="font-size:11px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;margin-bottom:10px">🐂 Servicio</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">
+              <div>
+                <label style="font-size:11px;color:var(--texto-suave);display:block;margin-bottom:3px">Madres entradas</label>
+                <input id="rr-madres" type="number" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px" oninput="calcIndicesRepro()">
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--texto-suave);display:block;margin-bottom:3px">Toros</label>
+                <input id="rr-toros" type="number" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px">
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--texto-suave);display:block;margin-bottom:3px">Fecha inicio</label>
+                <input id="rr-serv-inicio" type="date" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px">
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--texto-suave);display:block;margin-bottom:3px">Fecha fin</label>
+                <input id="rr-serv-fin" type="date" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px">
+              </div>
+            </div>
+          </div>
+
+          <!-- Preñez -->
+          <div style="background:#f0f8ff;border-radius:10px;padding:14px">
+            <div style="font-size:11px;font-weight:700;color:#1a5f8b;text-transform:uppercase;margin-bottom:10px">🔬 Tacto / Diagnóstico de preñez</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+              <div>
+                <label style="font-size:11px;color:var(--texto-suave);display:block;margin-bottom:3px">Preñadas</label>
+                <input id="rr-prenadas" type="number" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px" oninput="calcIndicesRepro()">
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--texto-suave);display:block;margin-bottom:3px">Vacías</label>
+                <input id="rr-vacias" type="number" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px">
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--texto-suave);display:block;margin-bottom:3px">Dudosas</label>
+                <input id="rr-dudosas" type="number" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px">
+              </div>
+            </div>
+          </div>
+
+          <!-- Parición -->
+          <div style="background:#f0fff4;border-radius:10px;padding:14px">
+            <div style="font-size:11px;font-weight:700;color:#27ae60;text-transform:uppercase;margin-bottom:10px">🐄 Parición</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+              <div>
+                <label style="font-size:11px;color:var(--texto-suave);display:block;margin-bottom:3px">Nacidos vivos</label>
+                <input id="rr-nacidos-vivos" type="number" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px" oninput="calcIndicesRepro()">
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--texto-suave);display:block;margin-bottom:3px">Nacidos muertos</label>
+                <input id="rr-nacidos-muertos" type="number" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px">
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--texto-suave);display:block;margin-bottom:3px">Muertes maternas</label>
+                <input id="rr-muertes-maternas" type="number" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px">
+              </div>
+            </div>
+          </div>
+
+          <!-- Destete -->
+          <div style="background:#fff8e4;border-radius:10px;padding:14px">
+            <div style="font-size:11px;font-weight:700;color:#d4a017;text-transform:uppercase;margin-bottom:10px">🐂 Destete</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div>
+                <label style="font-size:11px;color:var(--texto-suave);display:block;margin-bottom:3px">Terneros destetados</label>
+                <input id="rr-destetados" type="number" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px" oninput="calcIndicesRepro()">
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--texto-suave);display:block;margin-bottom:3px">Peso promedio (kg)</label>
+                <input id="rr-peso-destete" type="number" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px">
+              </div>
+            </div>
+          </div>
+
+          <!-- Resumen índices -->
+          <div id="rr-resumen" style="display:none;background:#f4f4f2;border-radius:10px;padding:14px;display:flex;gap:16px;flex-wrap:wrap"></div>
+
+          <div>
+            <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">OBSERVACIONES</label>
+            <textarea id="rr-obs" rows="2" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px;resize:vertical"></textarea>
+          </div>
+        </div>
+        <div style="padding:14px 20px;border-top:1px solid #eee;display:flex;justify-content:flex-end;gap:10px">
+          <button class="btn btn-secondary" onclick="cerrarModalRodeoRepro()">Cancelar</button>
+          <button class="btn btn-primary" onclick="guardarRodeoRepro()">💾 Guardar</button>
         </div>
       </div>
     </div>
@@ -2217,6 +2356,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 <script src="js/contabilidad/boletas.js"></script>
 <script src="js/contabilidad/proyecciones.js"></script>
 <script src="js/contabilidad/creditos.js"></script>
+<script src="js/ganaderia/indices-repro.js"></script>
 <script src="js/contabilidad/facturas-emitidas.js"></script>
 <script src="js/contabilidad/notas.js"></script>
 <script src="js/contabilidad/cheques.js"></script>
