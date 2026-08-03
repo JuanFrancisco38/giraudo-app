@@ -3,7 +3,43 @@ async function cargarIndicesRepro() {
   if (!cont) return;
   cont.innerHTML = '<div style="text-align:center;padding:40px;color:var(--texto-suave)">Cargando...</div>';
 
-  const rows = await sb('GET', 'rodeos', '', '?order=campania.desc,campo.asc') || [];
+  // Traer eventos reproductivos
+  const eventos = await sb('GET', 'eventos_ganaderos', '',
+    '?tipo=in.(Servicio / IATF,Tacto / Preñez,Nacimiento,Destete)&order=fecha.desc') || [];
+
+  // Agrupar por campaña + campo + lote
+  const grupos = {};
+  eventos.forEach(ev => {
+    const key = `${ev.campania||'Sin campaña'}||${ev.campo||''}||${ev.lote||''}`;
+    if (!grupos[key]) grupos[key] = { campania: ev.campania||'Sin campaña', campo: ev.campo||'—', lote: ev.lote||'—', eventos: [] };
+    grupos[key].eventos.push(ev);
+  });
+
+  // Convertir a filas con índices calculados
+  const rows = Object.values(grupos).map(g => {
+    const evServicio = g.eventos.find(e => e.tipo === 'Servicio / IATF');
+    const evTacto    = g.eventos.find(e => e.tipo === 'Tacto / Preñez');
+    const evNac      = g.eventos.find(e => e.tipo === 'Nacimiento');
+    const evDest     = g.eventos.find(e => e.tipo === 'Destete');
+    return {
+      campania:        g.campania,
+      campo:           g.campo,
+      nombre_lote:     g.lote,
+      madres_servicio: evServicio?.detalle?.madres || evServicio?.cantidad_animales || null,
+      toros:           evServicio?.detalle?.toros  || null,
+      preñadas:        evTacto?.detalle?.prenadas  || null,
+      vacias:          evTacto?.detalle?.vacias    || null,
+      nacidos_vivos:   evNac?.detalle?.nacidos_vivos || evNac?.cantidad_animales || null,
+      nacidos_muertos: evNac?.detalle?.nacidos_muertos || null,
+      destetados:      evDest?.detalle?.destetados || evDest?.cantidad_animales || null,
+      peso_promedio_destete: evDest?.detalle?.peso_promedio || null,
+      _manual: false,
+    };
+  });
+
+  // También agregar los rodeos cargados manualmente
+  const manuales = await sb('GET', 'rodeos', '', '?order=campania.desc,campo.asc') || [];
+  manuales.forEach(r => { r._manual = true; rows.push(r); });
 
   // Poblar filtros
   const campanias = [...new Set(rows.map(r => r.campania).filter(Boolean))].sort().reverse();

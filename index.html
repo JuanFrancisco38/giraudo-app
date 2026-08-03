@@ -885,15 +885,58 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
           <div class="card-body">
             <div class="form-grid">
               <div class="form-group"><label>Fecha</label><input type="date" id="ev-fecha"></div>
-              <div class="form-group"><label>Tipo</label><select id="ev-tipo"><option>Vacunación</option><option>Desparasitación</option><option>Tratamiento</option><option>Destete</option><option>Nacimiento</option><option>Mortandad</option><option>Caravana electrónica</option><option>Tacto / Preñez</option><option>Servicio / IATF</option><option>Otro</option></select></div>
+              <div class="form-group"><label>Tipo</label><select id="ev-tipo" onchange="toggleCamposEvento()"><option>Vacunación</option><option>Desparasitación</option><option>Tratamiento</option><option>Destete</option><option>Nacimiento</option><option>Mortandad</option><option>Caravana electrónica</option><option>Tacto / Preñez</option><option>Servicio / IATF</option><option>Otro</option></select></div>
+              <div class="form-group"><label>Campaña</label><input type="text" id="ev-campania" placeholder="Ej: 2024/2025"></div>
               <div class="form-group"><label>Campo</label><select id="ev-campo"><option>Don Alfredo (Azcona)</option><option>Doña Vica</option><option>Sant-Yago</option></select></div>
-              <div class="form-group"><label>Lote</label><input type="text" id="ev-lote" placeholder="Ej: Corral, Lote 3"></div>
+              <div class="form-group"><label>Lote / Grupo</label><input type="text" id="ev-lote" placeholder="Ej: Vacas CUT, Vaquillonas"></div>
               <div class="form-group"><label>Categoría</label><select id="ev-cat"><option>Todos</option><option>Terneros</option><option>Terneras</option><option>Vacas</option><option>Vaquillonas</option><option>Toros</option></select></div>
               <div class="form-group"><label>Cantidad animales</label><input type="number" id="ev-cant"></div>
-              <div class="form-group"><label>Producto / Vacuna</label><input type="text" id="ev-producto" placeholder="Ej: Glipondin 4, Ivomec Gold"></div>
-              <div class="form-group"><label>Dosis</label><input type="text" id="ev-dosis" placeholder="Ej: 5cc/animal"></div>
-              <div class="form-group full"><label>Observaciones</label><textarea id="ev-obs"></textarea></div>
+              <div class="form-group" id="ev-campo-producto"><label>Producto / Vacuna</label><input type="text" id="ev-producto" placeholder="Ej: Glipondin 4, Ivomec Gold"></div>
+              <div class="form-group" id="ev-campo-dosis"><label>Dosis</label><input type="text" id="ev-dosis" placeholder="Ej: 5cc/animal"></div>
             </div>
+
+            <!-- Campos específicos: Servicio / IATF -->
+            <div id="ev-extra-servicio" style="display:none;background:#f0f8ff;border-radius:10px;padding:14px;margin-top:10px">
+              <div style="font-size:11px;font-weight:700;color:#1a5f8b;text-transform:uppercase;margin-bottom:10px">🐂 Datos del servicio</div>
+              <div class="form-grid">
+                <div class="form-group"><label>Madres entradas</label><input type="number" id="ev-madres" placeholder="0"></div>
+                <div class="form-group"><label>Toros utilizados</label><input type="number" id="ev-toros" placeholder="0"></div>
+                <div class="form-group"><label>Fecha fin servicio</label><input type="date" id="ev-serv-fin"></div>
+                <div class="form-group"><label>Tipo servicio</label><select id="ev-tipo-serv"><option value="natural">Natural</option><option value="iatf">IATF</option><option value="inseminacion">Inseminación</option></select></div>
+              </div>
+            </div>
+
+            <!-- Campos específicos: Tacto / Preñez -->
+            <div id="ev-extra-tacto" style="display:none;background:#f0fff4;border-radius:10px;padding:14px;margin-top:10px">
+              <div style="font-size:11px;font-weight:700;color:#27ae60;text-transform:uppercase;margin-bottom:10px">🔬 Resultado del tacto</div>
+              <div class="form-grid">
+                <div class="form-group"><label>Preñadas</label><input type="number" id="ev-prenadas" placeholder="0"></div>
+                <div class="form-group"><label>Vacías</label><input type="number" id="ev-vacias" placeholder="0"></div>
+                <div class="form-group"><label>Dudosas</label><input type="number" id="ev-dudosas" placeholder="0"></div>
+                <div class="form-group"><label>% Preñez</label><input type="text" id="ev-pct-prenez" readonly placeholder="Auto" style="background:#f4f4f2;font-weight:700;color:#1a5f8b"></div>
+              </div>
+            </div>
+
+            <!-- Campos específicos: Nacimiento / Parición -->
+            <div id="ev-extra-nacimiento" style="display:none;background:#fff8e4;border-radius:10px;padding:14px;margin-top:10px">
+              <div style="font-size:11px;font-weight:700;color:#d4a017;text-transform:uppercase;margin-bottom:10px">🐄 Datos de parición</div>
+              <div class="form-grid">
+                <div class="form-group"><label>Nacidos vivos</label><input type="number" id="ev-nacidos-vivos" placeholder="0"></div>
+                <div class="form-group"><label>Nacidos muertos</label><input type="number" id="ev-nacidos-muertos" placeholder="0"></div>
+                <div class="form-group"><label>Muertes maternas</label><input type="number" id="ev-muertes-maternas" placeholder="0"></div>
+              </div>
+            </div>
+
+            <!-- Campos específicos: Destete -->
+            <div id="ev-extra-destete" style="display:none;background:#f5e6e9;border-radius:10px;padding:14px;margin-top:10px">
+              <div style="font-size:11px;font-weight:700;color:#8B1A2F;text-transform:uppercase;margin-bottom:10px">🐂 Datos de destete</div>
+              <div class="form-grid">
+                <div class="form-group"><label>Terneros destetados</label><input type="number" id="ev-destetados" placeholder="0"></div>
+                <div class="form-group"><label>Peso promedio (kg)</label><input type="number" id="ev-peso-destete" placeholder="0"></div>
+              </div>
+            </div>
+
+            <div class="form-group full" style="margin-top:10px"><label>Observaciones</label><textarea id="ev-obs"></textarea></div>
             <div class="form-actions"><button class="btn btn-primary" onclick="guardarEvento()">Registrar evento</button></div>
           </div>
         </div>
