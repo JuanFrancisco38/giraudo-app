@@ -403,18 +403,22 @@ function renderTabIndices(rodeoId, novedades) {
   // Datos desde novedades del rodeo
   const novRodeo = novedades.filter(n => n.rodeo_id === rodeoId);
 
-  // Servicios: desde servicios_animal (ya cargados globalmente)
+  // Servicios desde servicios_animal (animales individuales)
   const srvRodeo = (window._allServicios || []).filter(s => s.rodeo_id === rodeoId);
+  const inseminadasSrv = srvRodeo.filter(s => s.metodo === 'IATF' || s.metodo === 'Toro').length;
 
-  // Inseminadas/Servicio: IATF o Toro (no tactos)
-  const inseminadas = srvRodeo.filter(s => s.metodo === 'IATF' || s.metodo === 'Toro').length;
+  // Inseminadas desde novedades de manga (Trabajo de manga - IATF o Inseminación)
+  const inseminadasNov = novRodeo
+    .filter(n => n.tipo === 'Trabajo de manga' && n.subtipo && (n.subtipo.includes('IATF') || n.subtipo.includes('Inseminación') || n.subtipo.includes('Servicio')))
+    .reduce((s, n) => s + (n.cantidad || 0), 0);
+  const inseminadas = inseminadasSrv || inseminadasNov;
 
-  // Preñadas: tactos con resultado Preñada
-  const prenadas = srvRodeo.filter(s => s.metodo === 'Tacto' && s.resultado === 'Preñada').length;
-  // También puede haber una novedad de trabajo de manga con tacto con cantidad
-  const tactoNov = novRodeo.find(n => n.tipo === 'Trabajo de manga' && n.subtipo === 'Tacto / Preñez');
-  const prenNov  = tactoNov?.detalle?.prenadas || 0;
-  const totalPren = prenadas || prenNov;
+  // Preñadas desde servicios_animal
+  const prenadasSrv = srvRodeo.filter(s => s.metodo === 'Tacto' && s.resultado === 'Preñada').length;
+  // Preñadas desde novedades de manga (Trabajo de manga - Tacto)
+  const tactoNov = novRodeo.find(n => n.tipo === 'Trabajo de manga' && n.subtipo && n.subtipo.includes('Tacto'));
+  const prenNov  = tactoNov?.detalle?.prenadas || (tactoNov?.cantidad || 0);
+  const totalPren = prenadasSrv || prenNov;
 
   // Nacimientos
   const nacimientos = novRodeo.filter(n => n.tipo === 'Nacimiento').reduce((s,n) => s + (n.cantidad||1), 0);
