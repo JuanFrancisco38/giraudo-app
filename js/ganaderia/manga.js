@@ -41,7 +41,8 @@ const COLORES_RODEO = {
 };
 
 async function cargarManga() {
-  [rodeos, trabajosManga, animalesRodeo, novedadesGanaderas, serviciosAnimal, sanidadAnimal, renspas, pesadasAnimal] = await Promise.all([
+  let indicesCampania;
+  [rodeos, trabajosManga, animalesRodeo, novedadesGanaderas, serviciosAnimal, sanidadAnimal, renspas, pesadasAnimal, indicesCampania] = await Promise.all([
     sb('GET', 'rodeos', null, '?order=created_at.asc&activo=eq.true'),
     sb('GET', 'trabajos_manga', null, '?order=fecha.desc'),
     sb('GET', 'animales_rodeo', null, '?activo=eq.true&order=caravana_interna.asc.nullslast'),
@@ -49,10 +50,12 @@ async function cargarManga() {
     sb('GET', 'servicios_animal', null, '?order=fecha.desc'),
     sb('GET', 'sanidad_animal', null, '?order=fecha.desc'),
     sb('GET', 'renspas', null, '?order=propietario.asc'),
-    sb('GET', 'pesadas_animal', null, '?order=fecha.asc')
+    sb('GET', 'pesadas_animal', null, '?order=fecha.asc'),
+    sb('GET', 'indices_campania', null, '?order=campania.desc')
   ]);
   rodeos = rodeos || [];
   trabajosManga = trabajosManga || [];
+  window._indicesCampania = indicesCampania || [];
   animalesRodeo = animalesRodeo || [];
   novedadesGanaderas = novedadesGanaderas || [];
   serviciosAnimal = serviciosAnimal || [];
@@ -450,19 +453,61 @@ function renderTabIndices(rodeoId, novedades) {
   const iMuerte   = idx(muertesTerneros, nacimientos);
   const iDestete  = idx(destetes, inseminadas || totalPren);
 
+  // Historial de campañas cerradas
+  const historial = (window._indicesCampania || []).filter(h => h.rodeo_id === rodeoId)
+    .sort((a,b) => (b.campania||'').localeCompare(a.campania||''));
+
+  const histHTML = historial.length ? `
+    <div style="margin-top:20px">
+      <div style="font-size:12px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;margin-bottom:10px">📁 Historial por campaña</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:#f4f4f2;border-bottom:2px solid #e0e0dc">
+            <th style="padding:8px 10px;text-align:left">Campaña</th>
+            <th style="padding:8px 10px;text-align:center">Inseminadas</th>
+            <th style="padding:8px 10px;text-align:center;color:#1a5f8b">% Preñez</th>
+            <th style="padding:8px 10px;text-align:center;color:#27ae60">% Parición</th>
+            <th style="padding:8px 10px;text-align:center;color:#e67e22">% Abortos</th>
+            <th style="padding:8px 10px;text-align:center;color:#c0392b">% Mort.</th>
+            <th style="padding:8px 10px;text-align:center;color:#8B1A2F">% Destete</th>
+            <th style="padding:8px 10px;text-align:left">Obs.</th>
+            <th style="padding:8px 10px"></th>
+          </tr></thead>
+          <tbody>${historial.map(h => {
+            function col(v) { return v==null?'#bbb':v>=85?'#27ae60':v>=70?'#d4a017':'#c0392b'; }
+            function fmt(v) { return v!=null ? `<span style="font-weight:700;color:${col(v)}">${v}%</span>` : '—'; }
+            return `<tr style="border-bottom:1px solid #f0f0f0">
+              <td style="padding:8px 10px;font-weight:700">${h.campania}</td>
+              <td style="padding:8px 10px;text-align:center">${h.inseminadas??'—'}</td>
+              <td style="padding:8px 10px;text-align:center">${fmt(h.pct_prenez)}</td>
+              <td style="padding:8px 10px;text-align:center">${fmt(h.pct_paricion)}</td>
+              <td style="padding:8px 10px;text-align:center">${fmt(h.pct_abortos)}</td>
+              <td style="padding:8px 10px;text-align:center">${fmt(h.pct_mort_terneros)}</td>
+              <td style="padding:8px 10px;text-align:center">${fmt(h.pct_destete)}</td>
+              <td style="padding:8px 10px;font-size:11px;color:#888">${h.observaciones||'—'}</td>
+              <td style="padding:8px 10px"><button onclick="eliminarIndiceCampania('${h.id}')" style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:14px">🗑</button></td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+    </div>` : `<div style="margin-top:16px;font-size:12px;color:#bbb;text-align:center">Sin campañas cerradas todavía.</div>`;
+
   return `<div class="card-body" style="padding:16px">
-    <div style="font-size:12px;color:var(--texto-suave);margin-bottom:14px">Calculado automáticamente desde las novedades del rodeo.</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:12px;color:var(--texto-suave)">Calculado desde las novedades del rodeo. Se actualiza solo.</div>
+      <button class="btn btn-primary" style="font-size:12px;padding:6px 14px" onclick="cerrarCampaniaIndices('${rodeoId}',${inseminadas},${totalPren},${nacimientos},${abortos},${muertesTerneros},${destetes},'${iPrenez||''}','${iParicion||''}','${iAborto||''}','${iMuerte||''}','${iDestete||''}')">
+        📁 Cerrar campaña y guardar
+      </button>
+    </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
-      ${cardIndice('Inseminadas / Servicio', null, inseminadas, '—', '', '🐂', 'Entradas al servicio')}
+      ${cardIndice('Inseminadas', null, inseminadas, '—', '', '🐂', 'Entradas al servicio')}
       ${cardIndice('% Preñez', iPrenez, totalPren, inseminadas, '', '🔬', 'Preñadas / Inseminadas')}
-      ${cardIndice('% Parición', iParicion, nacimientos, totalPren||inseminadas, '', '🐄', 'Nacidos vivos / Preñadas')}
+      ${cardIndice('% Parición', iParicion, nacimientos, totalPren||inseminadas, '', '🐄', 'Nacidos / Preñadas')}
       ${cardIndice('% Abortos', iAborto, abortos, totalPren||inseminadas, '', '⚠️', 'Abortos / Preñadas')}
       ${cardIndice('% Mort. terneros', iMuerte, muertesTerneros, nacimientos, '', '💀', 'Muertes / Nacidos')}
       ${cardIndice('% Destete', iDestete, destetes, inseminadas||totalPren, '', '🐂', 'Destetados / Inseminadas')}
     </div>
-    <div style="background:#f8f8f8;border-radius:8px;padding:12px;font-size:11px;color:#888">
-      ℹ️ Los números se actualizan solos a medida que cargás novedades (nacimientos, abortos, destetes, muertes).
-    </div>
+    ${histHTML}
   </div>`;
 }
 
@@ -1971,6 +2016,42 @@ async function guardarServicio(animalId) {
   const r = await sb('POST', 'servicios_animal', data);
   if (r) { toast('✅ Servicio registrado'); await cargarManga(); }
   else toast('❌ Error', 'var(--rojo)');
+}
+
+// ── Índices por campaña ───────────────────────────────────
+
+async function cerrarCampaniaIndices(rodeoId, inseminadas, totalPren, nacimientos, abortos, muertesTerneros, destetes, iPrenez, iParicion, iAborto, iMuerte, iDestete) {
+  const rodeo = rodeos.find(r => r.id === rodeoId);
+  const campania = prompt('¿Qué campaña cerrar? (ej: 2024/2025)', rodeo?.campania || '');
+  if (!campania) return;
+  if (!confirm(`Guardar índices de campaña "${campania}" para el rodeo "${rodeo?.nombre}"?`)) return;
+
+  const data = {
+    rodeo_id: rodeoId,
+    campania,
+    inseminadas: inseminadas || null,
+    prenadas: totalPren || null,
+    nacimientos: nacimientos || null,
+    abortos: abortos || null,
+    muertes_terneros: muertesTerneros || null,
+    destetes: destetes || null,
+    pct_prenez:         iPrenez   ? parseFloat(iPrenez)   : null,
+    pct_paricion:       iParicion ? parseFloat(iParicion) : null,
+    pct_abortos:        iAborto   ? parseFloat(iAborto)   : null,
+    pct_mort_terneros:  iMuerte   ? parseFloat(iMuerte)   : null,
+    pct_destete:        iDestete  ? parseFloat(iDestete)  : null,
+  };
+
+  const r = await sb('POST', 'indices_campania', data);
+  if (r) { toast('✅ Campaña guardada en historial'); await cargarManga(); }
+  else toast('❌ Error al guardar', 'var(--rojo)');
+}
+
+async function eliminarIndiceCampania(id) {
+  if (!confirm('¿Eliminar este registro histórico?')) return;
+  await sb('DELETE', 'indices_campania', null, `?id=eq.${id}`);
+  toast('Eliminado');
+  await cargarManga();
 }
 
 async function borrarSanidadAnimal(id) {
