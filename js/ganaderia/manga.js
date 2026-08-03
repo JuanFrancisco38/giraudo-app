@@ -56,6 +56,7 @@ async function cargarManga() {
   animalesRodeo = animalesRodeo || [];
   novedadesGanaderas = novedadesGanaderas || [];
   serviciosAnimal = serviciosAnimal || [];
+  window._allServicios = serviciosAnimal;
   sanidadAnimal = sanidadAnimal || [];
   renspas = renspas || [];
   pesadasAnimal = pesadasAnimal || [];
@@ -375,11 +376,13 @@ function renderDetalleManga() {
         <div class="tab${tabRodeoActiva === 'novedades' ? ' active' : ''}" onclick="switchTabRodeo('novedades')">Novedades <span style="font-size:11px;color:var(--texto-suave)">(${novedades.length})</span></div>
         <div class="tab${tabRodeoActiva === 'trabajos' ? ' active' : ''}" onclick="switchTabRodeo('trabajos')">Trabajos anteriores <span style="font-size:11px;color:var(--texto-suave)">(${trabajos.length})</span></div>
         <div class="tab${tabRodeoActiva === 'animales' ? ' active' : ''}" onclick="switchTabRodeo('animales')">Animales <span style="font-size:11px;color:var(--texto-suave)">(${animales.length})</span></div>
+        <div class="tab${tabRodeoActiva === 'indices' ? ' active' : ''}" onclick="switchTabRodeo('indices')">📋 Índices</div>
       </div>
 
       ${tabRodeoActiva === 'novedades' ? renderTabNovedades(novedades) : ''}
       ${tabRodeoActiva === 'trabajos' ? renderTabTrabajos(trabajos) : ''}
       ${tabRodeoActiva === 'animales' ? renderTabAnimales(rodeo.id, animales) : ''}
+      ${tabRodeoActiva === 'indices' ? renderTabIndices(rodeo.id, novedades) : ''}
     </div>
     ${animalSeleccionado ? renderFichaAnimal(animalSeleccionado) : ''}`;
 }
@@ -392,6 +395,76 @@ const ICONOS_NOV = {
   'Entrada de toros': '🐂', 'Retiro de toros': '🔙', 'Venta / Salida': '🚛', 'Traslado': '🔄',
   'Cambio de categoría': '🔀', 'Pesada': '⚖️'
 };
+
+function renderTabIndices(rodeoId, novedades) {
+  // Datos desde novedades del rodeo
+  const novRodeo = novedades.filter(n => n.rodeo_id === rodeoId);
+
+  // Servicios: desde servicios_animal (ya cargados globalmente)
+  const srvRodeo = (window._allServicios || []).filter(s => s.rodeo_id === rodeoId);
+
+  // Inseminadas/Servicio: IATF o Toro (no tactos)
+  const inseminadas = srvRodeo.filter(s => s.metodo === 'IATF' || s.metodo === 'Toro').length;
+
+  // Preñadas: tactos con resultado Preñada
+  const prenadas = srvRodeo.filter(s => s.metodo === 'Tacto' && s.resultado === 'Preñada').length;
+  // También puede haber una novedad de trabajo de manga con tacto con cantidad
+  const tactoNov = novRodeo.find(n => n.tipo === 'Trabajo de manga' && n.subtipo === 'Tacto / Preñez');
+  const prenNov  = tactoNov?.detalle?.prenadas || 0;
+  const totalPren = prenadas || prenNov;
+
+  // Nacimientos
+  const nacimientos = novRodeo.filter(n => n.tipo === 'Nacimiento').reduce((s,n) => s + (n.cantidad||1), 0);
+
+  // Abortos
+  const abortos = novRodeo.filter(n => n.tipo === 'Aborto').reduce((s,n) => s + (n.cantidad||1), 0);
+
+  // Muertes terneros
+  const muertesTerneros = novRodeo.filter(n => n.tipo === 'Muerte' && (n.categoria==='Terneros'||n.categoria==='Terneras')).reduce((s,n) => s + (n.cantidad||1), 0);
+
+  // Destetes
+  const destetes = novRodeo.filter(n => n.tipo === 'Destete').reduce((s,n) => s + (n.cantidad||1), 0);
+
+  const base = inseminadas || totalPren || nacimientos || 1;
+
+  function idx(num, den) {
+    if (!den || !num) return null;
+    return (num / den * 100).toFixed(1);
+  }
+
+  function cardIndice(label, valor, num, den, color, icon, desc) {
+    const pct = valor !== null ? valor + '%' : '—';
+    const c = valor === null ? '#bbb' : parseFloat(valor) >= 85 ? '#27ae60' : parseFloat(valor) >= 70 ? '#d4a017' : '#c0392b';
+    return `<div style="background:#fff;border:1px solid #e0e0dc;border-radius:12px;padding:16px 18px;min-width:160px;flex:1">
+      <div style="font-size:20px;margin-bottom:4px">${icon}</div>
+      <div style="font-size:11px;font-weight:600;color:var(--texto-suave);text-transform:uppercase;margin-bottom:6px">${label}</div>
+      <div style="font-size:30px;font-weight:800;color:${c}">${pct}</div>
+      <div style="font-size:11px;color:#888;margin-top:4px">${num ?? '—'} de ${den ?? '—'}</div>
+      ${desc ? `<div style="font-size:10px;color:#aaa;margin-top:2px">${desc}</div>` : ''}
+    </div>`;
+  }
+
+  const iPrenez   = idx(totalPren, inseminadas);
+  const iParicion = idx(nacimientos, totalPren || inseminadas);
+  const iAborto   = idx(abortos, totalPren || inseminadas);
+  const iMuerte   = idx(muertesTerneros, nacimientos);
+  const iDestete  = idx(destetes, inseminadas || totalPren);
+
+  return `<div class="card-body" style="padding:16px">
+    <div style="font-size:12px;color:var(--texto-suave);margin-bottom:14px">Calculado automáticamente desde las novedades del rodeo.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+      ${cardIndice('Inseminadas / Servicio', null, inseminadas, '—', '', '🐂', 'Entradas al servicio')}
+      ${cardIndice('% Preñez', iPrenez, totalPren, inseminadas, '', '🔬', 'Preñadas / Inseminadas')}
+      ${cardIndice('% Parición', iParicion, nacimientos, totalPren||inseminadas, '', '🐄', 'Nacidos vivos / Preñadas')}
+      ${cardIndice('% Abortos', iAborto, abortos, totalPren||inseminadas, '', '⚠️', 'Abortos / Preñadas')}
+      ${cardIndice('% Mort. terneros', iMuerte, muertesTerneros, nacimientos, '', '💀', 'Muertes / Nacidos')}
+      ${cardIndice('% Destete', iDestete, destetes, inseminadas||totalPren, '', '🐂', 'Destetados / Inseminadas')}
+    </div>
+    <div style="background:#f8f8f8;border-radius:8px;padding:12px;font-size:11px;color:#888">
+      ℹ️ Los números se actualizan solos a medida que cargás novedades (nacimientos, abortos, destetes, muertes).
+    </div>
+  </div>`;
+}
 
 function renderTabNovedades(novedades) {
   return `<div class="card-body" style="padding-top:12px">
