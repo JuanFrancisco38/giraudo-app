@@ -236,8 +236,7 @@ function activarCalcBoleta() {
   bolCalcState.active = true;
   bolCalcState.seleccionados = {};
   document.getElementById('bol-calc-panel').style.display = '';
-  const th = document.getElementById('bol-th-check');
-  if (th) th.style.display = '';
+  ['bol-th-check','bol-th-check2'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = ''; });
   renderBoletas();
 }
 
@@ -245,8 +244,7 @@ function salirCalcBoleta() {
   bolCalcState.active = false;
   bolCalcState.seleccionados = {};
   document.getElementById('bol-calc-panel').style.display = 'none';
-  const th = document.getElementById('bol-th-check');
-  if (th) th.style.display = 'none';
+  ['bol-th-check','bol-th-check2'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
   renderBoletas();
 }
 
@@ -301,6 +299,8 @@ function renderBoletas() {
   const fDestino= document.getElementById('bol-filtro-destino')?.value || '';
   const fPago   = document.getElementById('bol-filtro-pago')?.value   || '';
   const fBusca  = (document.getElementById('bol-filtro-busca')?.value || '').trim().toLowerCase();
+  const fFecha  = (document.getElementById('bol-filtro-fecha')?.value || '').trim().toLowerCase();
+  const fNum    = (document.getElementById('bol-filtro-num')?.value || '').trim().toLowerCase();
   const rows = boletasTodas.filter(r => {
     let e = {}; try { e = JSON.parse(r.observaciones || '{}'); } catch(err) {}
     if (fFirma   && e.firma !== fFirma) return false;
@@ -309,6 +309,8 @@ function renderBoletas() {
     if (fProv    && (r.proveedor || '') !== fProv) return false;
     if (fDestino && (e.destino || '') !== fDestino) return false;
     if (fPago    && (e.pago || 'Impaga') !== fPago) return false;
+    if (fFecha   && !fmtFecha(r.fecha).toLowerCase().includes(fFecha)) return false;
+    if (fNum     && !(e.numero_comprobante || '').toLowerCase().includes(fNum)) return false;
     if (fBusca) {
       const texto = `${r.proveedor || ''} ${e.numero_comprobante || ''} ${r.concepto || ''}`.toLowerCase();
       if (!texto.includes(fBusca)) return false;

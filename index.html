@@ -1582,26 +1582,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
       <div class="card">
         <div class="card-header">
           <h3>🧾 Boletas recibidas — Carga con IA</h3>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <input type="text" id="bol-filtro-busca" placeholder="🔎 Buscar..." oninput="filtrarBoletasReset()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;width:160px">
-            <select id="bol-filtro-firma" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="filtrarBoletasReset()">
-              <option value="">Todas las firmas</option>
-            </select>
-            <select id="bol-filtro-prov" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="filtrarBoletasReset()">
-              <option value="">Todos los proveedores</option>
-            </select>
-            <select id="bol-filtro-rubro" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="filtrarBoletasReset()">
-              <option value="">Todos los rubros</option>
-            </select>
-            <select id="bol-filtro-destino" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="filtrarBoletasReset()">
-              <option value="">Todos los destinos</option>
-            </select>
-            <select id="bol-filtro-campania" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="filtrarBoletasReset()">
-              <option value="">Todas las campañas</option>
-            </select>
-            <select id="bol-filtro-pago" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="filtrarBoletasReset()">
-              <option value="">Pago: todos</option>
-            </select>
+          <div style="display:flex;gap:8px;align-items:center">
             <button class="btn btn-secondary" style="font-size:12px" onclick="activarCalcBoleta()">🧮 Calculadora</button>
             <button class="btn btn-primary" onclick="abrirFormBoleta()">+ Cargar boleta</button>
           </div>
@@ -1708,7 +1689,24 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 
         <div class="table-wrap">
           <table>
-            <thead><tr id="bol-thead"><th id="bol-th-check" style="display:none"></th><th>Fecha</th><th>N° Factura</th><th>Firma</th><th>Razón social</th><th>Rubro</th><th>Descripción A</th><th>Cant.</th><th>C. unit.</th><th>Destino</th><th>Vto.</th><th>T.C.</th><th>Subtotal</th><th>% IVA</th><th>IVA</th><th>Total</th><th>Campaña</th><th>Pago</th><th></th></tr></thead>
+            <thead>
+              <tr id="bol-thead"><th id="bol-th-check" style="display:none"></th><th>Fecha</th><th>N° Factura</th><th>Firma</th><th>Razón social</th><th>Rubro</th><th>Descripción A</th><th>Cant.</th><th>C. unit.</th><th>Destino</th><th>Vto.</th><th>T.C.</th><th>Subtotal</th><th>% IVA</th><th>IVA</th><th>Total</th><th>Campaña</th><th>Pago</th><th></th></tr>
+              <tr style="background:#faf9f7">
+                <td id="bol-th-check2" style="display:none"></td>
+                <td><input type="text" id="bol-filtro-fecha" placeholder="Fecha..." oninput="filtrarBoletasReset()" style="width:80px;font-size:11px;padding:3px 5px;border:1px solid var(--gris-borde);border-radius:4px"></td>
+                <td><input type="text" id="bol-filtro-num" placeholder="N°..." oninput="filtrarBoletasReset()" style="width:70px;font-size:11px;padding:3px 5px;border:1px solid var(--gris-borde);border-radius:4px"></td>
+                <td><select id="bol-filtro-firma" onchange="filtrarBoletasReset()" style="width:60px;font-size:11px;padding:3px 4px;border:1px solid var(--gris-borde);border-radius:4px"><option value="">Todas</option></select></td>
+                <td><select id="bol-filtro-prov" onchange="filtrarBoletasReset()" style="width:110px;font-size:11px;padding:3px 4px;border:1px solid var(--gris-borde);border-radius:4px"><option value="">Todos</option></select></td>
+                <td><select id="bol-filtro-rubro" onchange="filtrarBoletasReset()" style="width:100px;font-size:11px;padding:3px 4px;border:1px solid var(--gris-borde);border-radius:4px"><option value="">Todos</option></select></td>
+                <td><input type="text" id="bol-filtro-busca" placeholder="Buscar..." oninput="filtrarBoletasReset()" style="width:90px;font-size:11px;padding:3px 5px;border:1px solid var(--gris-borde);border-radius:4px"></td>
+                <td></td><td></td>
+                <td><select id="bol-filtro-destino" onchange="filtrarBoletasReset()" style="width:110px;font-size:11px;padding:3px 4px;border:1px solid var(--gris-borde);border-radius:4px"><option value="">Todos</option></select></td>
+                <td></td><td></td><td></td><td></td><td></td>
+                <td><select id="bol-filtro-campania" onchange="filtrarBoletasReset()" style="width:80px;font-size:11px;padding:3px 4px;border:1px solid var(--gris-borde);border-radius:4px"><option value="">Todas</option></select></td>
+                <td><select id="bol-filtro-pago" onchange="filtrarBoletasReset()" style="width:75px;font-size:11px;padding:3px 4px;border:1px solid var(--gris-borde);border-radius:4px"><option value="">Todos</option></select></td>
+                <td></td>
+              </tr>
+            </thead>
             <tbody id="tabla-boletas">
               <tr><td colspan="18"><div class="empty-state"><div class="icon">🧾</div><h3>Sin boletas cargadas</h3><p>Subí una foto o PDF de la boleta para cargarla automáticamente</p></div></td></tr>
             </tbody>
