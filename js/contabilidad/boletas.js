@@ -229,6 +229,42 @@ async function guardarBoleta() {
 let boletasTodas = [];
 let bolPagina = 1;
 
+// ── Calculadora ───────────────────────────────────────────
+const bolCalcState = { active: false, seleccionados: {} };
+
+function activarCalcBoleta() {
+  bolCalcState.active = true;
+  bolCalcState.seleccionados = {};
+  document.getElementById('bol-calc-panel').style.display = '';
+  const th = document.getElementById('bol-th-check');
+  if (th) th.style.display = '';
+  renderBoletas();
+}
+
+function salirCalcBoleta() {
+  bolCalcState.active = false;
+  bolCalcState.seleccionados = {};
+  document.getElementById('bol-calc-panel').style.display = 'none';
+  const th = document.getElementById('bol-th-check');
+  if (th) th.style.display = 'none';
+  renderBoletas();
+}
+
+function toggleCalcBoleta(id, monto, cant, cb) {
+  if (cb.checked) bolCalcState.seleccionados[id] = { monto, cant };
+  else delete bolCalcState.seleccionados[id];
+  actualizarCalcBoleta();
+}
+
+function actualizarCalcBoleta() {
+  const vals = Object.values(bolCalcState.seleccionados);
+  const totalMonto = vals.reduce((s, v) => s + (v.monto || 0), 0);
+  const totalCant  = vals.reduce((s, v) => s + (v.cant  || 0), 0);
+  document.getElementById('bol-calc-cant').textContent = vals.length + ' ítem' + (vals.length !== 1 ? 's' : '');
+  document.getElementById('bol-calc-monto').textContent = fmtMonto(totalMonto, 'ARS');
+  document.getElementById('bol-calc-unid').textContent  = fmtNum(totalCant, 2);
+}
+
 function filtrarBoletasReset() { bolPagina = 1; renderBoletas(); }
 function irPaginaBoletas(p) { bolPagina = p; renderBoletas(); window.scrollTo({ top: document.getElementById('section-boletas').offsetTop, behavior: 'smooth' }); }
 
@@ -238,26 +274,43 @@ async function cargarBoletas() {
     try { const t = JSON.parse(r.observaciones || '{}').tipo_factura; return !t || t === 'recibida'; } catch(e) { return true; }
   });
 
-  // Poblar filtro de campañas conservando la selección actual
-  const selCamp = document.getElementById('bol-filtro-campania');
-  if (selCamp) {
-    const actual = selCamp.value;
-    const camps = [...new Set(boletasTodas.map(r => { try { return JSON.parse(r.observaciones || '{}').campania; } catch(e) { return ''; } }).filter(c => c))].sort();
-    selCamp.innerHTML = '<option value="">Todas las campañas</option>' + camps.map(c => `<option${c === actual ? ' selected' : ''}>${c}</option>`).join('');
+  // Poblar filtros conservando selección actual
+  function poblarSelect(selId, valores) {
+    const sel = document.getElementById(selId);
+    if (!sel) return;
+    const actual = sel.value;
+    sel.innerHTML = sel.options[0].outerHTML + valores.map(v => `<option${v === actual ? ' selected' : ''}>${v}</option>`).join('');
   }
+  const extrae = campo => [...new Set(boletasTodas.map(r => { try { return JSON.parse(r.observaciones || '{}')[campo] || ''; } catch(e) { return ''; } }).filter(Boolean))].sort();
+
+  poblarSelect('bol-filtro-campania', extrae('campania'));
+  poblarSelect('bol-filtro-pago',     ['Paga', 'Impaga']);
+  poblarSelect('bol-filtro-destino',  extrae('destino'));
+  poblarSelect('bol-filtro-firma',    ['Francisco J. Giraudo', 'Giraudo SH']);
+  poblarSelect('bol-filtro-rubro',    [...new Set(boletasTodas.map(r => r.categoria || '').filter(Boolean))].sort());
+  poblarSelect('bol-filtro-prov',     [...new Set(boletasTodas.map(r => r.proveedor || '').filter(Boolean))].sort());
+
   renderBoletas();
 }
 
 function renderBoletas() {
-  const fFirma = document.getElementById('bol-filtro-firma')?.value || '';
-  const fCamp = document.getElementById('bol-filtro-campania')?.value || '';
-  const fBusca = (document.getElementById('bol-filtro-busca')?.value || '').trim().toLowerCase();
+  const fFirma  = document.getElementById('bol-filtro-firma')?.value  || '';
+  const fCamp   = document.getElementById('bol-filtro-campania')?.value || '';
+  const fRubro  = document.getElementById('bol-filtro-rubro')?.value  || '';
+  const fProv   = document.getElementById('bol-filtro-prov')?.value   || '';
+  const fDestino= document.getElementById('bol-filtro-destino')?.value || '';
+  const fPago   = document.getElementById('bol-filtro-pago')?.value   || '';
+  const fBusca  = (document.getElementById('bol-filtro-busca')?.value || '').trim().toLowerCase();
   const rows = boletasTodas.filter(r => {
     let e = {}; try { e = JSON.parse(r.observaciones || '{}'); } catch(err) {}
-    if (fFirma && e.firma !== fFirma) return false;
-    if (fCamp && (e.campania || '') !== fCamp) return false;
+    if (fFirma   && e.firma !== fFirma) return false;
+    if (fCamp    && (e.campania || '') !== fCamp) return false;
+    if (fRubro   && (r.categoria || '') !== fRubro) return false;
+    if (fProv    && (r.proveedor || '') !== fProv) return false;
+    if (fDestino && (e.destino || '') !== fDestino) return false;
+    if (fPago    && (e.pago || 'Impaga') !== fPago) return false;
     if (fBusca) {
-      const texto = `${r.proveedor || ''} ${e.numero_comprobante || ''}`.toLowerCase();
+      const texto = `${r.proveedor || ''} ${e.numero_comprobante || ''} ${r.concepto || ''}`.toLowerCase();
       if (!texto.includes(fBusca)) return false;
     }
     return true;
@@ -341,7 +394,11 @@ function renderBoletas() {
     const pctIva = (e.pct_iva === 0 || e.pct_iva === '0') ? 'Exento' : (fmtNum(e.pct_iva, (Number(e.pct_iva) % 1) ? 1 : 0) + '%');
     const pagoBadge = `<button class="badge ${e.pago === 'Paga' ? 'badge-green' : 'badge-tierra'}" style="border:none;cursor:pointer" onclick="togglePagoBoleta('${r.id}', this)">${e.pago === 'Paga' ? 'Paga' : 'Impaga'}</button>`;
     const cant = e.cantidad ? `${fmtNum(e.cantidad)} ${e.unidad || ''}`.trim() : '—';
+    const checkTd = bolCalcState.active
+      ? `<td><input type="checkbox" ${bolCalcState.seleccionados[r.id] !== undefined ? 'checked' : ''} onchange="toggleCalcBoleta('${r.id}',${r.monto||0},${e.cantidad||0},this)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--bordo)"></td>`
+      : '';
     return `<tr>
+      ${checkTd}
       <td>${fmtFecha(r.fecha)}</td>
       <td style="font-size:11px">${e.numero_comprobante || '—'}</td>
       <td><span class="badge badge-bordo" style="font-size:10px">${firmaCorta}</span></td>

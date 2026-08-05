@@ -1582,16 +1582,27 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
       <div class="card">
         <div class="card-header">
           <h3>🧾 Boletas recibidas — Carga con IA</h3>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <input type="text" id="bol-filtro-busca" placeholder="🔎 Buscar razón social o N° factura..." oninput="filtrarBoletasReset()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;width:220px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input type="text" id="bol-filtro-busca" placeholder="🔎 Buscar..." oninput="filtrarBoletasReset()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;width:160px">
             <select id="bol-filtro-firma" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="filtrarBoletasReset()">
               <option value="">Todas las firmas</option>
-              <option value="Francisco J. Giraudo">Francisco J. Giraudo</option>
-              <option value="Giraudo SH">Giraudo SH</option>
+            </select>
+            <select id="bol-filtro-prov" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="filtrarBoletasReset()">
+              <option value="">Todos los proveedores</option>
+            </select>
+            <select id="bol-filtro-rubro" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="filtrarBoletasReset()">
+              <option value="">Todos los rubros</option>
+            </select>
+            <select id="bol-filtro-destino" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="filtrarBoletasReset()">
+              <option value="">Todos los destinos</option>
             </select>
             <select id="bol-filtro-campania" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="filtrarBoletasReset()">
               <option value="">Todas las campañas</option>
             </select>
+            <select id="bol-filtro-pago" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px" onchange="filtrarBoletasReset()">
+              <option value="">Pago: todos</option>
+            </select>
+            <button class="btn btn-secondary" style="font-size:12px" onclick="activarCalcBoleta()">🧮 Calculadora</button>
             <button class="btn btn-primary" onclick="abrirFormBoleta()">+ Cargar boleta</button>
           </div>
         </div>
@@ -1697,7 +1708,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Fecha</th><th>N° Factura</th><th>Firma</th><th>Razón social</th><th>Rubro</th><th>Descripción A</th><th>Cant.</th><th>C. unit.</th><th>Destino</th><th>Vto.</th><th>T.C.</th><th>Subtotal</th><th>% IVA</th><th>IVA</th><th>Total</th><th>Campaña</th><th>Pago</th><th></th></tr></thead>
+            <thead><tr id="bol-thead"><th id="bol-th-check" style="display:none"></th><th>Fecha</th><th>N° Factura</th><th>Firma</th><th>Razón social</th><th>Rubro</th><th>Descripción A</th><th>Cant.</th><th>C. unit.</th><th>Destino</th><th>Vto.</th><th>T.C.</th><th>Subtotal</th><th>% IVA</th><th>IVA</th><th>Total</th><th>Campaña</th><th>Pago</th><th></th></tr></thead>
             <tbody id="tabla-boletas">
               <tr><td colspan="18"><div class="empty-state"><div class="icon">🧾</div><h3>Sin boletas cargadas</h3><p>Subí una foto o PDF de la boleta para cargarla automáticamente</p></div></td></tr>
             </tbody>
@@ -2106,6 +2117,17 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
           <div id="che-paginador"></div>
         </div>
       </div>
+    </div>
+
+    <!-- Panel flotante calculadora facturas -->
+    <div id="bol-calc-panel" style="display:none;position:fixed;bottom:28px;right:28px;z-index:999;background:var(--bordo);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.35);padding:20px 24px;min-width:250px">
+      <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.75);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">🧮 Calculadora — Facturas</div>
+      <div id="bol-calc-cant" style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:4px">0 ítems</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:2px">Total $</div>
+      <div id="bol-calc-monto" style="font-size:26px;font-weight:800;color:#fff;line-height:1.1;margin-bottom:8px">$ 0</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:2px">Unidades</div>
+      <div id="bol-calc-unid" style="font-size:22px;font-weight:700;color:#fff;line-height:1.1;margin-bottom:14px">0</div>
+      <button onclick="salirCalcBoleta()" style="background:rgba(255,255,255,0.18);border:none;color:#fff;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:13px;width:100%">✕ Salir</button>
     </div>
 
     <!-- Panel flotante suma cheques -->
