@@ -413,8 +413,8 @@ function renderTabIndices(rodeoId, novedades) {
   const campanias = [...new Set(novRodeo.map(n => n.campania).filter(Boolean))].sort().reverse();
   const campSelec = window._campIndices[rodeoId] || campanias[0] || '';
 
-  // Filtrar por campaña seleccionada
-  const novFilt = campSelec ? novRodeo.filter(n => !n.campania || n.campania === campSelec) : novRodeo;
+  // Filtrar por campaña seleccionada (estricto: excluye otras campañas)
+  const novFilt = campSelec ? novRodeo.filter(n => n.campania === campSelec) : novRodeo;
 
   // Servicios desde servicios_animal (animales individuales)
   const srvRodeo = (window._allServicios || []).filter(s => s.rodeo_id === rodeoId);
@@ -445,11 +445,13 @@ function renderTabIndices(rodeoId, novedades) {
   // Destetes
   const destetes = novFilt.filter(n => n.tipo === 'Destete').reduce((s,n) => s + (n.cantidad||1), 0);
 
-  const campSelectHTML = campanias.length > 1 ? `
-    <select onchange="cambiarCampaniaIndices('${rodeoId}', this.value)" style="padding:5px 10px;border:1px solid #e0e0dc;border-radius:6px;font-size:12px;font-weight:600">
-      <option value="">Todas las campañas</option>
+  const campSelectHTML = `<div style="display:flex;align-items:center;gap:6px">
+    <span style="font-size:11px;color:#888">Campaña:</span>
+    <select onchange="cambiarCampaniaIndices('${rodeoId}', this.value)" style="padding:4px 8px;border:1px solid #e0e0dc;border-radius:6px;font-size:12px;font-weight:600;min-width:120px">
+      <option value="">Todas</option>
       ${campanias.map(c => `<option value="${c}"${c === campSelec ? ' selected' : ''}>${c}</option>`).join('')}
-    </select>` : (campSelec ? `<span style="font-size:12px;font-weight:600;color:var(--bordo)">📅 ${campSelec}</span>` : '');
+    </select>
+  </div>`;
 
   const base = inseminadas || totalPren || nacimientos || 1;
 
