@@ -41,8 +41,8 @@ const COLORES_RODEO = {
 };
 
 async function cargarManga() {
-  let indicesCampania;
-  [rodeos, trabajosManga, animalesRodeo, novedadesGanaderas, serviciosAnimal, sanidadAnimal, renspas, pesadasAnimal, indicesCampania] = await Promise.all([
+  let indicesCampania, indicesManuales;
+  [rodeos, trabajosManga, animalesRodeo, novedadesGanaderas, serviciosAnimal, sanidadAnimal, renspas, pesadasAnimal, indicesCampania, indicesManuales] = await Promise.all([
     sb('GET', 'rodeos', null, '?order=created_at.asc&activo=eq.true'),
     sb('GET', 'trabajos_manga', null, '?order=fecha.desc'),
     sb('GET', 'animales_rodeo', null, '?activo=eq.true&order=caravana_interna.asc.nullslast'),
@@ -51,11 +51,13 @@ async function cargarManga() {
     sb('GET', 'sanidad_animal', null, '?order=fecha.desc'),
     sb('GET', 'renspas', null, '?order=propietario.asc'),
     sb('GET', 'pesadas_animal', null, '?order=fecha.asc'),
-    sb('GET', 'indices_campania', null, '?order=campania.desc')
+    sb('GET', 'indices_campania', null, '?order=campania.desc'),
+    sb('GET', 'indices_manuales', null, '')
   ]);
   rodeos = rodeos || [];
   trabajosManga = trabajosManga || [];
   window._indicesCampania = indicesCampania || [];
+  window._indicesManuales = indicesManuales || [];
   animalesRodeo = animalesRodeo || [];
   novedadesGanaderas = novedadesGanaderas || [];
   serviciosAnimal = serviciosAnimal || [];
@@ -399,10 +401,17 @@ const ICONOS_NOV = {
   'Cambio de categoría': '🔀', 'Pesada': '⚖️'
 };
 
-if (!window._campIndices) window._campIndices = {};
+if (!window._campIndices)  window._campIndices  = {};
+if (!window._tipoIndices) window._tipoIndices = {};
+if (!window._indicesManuales) window._indicesManuales = [];
 
 function cambiarCampaniaIndices(rodeoId, val) {
   window._campIndices[rodeoId] = val;
+  renderDetalleManga();
+}
+
+function cambiarTipoIndices(rodeoId, val) {
+  window._tipoIndices[rodeoId] = val;
   renderDetalleManga();
 }
 
@@ -517,16 +526,34 @@ function renderTabIndices(rodeoId, novedades) {
       </div>
     </div>` : `<div style="margin-top:16px;font-size:12px;color:#bbb;text-align:center">Sin campañas cerradas todavía.</div>`;
 
-  return `<div class="card-body" style="padding:16px">
+  const tipoActual = window._tipoIndices[rodeoId] || 'reproductivos';
+
+  const selectorTipo = `
+    <div style="display:flex;background:#f4f4f2;border-radius:8px;padding:3px;gap:2px">
+      <button onclick="cambiarTipoIndices('${rodeoId}','reproductivos')" style="padding:5px 14px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:${tipoActual==='reproductivos'?'#fff':'transparent'};color:${tipoActual==='reproductivos'?'var(--bordo)':'#888'};box-shadow:${tipoActual==='reproductivos'?'0 1px 4px rgba(0,0,0,0.1)':'none'}">🐄 Reproductivos (Cría)</button>
+      <button onclick="cambiarTipoIndices('${rodeoId}','crecimiento')" style="padding:5px 14px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:${tipoActual==='crecimiento'?'#fff':'transparent'};color:${tipoActual==='crecimiento'?'var(--bordo)':'#888'};box-shadow:${tipoActual==='crecimiento'?'0 1px 4px rgba(0,0,0,0.1)':'none'}">⚖️ Crecimiento y peso</button>
+    </div>`;
+
+  const headerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div style="font-size:12px;color:var(--texto-suave)">Calculado desde las novedades del rodeo.</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        ${selectorTipo}
         ${campSelectHTML}
       </div>
       <button class="btn btn-primary" style="font-size:12px;padding:6px 14px" onclick="cerrarCampaniaIndices('${rodeoId}',${inseminadas},${totalPren},${nacimientos},${abortos},${muertesTerneros},${destetes},'${iPrenez||''}','${iParicion||''}','${iAborto||''}','${iMuerte||''}','${iDestete||''}')">
         📁 Cerrar campaña y guardar
       </button>
-    </div>
+    </div>`;
+
+  if (tipoActual === 'crecimiento') {
+    return `<div class="card-body" style="padding:16px">
+      ${headerHTML}
+      ${renderIndicesCrecimiento(rodeoId, novFilt, campSelec)}
+    </div>`;
+  }
+
+  return `<div class="card-body" style="padding:16px">
+    ${headerHTML}
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
       ${cardIndice('Inseminadas', null, inseminadas, '—', '', '🐂', 'Entradas al servicio')}
       ${cardIndice('% Preñez', iPrenez, totalPren, inseminadas, '', '🔬', 'Preñadas / Inseminadas')}
@@ -537,6 +564,145 @@ function renderTabIndices(rodeoId, novedades) {
     </div>
     ${histHTML}
   </div>`;
+}
+
+function renderIndicesCrecimiento(rodeoId, novFilt, campSelec) {
+  // Datos manuales guardados
+  const man = (window._indicesManuales || []).find(m => m.rodeo_id === rodeoId && (m.campania || '') === (campSelec || '')) || {};
+
+  // Automático: pesadas de animales del rodeo
+  const animalesDelRodeo = animalesRodeo.filter(a => a.rodeo_id === rodeoId);
+  const idsAnimales = new Set(animalesDelRodeo.map(a => a.id));
+  const pesadasRodeo = pesadasAnimal.filter(p => idsAnimales.has(p.animal_id));
+
+  // Peso al nacer: primera pesada de terneros/terneras
+  const terneros = animalesDelRodeo.filter(a => a.categoria === 'Ternero' || a.categoria === 'Ternera');
+  const idsTerneros = new Set(terneros.map(a => a.id));
+  const pesadasTerneros = pesadasRodeo.filter(p => idsTerneros.has(p.animal_id));
+  const primerasPesadas = {};
+  pesadasTerneros.forEach(p => {
+    if (!primerasPesadas[p.animal_id] || new Date(p.fecha) < new Date(primerasPesadas[p.animal_id].fecha))
+      primerasPesadas[p.animal_id] = p;
+  });
+  const pesoNacerVals = Object.values(primerasPesadas).map(p => p.peso_kg).filter(Boolean);
+  const pesoNacer = pesoNacerVals.length ? (pesoNacerVals.reduce((s,v) => s+v, 0) / pesoNacerVals.length).toFixed(1) : null;
+
+  // Peso al destete: última pesada de terneros
+  const ultimasPesadas = {};
+  pesadasTerneros.forEach(p => {
+    if (!ultimasPesadas[p.animal_id] || new Date(p.fecha) > new Date(ultimasPesadas[p.animal_id].fecha))
+      ultimasPesadas[p.animal_id] = p;
+  });
+  const pesoDesteVals = Object.values(ultimasPesadas).filter(p => primerasPesadas[p.animal_id] && p.fecha !== primerasPesadas[p.animal_id]?.fecha).map(p => p.peso_kg).filter(Boolean);
+  const pesoDestete = pesoDesteVals.length ? (pesoDesteVals.reduce((s,v) => s+v, 0) / pesoDesteVals.length).toFixed(1) : null;
+
+  // GDP: (pesoDestete - pesoNacer) / días promedio entre primera y última pesada
+  let gdp = null;
+  if (pesoNacer && pesoDestete) {
+    const diasArr = Object.keys(primerasPesadas).filter(aid => ultimasPesadas[aid] && ultimasPesadas[aid].fecha !== primerasPesadas[aid].fecha).map(aid => {
+      return (new Date(ultimasPesadas[aid].fecha) - new Date(primerasPesadas[aid].fecha)) / 86400000;
+    }).filter(d => d > 0);
+    const diasProm = diasArr.length ? diasArr.reduce((s,v) => s+v,0)/diasArr.length : 180;
+    gdp = ((parseFloat(pesoDestete) - parseFloat(pesoNacer)) / diasProm).toFixed(3);
+  }
+
+  // Cálculos derivados de manuales
+  const nVacas = animalesDelRodeo.filter(a => a.categoria === 'Vaca').length;
+  const nToros = animalesDelRodeo.filter(a => a.categoria === 'Toro').length || (man.relacion_toro_vaca ? Math.round(nVacas / man.relacion_toro_vaca) : null);
+  const cargaAnimal = man.hectareas && animalesDelRodeo.length ? (animalesDelRodeo.length / man.hectareas).toFixed(2) : null;
+  const kgPorHa = man.hectareas && pesoDestete && pesoDesteVals.length ? ((parseFloat(pesoDestete) * pesoDesteVals.length) / man.hectareas).toFixed(1) : null;
+  const efVaca = pesoDestete && man.peso_promedio_vaca ? ((parseFloat(pesoDestete) / man.peso_promedio_vaca) * 100).toFixed(1) : null;
+
+  // Muertes de vientres
+  const muertesVientres = novFilt.filter(n => n.tipo === 'Muerte' && (n.categoria === 'Vaca' || n.categoria === 'Vientres')).reduce((s,n) => s+(n.cantidad||1), 0);
+  const pctMortVientres = nVacas ? (muertesVientres / nVacas * 100).toFixed(1) : null;
+
+  function ref(ok, text) {
+    return `<div style="font-size:10px;color:${ok?'#27ae60':'#888'};margin-top:3px">Ref: ${text}</div>`;
+  }
+  function cardC(label, valor, unidad, refText, refOk, icon) {
+    const c = valor == null ? '#bbb' : (refOk == null ? '#1a5f8b' : refOk ? '#27ae60' : '#c0392b');
+    return `<div style="background:#fff;border:1px solid #e0e0dc;border-radius:12px;padding:14px 16px;min-width:150px;flex:1">
+      <div style="font-size:18px;margin-bottom:4px">${icon}</div>
+      <div style="font-size:11px;font-weight:600;color:var(--texto-suave);text-transform:uppercase;margin-bottom:6px">${label}</div>
+      <div style="font-size:26px;font-weight:800;color:${c}">${valor != null ? valor+' '+unidad : '—'}</div>
+      ${refText ? ref(refOk, refText) : ''}
+    </div>`;
+  }
+
+  const gdpOk = gdp ? parseFloat(gdp) >= 0.6 && parseFloat(gdp) <= 0.9 : null;
+  const pesoNacerOk = pesoNacer ? parseFloat(pesoNacer) >= 30 && parseFloat(pesoNacer) <= 40 : null;
+  const pesoDesteOk = pesoDestete ? parseFloat(pesoDestete) >= 170 && parseFloat(pesoDestete) <= 200 : null;
+  const mortVientresOk = pctMortVientres ? parseFloat(pctMortVientres) < 2 : null;
+  const efVacaOk = efVaca ? parseFloat(efVaca) >= 38 && parseFloat(efVaca) <= 45 : null;
+  const cargaOk = cargaAnimal ? parseFloat(cargaAnimal) >= 0.8 && parseFloat(cargaAnimal) <= 1.2 : null;
+  const kgHaOk = kgPorHa ? parseFloat(kgPorHa) >= 100 && parseFloat(kgPorHa) <= 160 : null;
+
+  return `
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;margin-bottom:10px">📊 Automático desde pesadas</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+        ${cardC('GDP al pie de la madre', gdp, 'kg/día', '0.6–0.9 kg/día', gdpOk, '📈')}
+        ${cardC('Peso al nacer', pesoNacer, 'kg', '30–40 kg', pesoNacerOk, '🐣')}
+        ${cardC('Peso al destete', pesoDestete, 'kg', '170–200 kg', pesoDesteOk, '⚖️')}
+        ${cardC('% Mort. vientres', pctMortVientres, '%', '< 2%', mortVientresOk, '💀')}
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;margin-bottom:10px">🔢 Calculado (requiere datos manuales)</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+        ${cardC('Índice eficiencia vaca', efVaca, '%', '38–45%', efVacaOk, '🐄')}
+        ${cardC('Carga animal', cargaAnimal, 'EV/ha', '0.8–1.2 EV/ha', cargaOk, '🌾')}
+        ${cardC('Kg ternero/ha/año', kgPorHa, 'kg/ha', '100–160 kg/ha', kgHaOk, '🏆')}
+      </div>
+    </div>
+
+    <div style="background:#f8f8f8;border-radius:12px;padding:16px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;margin-bottom:12px">✏️ Datos manuales</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
+        <div class="form-group"><label style="font-size:11px">Relación Toro/Vaca<br><span style="color:#888;font-weight:400">Ref: 1:25–30</span></label>
+          <input type="number" step="0.1" id="im-rel-toro" value="${man.relacion_toro_vaca||''}" class="form-control" style="font-size:13px" placeholder="vacas por toro"></div>
+        <div class="form-group"><label style="font-size:11px">Duración entore<br><span style="color:#888;font-weight:400">Ref: 60–90 días</span></label>
+          <input type="number" id="im-entore" value="${man.duracion_entore||''}" class="form-control" style="font-size:13px" placeholder="días"></div>
+        <div class="form-group"><label style="font-size:11px">Peso promedio vaca<br><span style="color:#888;font-weight:400">Para eficiencia</span></label>
+          <input type="number" id="im-peso-vaca" value="${man.peso_promedio_vaca||''}" class="form-control" style="font-size:13px" placeholder="kg"></div>
+        <div class="form-group"><label style="font-size:11px">Hectáreas del potrero<br><span style="color:#888;font-weight:400">Para carga y kg/ha</span></label>
+          <input type="number" step="0.1" id="im-has" value="${man.hectareas||''}" class="form-control" style="font-size:13px" placeholder="ha"></div>
+      </div>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:12px">
+        <button class="btn btn-primary" style="font-size:12px" onclick="guardarIndicesManuales('${rodeoId}','${campSelec||''}')">💾 Guardar datos</button>
+        ${man.id ? `<span style="font-size:11px;color:#888">Última actualización guardada</span>` : ''}
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      ${cardC('Rel. Toro/Vaca', man.relacion_toro_vaca ? '1:'+man.relacion_toro_vaca : null, '', '1:25–30', man.relacion_toro_vaca ? man.relacion_toro_vaca >= 25 && man.relacion_toro_vaca <= 30 : null, '🐂')}
+      ${cardC('Duración entore', man.duracion_entore||null, 'días', '60–90 días', man.duracion_entore ? man.duracion_entore >= 60 && man.duracion_entore <= 90 : null, '📅')}
+    </div>`;
+}
+
+async function guardarIndicesManuales(rodeoId, campania) {
+  const data = {
+    rodeo_id: rodeoId,
+    campania: campania || null,
+    relacion_toro_vaca: parseFloat(document.getElementById('im-rel-toro')?.value) || null,
+    duracion_entore:    parseInt(document.getElementById('im-entore')?.value)     || null,
+    peso_promedio_vaca: parseFloat(document.getElementById('im-peso-vaca')?.value) || null,
+    hectareas:          parseFloat(document.getElementById('im-has')?.value)       || null,
+  };
+  const existing = (window._indicesManuales || []).find(m => m.rodeo_id === rodeoId && (m.campania||'') === (campania||''));
+  const ok = existing
+    ? await sb('PATCH', 'indices_manuales', data, `?id=eq.${existing.id}`)
+    : await sb('POST',  'indices_manuales', data);
+  if (ok) {
+    toast('✅ Datos guardados');
+    // Actualizar en memoria
+    const nuevo = ok[0] || { ...data, id: existing?.id };
+    if (existing) Object.assign(existing, nuevo);
+    else (window._indicesManuales = window._indicesManuales || []).push(nuevo);
+    renderDetalleManga();
+  } else toast('❌ Error al guardar', 'var(--rojo)');
 }
 
 function renderTabNovedades(novedades) {
