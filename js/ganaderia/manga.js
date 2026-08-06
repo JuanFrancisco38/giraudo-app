@@ -551,7 +551,10 @@ function renderTabNovedades(novedades) {
           <td>${ico} <strong>${n.tipo || '—'}</strong></td>
           <td>${det}${n.descripcion || '—'}</td>
           <td>${n.cantidad ?? '—'}</td>
-          <td><button class="btn btn-danger" style="padding:2px 8px;font-size:11px" onclick="borrarNovedadManga('${n.id}')">🗑️</button></td>
+          <td style="white-space:nowrap">
+            <button class="btn btn-secondary" style="padding:2px 8px;font-size:11px" onclick="verEditarNovedad('${n.id}')">✏️</button>
+            <button class="btn btn-danger" style="padding:2px 8px;font-size:11px" onclick="borrarNovedadManga('${n.id}')">🗑️</button>
+          </td>
         </tr>`;
       }).join('')}</tbody>
     </table></div>`
@@ -2044,6 +2047,100 @@ async function guardarServicio(animalId) {
   const r = await sb('POST', 'servicios_animal', data);
   if (r) { toast('✅ Servicio registrado'); await cargarManga(); }
   else toast('❌ Error', 'var(--rojo)');
+}
+
+// ── Ver / editar novedad ──────────────────────────────────
+
+function verEditarNovedad(id) {
+  const nov = novedadesGanaderas.find(n => n.id === id);
+  if (!nov) return;
+  const det = nov.detalle || {};
+  const rodeo = rodeos.find(r => r.id === nov.rodeo_id);
+
+  // Construir filas de campos editables según el tipo
+  let camposExtra = '';
+
+  if (nov.tipo === 'Trabajo de manga') {
+    if (nov.subtipo?.includes('IATF') || nov.subtipo?.includes('Inseminación')) {
+      camposExtra = `
+        <div class="form-group"><label>Madres inseminadas</label><input id="ven-cantidad" type="number" value="${nov.cantidad||''}" class="form-control"></div>
+        <div class="form-group"><label>Toros / dosis</label><input id="ven-toros" type="number" value="${det.toros||''}" class="form-control"></div>`;
+    } else if (nov.subtipo?.includes('Tacto')) {
+      camposExtra = `
+        <div class="form-group"><label>Preñadas</label><input id="ven-prenadas" type="number" value="${det.prenadas||''}" class="form-control"></div>
+        <div class="form-group"><label>Vacías</label><input id="ven-vacias" type="number" value="${det.vacias||''}" class="form-control"></div>
+        <div class="form-group"><label>Dudosas</label><input id="ven-dudosas" type="number" value="${det.dudosas||''}" class="form-control"></div>`;
+    } else {
+      camposExtra = `<div class="form-group"><label>Cantidad</label><input id="ven-cantidad" type="number" value="${nov.cantidad||''}" class="form-control"></div>`;
+    }
+  } else if (nov.tipo === 'Nacimiento') {
+    camposExtra = `
+      <div class="form-group"><label>Nacidos vivos</label><input id="ven-nacidos-vivos" type="number" value="${det.nacidos_vivos ?? nov.cantidad ?? ''}" class="form-control"></div>
+      <div class="form-group"><label>Nacidos muertos</label><input id="ven-nacidos-muertos" type="number" value="${det.nacidos_muertos||0}" class="form-control"></div>
+      <div class="form-group"><label>Madre (#caravana)</label><input id="ven-madre" type="text" value="${det.madre||''}" class="form-control"></div>`;
+  } else if (nov.tipo === 'Aborto') {
+    camposExtra = `
+      <div class="form-group"><label>Cantidad</label><input id="ven-cantidad" type="number" value="${nov.cantidad||1}" class="form-control"></div>
+      <div class="form-group"><label>Madres (cant.)</label><input id="ven-madres" type="number" value="${det.madres||''}" class="form-control"></div>`;
+  } else if (nov.tipo === 'Destete') {
+    camposExtra = `
+      <div class="form-group"><label>Destetados</label><input id="ven-cantidad" type="number" value="${det.destetados ?? nov.cantidad ?? ''}" class="form-control"></div>
+      <div class="form-group"><label>Peso promedio (kg)</label><input id="ven-peso" type="number" step="0.1" value="${det.peso_promedio||''}" class="form-control"></div>`;
+  } else if (nov.tipo === 'Entrada de toros') {
+    camposExtra = `
+      <div class="form-group"><label>Cantidad</label><input id="ven-cantidad" type="number" value="${nov.cantidad||''}" class="form-control"></div>
+      <div class="form-group"><label>Retiro estimado</label><input id="ven-retiro" type="date" value="${det.retiro_estimado||''}" class="form-control"></div>`;
+  } else {
+    camposExtra = `<div class="form-group"><label>Cantidad</label><input id="ven-cantidad" type="number" value="${nov.cantidad||''}" class="form-control"></div>`;
+  }
+
+  const html = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div class="form-group"><label>Fecha</label><input id="ven-fecha" type="date" value="${nov.fecha||''}" class="form-control"></div>
+      <div class="form-group"><label>Campaña</label><input id="ven-campania" type="text" value="${nov.campania||''}" class="form-control" list="campanias-list"></div>
+      <div class="form-group"><label>Tipo</label><input type="text" value="${nov.tipo||''}${nov.subtipo?' — '+nov.subtipo:''}" class="form-control" disabled style="background:#f5f5f5"></div>
+      <div class="form-group"><label>Rodeo</label><input type="text" value="${rodeo?.nombre||'—'}" class="form-control" disabled style="background:#f5f5f5"></div>
+      ${camposExtra}
+      <div class="form-group full"><label>Descripción / observaciones</label><input id="ven-desc" type="text" value="${(nov.descripcion||'').replace(/"/g,'&quot;')}" class="form-control"></div>
+    </div>
+    ${det && Object.keys(det).length ? `<div style="background:#f8f8f8;border-radius:8px;padding:10px 12px;font-size:11px;color:#888;margin-bottom:12px"><strong>Detalle completo:</strong> <code>${JSON.stringify(det)}</code></div>` : ''}`;
+
+  document.getElementById('ven-id').value = id;
+  document.getElementById('ven-body').innerHTML = html;
+  document.getElementById('modal-ver-novedad').style.display = 'flex';
+}
+
+async function guardarEdicionNovedad() {
+  const id = document.getElementById('ven-id').value;
+  const nov = novedadesGanaderas.find(n => n.id === id);
+  if (!nov) return;
+  const det = { ...(nov.detalle || {}) };
+
+  const fecha    = document.getElementById('ven-fecha')?.value    || nov.fecha;
+  const campania = document.getElementById('ven-campania')?.value ?? nov.campania;
+  const desc     = document.getElementById('ven-desc')?.value     ?? nov.descripcion;
+  let cantidad   = nov.cantidad;
+
+  // Recoger campos específicos
+  const v = id => { const el = document.getElementById(id); return el ? el.value : null; };
+  if (v('ven-cantidad') !== null) cantidad = parseInt(v('ven-cantidad')) || cantidad;
+  if (v('ven-prenadas')     !== null) { det.prenadas = parseInt(v('ven-prenadas'))||0; }
+  if (v('ven-vacias')       !== null) { det.vacias   = parseInt(v('ven-vacias'))||0; }
+  if (v('ven-dudosas')      !== null) { det.dudosas  = parseInt(v('ven-dudosas'))||0; }
+  if (v('ven-toros')        !== null) det.toros = parseInt(v('ven-toros'))||null;
+  if (v('ven-madres')       !== null) det.madres = parseInt(v('ven-madres'))||null;
+  if (v('ven-nacidos-vivos')  !== null) { det.nacidos_vivos  = parseInt(v('ven-nacidos-vivos'))||0;  cantidad = det.nacidos_vivos; }
+  if (v('ven-nacidos-muertos')!== null) det.nacidos_muertos = parseInt(v('ven-nacidos-muertos'))||0;
+  if (v('ven-madre')        !== null) det.madre = v('ven-madre');
+  if (v('ven-peso')         !== null) det.peso_promedio = parseFloat(v('ven-peso'))||null;
+  if (v('ven-retiro')       !== null) det.retiro_estimado = v('ven-retiro')||null;
+
+  const ok = await sb('PATCH', 'novedades_ganaderas', { fecha, campania, descripcion: desc, cantidad, detalle: det }, `?id=eq.${id}`);
+  if (ok) {
+    toast('✅ Novedad actualizada');
+    document.getElementById('modal-ver-novedad').style.display = 'none';
+    await cargarManga();
+  } else toast('❌ Error al guardar', 'var(--rojo)');
 }
 
 // ── Índices por campaña ───────────────────────────────────
