@@ -119,8 +119,19 @@ let liqgrPagina = 1;
 
 function irPaginaLiqGr(p) { liqgrPagina = p; renderLiqGranos(); window.scrollTo({ top: document.getElementById('section-liq_granos').offsetTop, behavior: 'smooth' }); }
 
+function liqgrPoblarSelect(id, valores) {
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  const actual = sel.value;
+  const primera = sel.options[0].outerHTML;
+  sel.innerHTML = primera + [...new Set(valores.filter(Boolean))].sort().map(v => `<option ${v===actual?'selected':''}>${v}</option>`).join('');
+}
+
 async function cargarLiqGranos() {
   liqgrTodas = await sb('GET', 'liquidaciones_granos', '', '?order=fecha.desc') || [];
+  liqgrPoblarSelect('liqgr-f-firma', liqgrTodas.map(l => l.firma));
+  liqgrPoblarSelect('liqgr-f-razon', liqgrTodas.map(l => l.razon_social));
+  liqgrPoblarSelect('liqgr-f-camp', liqgrTodas.map(l => l.campania));
   renderLiqGranos();
 }
 
@@ -128,7 +139,25 @@ function filtrarLiqGrReset() { liqgrPagina = 1; renderLiqGranos(); }
 
 function renderLiqGranos() {
   const fBusca = (document.getElementById('liqgr-filtro-busca')?.value || '').trim().toLowerCase();
-  const rows = fBusca ? liqgrTodas.filter(l => `${l.razon_social || ''} ${l.numero || ''} ${l.grano || ''}`.toLowerCase().includes(fBusca)) : liqgrTodas;
+  const fFirma = document.getElementById('liqgr-f-firma')?.value || '';
+  const fRazon = document.getElementById('liqgr-f-razon')?.value || '';
+  const fFecha = document.getElementById('liqgr-f-fecha')?.value || '';
+  const fGrano = document.getElementById('liqgr-f-grano')?.value || '';
+  const fNum   = (document.getElementById('liqgr-f-num')?.value || '').trim().toLowerCase();
+  const fObs   = document.getElementById('liqgr-f-obs')?.value || '';
+  const fCamp  = document.getElementById('liqgr-f-camp')?.value || '';
+
+  const rows = liqgrTodas.filter(l => {
+    if (fBusca && !`${l.razon_social||''} ${l.numero||''} ${l.grano||''}`.toLowerCase().includes(fBusca)) return false;
+    if (fFirma && l.firma !== fFirma) return false;
+    if (fRazon && l.razon_social !== fRazon) return false;
+    if (fFecha && l.fecha !== fFecha) return false;
+    if (fGrano && l.grano !== fGrano) return false;
+    if (fNum && !(l.numero||'').toLowerCase().includes(fNum)) return false;
+    if (fObs && l.observacion !== fObs) return false;
+    if (fCamp && l.campania !== fCamp) return false;
+    return true;
+  });
   const tbody = document.getElementById('tabla-liqgr');
   if (!tbody) return;
   const pag = document.getElementById('liqgr-paginador');
