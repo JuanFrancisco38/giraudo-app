@@ -2084,12 +2084,21 @@ async function guardarEdicionNovedad() {
   const desc     = document.getElementById('ven-desc')?.value     ?? nov.descripcion;
   const cantidad = parseInt(document.getElementById('ven-cantidad')?.value) || nov.cantidad;
 
-  const ok = await sb('PATCH', 'novedades_ganaderas', { fecha, campania, descripcion: desc, cantidad }, `?id=eq.${id}`);
-  if (ok) {
+  const url = `${SUPABASE_URL}/rest/v1/novedades_ganaderas?id=eq.${id}`;
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=representation' },
+    body: JSON.stringify({ fecha, campania, descripcion: desc, cantidad })
+  });
+  if (res.ok) {
     toast('✅ Novedad actualizada');
     document.getElementById('modal-ver-novedad').style.display = 'none';
     await cargarManga();
-  } else toast('❌ Error al guardar', 'var(--rojo)');
+  } else {
+    const errText = await res.text();
+    console.error('Error PATCH novedad:', errText);
+    toast('❌ ' + (JSON.parse(errText||'{}').message || errText || 'Error al guardar'), 'var(--rojo)');
+  }
 }
 
 // ── Índices por campaña ───────────────────────────────────
