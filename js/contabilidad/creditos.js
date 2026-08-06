@@ -441,13 +441,13 @@ function _htmlCronograma(r) {
     const color = c.pagada  ? '#27ae60' : c.vencida ? '#c0392b' : c.proxima ? '#d4a017' : '#888';
     const icon  = c.pagada  ? '✓' : c.vencida ? '!' : c.proxima ? '→' : '○';
     const label = c.pagada  ? 'Pagada' : c.vencida ? 'Vencida' : c.proxima ? 'Próxima' : '';
-    return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:64px">
-      <div style="background:${bg};border:1.5px solid ${color};border-radius:6px;padding:5px 6px;text-align:center;width:100%">
-        <div style="font-size:10px;font-weight:700;color:${color}">${icon} ${c.num}</div>
-        <div style="font-size:9px;color:#555;margin-top:1px">${c.fecha.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'})}</div>
-        ${label?`<div style="font-size:8px;color:${color};font-weight:600">${label}</div>`:''}
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:100px">
+      <div style="background:${bg};border:2px solid ${color};border-radius:8px;padding:10px 10px;text-align:center;width:100%">
+        <div style="font-size:14px;font-weight:700;color:${color}">${icon} ${c.num}</div>
+        <div style="font-size:12px;color:#555;margin-top:3px">${c.fecha.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'})}</div>
+        ${label?`<div style="font-size:11px;color:${color};font-weight:600;margin-top:2px">${label}</div>`:''}
       </div>
-      <div style="font-size:9px;color:#888">${fmtMonto(r.monto_cuota,r.moneda)}</div>
+      <div style="font-size:12px;color:#555;font-weight:600">${fmtMonto(r.monto_cuota,r.moneda)}</div>
     </div>`;
   }).join('');
 
