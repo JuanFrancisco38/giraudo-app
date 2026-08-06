@@ -399,16 +399,29 @@ const ICONOS_NOV = {
   'Cambio de categoría': '🔀', 'Pesada': '⚖️'
 };
 
+if (!window._campIndices) window._campIndices = {};
+
+function cambiarCampaniaIndices(rodeoId, val) {
+  window._campIndices[rodeoId] = val;
+  renderDetalleManga();
+}
+
 function renderTabIndices(rodeoId, novedades) {
-  // Datos desde novedades del rodeo
   const novRodeo = novedades.filter(n => n.rodeo_id === rodeoId);
+
+  // Campañas disponibles para el selector
+  const campanias = [...new Set(novRodeo.map(n => n.campania).filter(Boolean))].sort().reverse();
+  const campSelec = window._campIndices[rodeoId] || campanias[0] || '';
+
+  // Filtrar por campaña seleccionada
+  const novFilt = campSelec ? novRodeo.filter(n => !n.campania || n.campania === campSelec) : novRodeo;
 
   // Servicios desde servicios_animal (animales individuales)
   const srvRodeo = (window._allServicios || []).filter(s => s.rodeo_id === rodeoId);
   const inseminadasSrv = srvRodeo.filter(s => s.metodo === 'IATF' || s.metodo === 'Toro').length;
 
   // Inseminadas desde novedades de manga (Trabajo de manga - IATF o Inseminación)
-  const inseminadasNov = novRodeo
+  const inseminadasNov = novFilt
     .filter(n => n.tipo === 'Trabajo de manga' && n.subtipo && (n.subtipo.includes('IATF') || n.subtipo.includes('Inseminación') || n.subtipo.includes('Servicio')))
     .reduce((s, n) => s + (n.cantidad || 0), 0);
   const inseminadas = inseminadasSrv || inseminadasNov;
@@ -416,21 +429,27 @@ function renderTabIndices(rodeoId, novedades) {
   // Preñadas desde servicios_animal
   const prenadasSrv = srvRodeo.filter(s => s.metodo === 'Tacto' && s.resultado === 'Preñada').length;
   // Preñadas desde novedades de manga (Trabajo de manga - Tacto)
-  const tactoNov = novRodeo.find(n => n.tipo === 'Trabajo de manga' && n.subtipo && n.subtipo.includes('Tacto'));
+  const tactoNov = novFilt.find(n => n.tipo === 'Trabajo de manga' && n.subtipo && n.subtipo.includes('Tacto'));
   const prenNov  = tactoNov?.detalle?.prenadas || (tactoNov?.cantidad || 0);
   const totalPren = prenadasSrv || prenNov;
 
   // Nacimientos
-  const nacimientos = novRodeo.filter(n => n.tipo === 'Nacimiento').reduce((s,n) => s + (n.cantidad||1), 0);
+  const nacimientos = novFilt.filter(n => n.tipo === 'Nacimiento').reduce((s,n) => s + (n.cantidad||1), 0);
 
   // Abortos
-  const abortos = novRodeo.filter(n => n.tipo === 'Aborto').reduce((s,n) => s + (n.cantidad||1), 0);
+  const abortos = novFilt.filter(n => n.tipo === 'Aborto').reduce((s,n) => s + (n.cantidad||1), 0);
 
   // Muertes terneros
-  const muertesTerneros = novRodeo.filter(n => n.tipo === 'Muerte' && (n.categoria==='Terneros'||n.categoria==='Terneras')).reduce((s,n) => s + (n.cantidad||1), 0);
+  const muertesTerneros = novFilt.filter(n => n.tipo === 'Muerte' && (n.categoria==='Terneros'||n.categoria==='Terneras')).reduce((s,n) => s + (n.cantidad||1), 0);
 
   // Destetes
-  const destetes = novRodeo.filter(n => n.tipo === 'Destete').reduce((s,n) => s + (n.cantidad||1), 0);
+  const destetes = novFilt.filter(n => n.tipo === 'Destete').reduce((s,n) => s + (n.cantidad||1), 0);
+
+  const campSelectHTML = campanias.length > 1 ? `
+    <select onchange="cambiarCampaniaIndices('${rodeoId}', this.value)" style="padding:5px 10px;border:1px solid #e0e0dc;border-radius:6px;font-size:12px;font-weight:600">
+      <option value="">Todas las campañas</option>
+      ${campanias.map(c => `<option value="${c}"${c === campSelec ? ' selected' : ''}>${c}</option>`).join('')}
+    </select>` : (campSelec ? `<span style="font-size:12px;font-weight:600;color:var(--bordo)">📅 ${campSelec}</span>` : '');
 
   const base = inseminadas || totalPren || nacimientos || 1;
 
@@ -498,7 +517,10 @@ function renderTabIndices(rodeoId, novedades) {
 
   return `<div class="card-body" style="padding:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-      <div style="font-size:12px;color:var(--texto-suave)">Calculado desde las novedades del rodeo. Se actualiza solo.</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:12px;color:var(--texto-suave)">Calculado desde las novedades del rodeo.</div>
+        ${campSelectHTML}
+      </div>
       <button class="btn btn-primary" style="font-size:12px;padding:6px 14px" onclick="cerrarCampaniaIndices('${rodeoId}',${inseminadas},${totalPren},${nacimientos},${abortos},${muertesTerneros},${destetes},'${iPrenez||''}','${iParicion||''}','${iAborto||''}','${iMuerte||''}','${iDestete||''}')">
         📁 Cerrar campaña y guardar
       </button>
