@@ -127,6 +127,7 @@ async function abrirModalCredito(id) {
   document.getElementById('cred-cuotas-pagadas').value= '0';
   document.getElementById('cred-tasa').value          = '';
   document.getElementById('cred-tipo-tasa').value     = 'TNA';
+  document.getElementById('cred-sistema').value       = 'frances';
   document.getElementById('cred-obs').value           = '';
   document.getElementById('cred-gasto-desc').value    = '';
   document.getElementById('cred-gasto-monto').value   = '';
@@ -156,6 +157,7 @@ async function abrirModalCredito(id) {
     document.getElementById('cred-cuotas-pagadas').value= r.cuotas_pagadas||0;
     document.getElementById('cred-tasa').value          = r.tasa_interes||'';
     document.getElementById('cred-tipo-tasa').value     = r.tipo_tasa||'TNA';
+    document.getElementById('cred-sistema').value       = r.sistema||'frances';
     document.getElementById('cred-obs').value           = r.observaciones||'';
     try { _credGastos = JSON.parse(r.otros_gastos||'[]'); } catch(e) { _credGastos = []; }
     _renderGastosCredito();
@@ -237,25 +239,62 @@ function simularCredito() {
   if (!banco || !monto) { toast('Completá al menos banco y monto'); return; }
   if (!cuotas || !fecha) { toast('Completá fecha de inicio y cantidad de cuotas para simular'); return; }
 
-  const montoCuota = cuotaInput || (monto / cuotas);
-  const totalAPagar = montoCuota * cuotas;
-  const interesTotal = totalAPagar - monto;
-
   const MESES_FREC = { mensual:1, trimestral:3, semestral:6, anual:12 };
   const mesesSalto = MESES_FREC[frecuencia] || 1;
   const FREC_LABEL = { mensual:'Mensual', trimestral:'Trimestral', semestral:'Semestral', anual:'Anual' };
   const inicio = new Date(fecha + 'T12:00:00');
+  const sistema = document.getElementById('cred-sistema')?.value || 'frances';
+
+  // Tasa por período según tipo
+  let tasaPeriodo = 0;
+  if (tasa) {
+    if (tipoTasa === 'TEA') {
+      tasaPeriodo = Math.pow(1 + tasa / 100, mesesSalto / 12) - 1;
+    } else if (tipoTasa === 'TEM') {
+      tasaPeriodo = Math.pow(1 + tasa / 100, mesesSalto) - 1;
+    } else {
+      // TNA, TNAV, CFT → nominal, dividir proporcional
+      tasaPeriodo = (tasa / 100) * (mesesSalto / 12);
+    }
+  }
 
   // Generar cronograma
   const filas = [];
   let saldo = monto;
-  for (let i = 0; i < cuotas; i++) {
-    const fechaCuota = new Date(inicio.getFullYear(), inicio.getMonth() + i * mesesSalto, inicio.getDate());
-    const interesCuota = tasa ? saldo * (tasa / 100 / (12 / mesesSalto)) : (interesTotal / cuotas);
-    const capitalCuota = montoCuota - interesCuota;
-    saldo = Math.max(saldo - capitalCuota, 0);
-    filas.push({ num: i+1, fecha: fechaCuota, cuota: montoCuota, interes: interesCuota, capital: capitalCuota, saldo });
+
+  if (sistema === 'aleman') {
+    // Sistema alemán: capital fijo por cuota, interés sobre saldo
+    const capitalFijo = monto / cuotas;
+    for (let i = 0; i < cuotas; i++) {
+      const fechaCuota = new Date(inicio.getFullYear(), inicio.getMonth() + i * mesesSalto, inicio.getDate());
+      const interesCuota = tasaPeriodo ? saldo * tasaPeriodo : 0;
+      const cuotaTotal = capitalFijo + interesCuota;
+      saldo = Math.max(saldo - capitalFijo, 0);
+      filas.push({ num: i+1, fecha: fechaCuota, cuota: cuotaTotal, interes: interesCuota, capital: capitalFijo, saldo });
+    }
+  } else {
+    // Sistema francés: cuota fija
+    let montoCuotaFrances = cuotaInput;
+    if (!montoCuotaFrances) {
+      if (tasaPeriodo) {
+        // Fórmula cuota francesa
+        montoCuotaFrances = monto * tasaPeriodo / (1 - Math.pow(1 + tasaPeriodo, -cuotas));
+      } else {
+        montoCuotaFrances = monto / cuotas;
+      }
+    }
+    for (let i = 0; i < cuotas; i++) {
+      const fechaCuota = new Date(inicio.getFullYear(), inicio.getMonth() + i * mesesSalto, inicio.getDate());
+      const interesCuota = tasaPeriodo ? saldo * tasaPeriodo : 0;
+      const capitalCuota = montoCuotaFrances - interesCuota;
+      saldo = Math.max(saldo - capitalCuota, 0);
+      filas.push({ num: i+1, fecha: fechaCuota, cuota: montoCuotaFrances, interes: interesCuota, capital: capitalCuota, saldo });
+    }
   }
+
+  const montoCuota = filas.length ? filas[0].cuota : (cuotaInput || monto / cuotas);
+  const totalAPagar = filas.reduce((s, f) => s + f.cuota, 0);
+  const interesTotal = totalAPagar - monto;
 
   const filaHTML = filas.map((f,i) => `
     <tr style="border-bottom:1px solid #f0f0f0;${i===0?'background:#fef8e4;font-weight:600':''}">
@@ -356,6 +395,7 @@ async function guardarCredito() {
     cuotas_pagadas:   parseInt(document.getElementById('cred-cuotas-pagadas').value) || 0,
     tasa_interes:     parseFloat(document.getElementById('cred-tasa').value) || null,
     tipo_tasa:        document.getElementById('cred-tipo-tasa').value,
+    sistema:          document.getElementById('cred-sistema').value || 'frances',
     observaciones:    document.getElementById('cred-obs').value.trim() || null,
     otros_gastos:     JSON.stringify(_credGastos),
     activo:           true,
