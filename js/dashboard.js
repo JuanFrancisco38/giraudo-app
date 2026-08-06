@@ -4,19 +4,26 @@ async function cargarDashboard() {
   const ultimoDia = new Date(anioActual, mesActual, 0).getDate();
   const mesStr = String(mesActual).padStart(2,'0');
 
-  const [animales, hotel, novedadesRecientes, novedadesMes, liqGranos] = await Promise.all([
+  const [animales, renspas, novedadesRecientes, novedadesMes, liqGranos] = await Promise.all([
     sb('GET', 'animales_rodeo', '', '?activo=eq.true'),
-    sb('GET', 'hoteleria', '', '?activo=eq.true'),
+    sb('GET', 'renspas', '', ''),
     sb('GET', 'novedades_ganaderas', '', '?order=fecha.desc&limit=5'),
     sb('GET', 'novedades_ganaderas', '', `?fecha=gte.${anioActual}-${mesStr}-01&fecha=lte.${anioActual}-${mesStr}-${ultimoDia}`),
     sb('GET', 'liquidaciones_granos', '', '?order=fecha.desc')
   ]);
 
-  const totalAnimales = animales?.length ?? '—';
-  const totalHotel = hotel?.reduce((s, h) => s + (h.cantidad || 0), 0) ?? '—';
+  // RENSPAs propios (Francisco J. Giraudo o Giraudo SH)
+  const renspasPropios = new Set((renspas||[])
+    .filter(r => r.propietario && (r.propietario.includes('Giraudo') || r.propietario.includes('giraudo')))
+    .map(r => r.id));
 
-  document.getElementById('st-animales').textContent = totalAnimales;
-  document.getElementById('st-hotel').textContent = totalHotel;
+  // Animales propios: sin renspa o renspa propio
+  const animalesPropios = (animales||[]).filter(a => !a.renspa_id || renspasPropios.has(a.renspa_id));
+  // Hotelería: animales con renspa de terceros
+  const animalesHotel = (animales||[]).filter(a => a.renspa_id && !renspasPropios.has(a.renspa_id));
+
+  document.getElementById('st-animales').textContent = animalesPropios.length;
+  document.getElementById('st-hotel').textContent = animalesHotel.length;
   document.getElementById('st-eventos').textContent = novedadesMes?.length ?? '—';
 
   // Campaña más reciente para liquidaciones
