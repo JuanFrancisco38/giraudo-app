@@ -453,6 +453,21 @@ function _htmlCronograma(r) {
   const inicio     = new Date(r.fecha_inicio + 'T12:00:00');
   const hoy        = new Date(); hoy.setHours(0,0,0,0);
   const pagadas    = r.cuotas_pagadas || 0;
+  const hayTC      = r.moneda_pago && r.moneda_pago !== r.moneda && r.tc_valor;
+  const monedaDisplay = hayTC ? r.moneda_pago : r.moneda;
+
+  // Recalcular monto por cuota en sistema alemán
+  function montoCuotaNum(i) {
+    if (r.sistema !== 'aleman' || !r.tasa_interes) return r.monto_cuota || 0;
+    let tasaPeriodo = 0;
+    const t = r.tasa_interes / 100;
+    if (r.tipo_tasa === 'TEA') tasaPeriodo = Math.pow(1 + t, mesesSalto / 12) - 1;
+    else if (r.tipo_tasa === 'TEM') tasaPeriodo = Math.pow(1 + t, mesesSalto) - 1;
+    else tasaPeriodo = t * (mesesSalto / 12);
+    const capitalFijo = r.monto_total / r.cuotas_total;
+    const saldo = r.monto_total - capitalFijo * i;
+    return capitalFijo + saldo * tasaPeriodo;
+  }
 
   const cuotas = [];
   for (let i = 0; i < r.cuotas_total; i++) {
@@ -460,7 +475,9 @@ function _htmlCronograma(r) {
     const vencida  = fecha < hoy && i >= pagadas;
     const pagada   = i < pagadas;
     const proxima  = i === pagadas;
-    cuotas.push({ num: i+1, fecha, pagada, vencida, proxima });
+    let monto = montoCuotaNum(i);
+    if (hayTC) monto = monto * r.tc_valor;
+    cuotas.push({ num: i+1, fecha, pagada, vencida, proxima, monto });
   }
 
   const items = cuotas.map(c => {
@@ -474,12 +491,12 @@ function _htmlCronograma(r) {
         <div style="font-size:12px;color:#555;margin-top:3px">${c.fecha.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'})}</div>
         ${label?`<div style="font-size:11px;color:${color};font-weight:600;margin-top:2px">${label}</div>`:''}
       </div>
-      <div style="font-size:12px;color:#555;font-weight:600">${fmtMonto(r.monto_cuota,r.moneda)}</div>
+      <div style="font-size:12px;color:#555;font-weight:600">${fmtMonto(c.monto, monedaDisplay)}</div>
     </div>`;
   }).join('');
 
   return `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0">
-    <div style="font-size:11px;font-weight:600;color:var(--texto-suave);margin-bottom:8px">CRONOGRAMA DE CUOTAS</div>
+    <div style="font-size:11px;font-weight:600;color:var(--texto-suave);margin-bottom:8px">CRONOGRAMA DE CUOTAS${hayTC ? ` <span style="color:#7a3a1a;font-weight:700">· TC ${r.tc_tipo||''} $${r.tc_valor} → montos en ${r.moneda_pago}</span>` : ''}</div>
     <div style="overflow-x:auto;padding-bottom:4px">
       <div style="display:flex;gap:6px;min-width:max-content">${items}</div>
     </div>
