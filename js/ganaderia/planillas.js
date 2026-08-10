@@ -15,7 +15,7 @@ function abrirModalPlanilla() {
 
   // Poblar rodeos
   const sel = document.getElementById('pl-rodeo');
-  sel.innerHTML = '<option value="">— Seleccioná un rodeo —</option>';
+  sel.innerHTML = '<option value="">— Seleccioná un rodeo —</option><option value="__general__">📋 General / Sin rodeo (planilla en blanco)</option>';
   rodeos.forEach(r => {
     const opt = document.createElement('option');
     opt.value = r.id;
@@ -34,11 +34,23 @@ function cargarAnimalesPlanilla() {
   const rodeoId = document.getElementById('pl-rodeo').value;
   const cont = document.getElementById('pl-animales');
   const cant = document.getElementById('pl-cant');
+  const filasRow = document.getElementById('pl-filas-row');
+
   if (!rodeoId) {
     cont.innerHTML = '<span style="color:var(--texto-suave)">Seleccioná un rodeo primero</span>';
     cant.textContent = '';
+    if (filasRow) filasRow.style.display = 'none';
     return;
   }
+
+  if (rodeoId === '__general__') {
+    cont.innerHTML = '<span style="color:var(--texto-suave)">Planilla en blanco — ingresá la cantidad de filas</span>';
+    cant.textContent = '';
+    if (filasRow) filasRow.style.display = '';
+    return;
+  }
+
+  if (filasRow) filasRow.style.display = 'none';
   const animales = animalesRodeo.filter(a => a.rodeo_id === rodeoId)
     .sort((a, b) => (a.caravana_interna || '').localeCompare(b.caravana_interna || '', 'es', { numeric: true }));
 
@@ -75,16 +87,22 @@ function generarPlanillaPDF() {
   if (!rodeoId) { toast('Seleccioná un rodeo', 'var(--tierra)'); return; }
 
   const tipo = document.getElementById('pl-tipo').value;
-  const rodeo = rodeos.find(r => r.id === rodeoId);
-  const idsSeleccionados = new Set([...document.querySelectorAll('.pl-check:checked')].map(c => c.dataset.id));
-  const animales = animalesRodeo
-    .filter(a => a.rodeo_id === rodeoId && idsSeleccionados.has(a.id))
-    .sort((a, b) => (a.caravana_interna || '').localeCompare(b.caravana_interna || '', 'es', { numeric: true }));
+  let ids, nombreRodeo;
 
-  if (!animales.length) { toast('Seleccioná al menos un animal', 'var(--tierra)'); return; }
-
-  const ids = animales.map(a => caravanaDisplay(a));
-  const nombreRodeo = rodeo?.nombre || '';
+  if (rodeoId === '__general__') {
+    const filas = parseInt(document.getElementById('pl-filas-cant')?.value) || 50;
+    ids = Array(filas).fill('');
+    nombreRodeo = '';
+  } else {
+    const rodeo = rodeos.find(r => r.id === rodeoId);
+    const idsSeleccionados = new Set([...document.querySelectorAll('.pl-check:checked')].map(c => c.dataset.id));
+    const animales = animalesRodeo
+      .filter(a => a.rodeo_id === rodeoId && idsSeleccionados.has(a.id))
+      .sort((a, b) => (a.caravana_interna || '').localeCompare(b.caravana_interna || '', 'es', { numeric: true }));
+    if (!animales.length) { toast('Seleccioná al menos un animal', 'var(--tierra)'); return; }
+    ids = animales.map(a => caravanaDisplay(a));
+    nombreRodeo = rodeo?.nombre || '';
+  }
   let html = '';
 
   if (tipo === 'tacto') html = htmlPlanillaTacto(ids, nombreRodeo);
