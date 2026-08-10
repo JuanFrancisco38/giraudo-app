@@ -128,6 +128,10 @@ async function abrirModalCredito(id) {
   document.getElementById('cred-tasa').value          = '';
   document.getElementById('cred-tipo-tasa').value     = 'TNA';
   document.getElementById('cred-sistema').value       = 'frances';
+  document.getElementById('cred-moneda-pago').value   = '';
+  document.getElementById('cred-tc-tipo').value       = 'oficial';
+  document.getElementById('cred-tc-valor').value      = '';
+  document.getElementById('cred-tc-row').style.display = 'none';
   document.getElementById('cred-obs').value           = '';
   document.getElementById('cred-gasto-desc').value    = '';
   document.getElementById('cred-gasto-monto').value   = '';
@@ -158,6 +162,10 @@ async function abrirModalCredito(id) {
     document.getElementById('cred-tasa').value          = r.tasa_interes||'';
     document.getElementById('cred-tipo-tasa').value     = r.tipo_tasa||'TNA';
     document.getElementById('cred-sistema').value       = r.sistema||'frances';
+    document.getElementById('cred-moneda-pago').value   = r.moneda_pago||'';
+    document.getElementById('cred-tc-tipo').value       = r.tc_tipo||'oficial';
+    document.getElementById('cred-tc-valor').value      = r.tc_valor||'';
+    toggleTipoCambio();
     document.getElementById('cred-obs').value           = r.observaciones||'';
     try { _credGastos = JSON.parse(r.otros_gastos||'[]'); } catch(e) { _credGastos = []; }
     _renderGastosCredito();
@@ -167,6 +175,14 @@ async function abrirModalCredito(id) {
 
 function cerrarModalCredito() {
   document.getElementById('modal-credito').style.display = 'none';
+}
+
+function toggleTipoCambio() {
+  const monedaCredito = document.getElementById('cred-moneda').value;
+  const monedaPago    = document.getElementById('cred-moneda-pago').value;
+  const row = document.getElementById('cred-tc-row');
+  const mostrar = monedaPago && monedaPago !== monedaCredito;
+  row.style.display = mostrar ? 'grid' : 'none';
 }
 
 function calcCuotaCredito() {
@@ -234,10 +250,15 @@ function simularCredito() {
   const cuotaInput = parseFloat(document.getElementById('cred-monto-cuota').value);
   const fecha    = document.getElementById('cred-fecha').value;
   const tasa     = parseFloat(document.getElementById('cred-tasa').value) || 0;
-  const tipoTasa = document.getElementById('cred-tipo-tasa').value;
+  const tipoTasa    = document.getElementById('cred-tipo-tasa').value;
+  const monedaPago  = document.getElementById('cred-moneda-pago').value || moneda;
+  const tcTipo      = document.getElementById('cred-tc-tipo').value;
+  const tcValor     = parseFloat(document.getElementById('cred-tc-valor').value) || null;
+  const hayTC       = monedaPago && monedaPago !== moneda && tcValor;
 
   if (!banco || !monto) { toast('Completá al menos banco y monto'); return; }
   if (!cuotas || !fecha) { toast('Completá fecha de inicio y cantidad de cuotas para simular'); return; }
+  if (monedaPago && monedaPago !== moneda && !tcValor) { toast('Ingresá el valor del tipo de cambio para convertir las cuotas'); return; }
 
   const MESES_FREC = { mensual:1, trimestral:3, semestral:6, anual:12 };
   const mesesSalto = MESES_FREC[frecuencia] || 1;
@@ -304,6 +325,7 @@ function simularCredito() {
       <td style="padding:7px 10px;text-align:right;color:#27ae60">${fmtMonto(f.capital,moneda)}</td>
       <td style="padding:7px 10px;text-align:right;color:#c0392b">${fmtMonto(f.interes,moneda)}</td>
       <td style="padding:7px 10px;text-align:right;color:#555">${fmtMonto(f.saldo,moneda)}</td>
+      ${hayTC ? `<td style="padding:7px 10px;text-align:right;font-weight:600;color:#7a3a1a">${fmtMonto(f.cuota * tcValor, monedaPago)}</td>` : ''}
     </tr>`).join('');
 
   document.getElementById('cred-sim-contenido').innerHTML = `
@@ -331,10 +353,11 @@ function simularCredito() {
           <tr style="background:#f4f4f2;border-bottom:2px solid #e0e0dc">
             <th style="padding:8px 10px;text-align:center">#</th>
             <th style="padding:8px 10px;text-align:left">Fecha de pago</th>
-            <th style="padding:8px 10px;text-align:right">Cuota</th>
+            <th style="padding:8px 10px;text-align:right">Cuota (${moneda})</th>
             <th style="padding:8px 10px;text-align:right">Capital</th>
             <th style="padding:8px 10px;text-align:right">Interés</th>
             <th style="padding:8px 10px;text-align:right">Saldo</th>
+            ${hayTC ? `<th style="padding:8px 10px;text-align:right;color:#7a3a1a">Cuota en ${monedaPago}<br><span style="font-weight:400;font-size:10px">TC ${tcTipo} $${tcValor}</span></th>` : ''}
           </tr>
         </thead>
         <tbody>${filaHTML}</tbody>
@@ -345,6 +368,7 @@ function simularCredito() {
             <td style="padding:8px 10px;text-align:right;color:#27ae60">${fmtMonto(monto,moneda)}</td>
             <td style="padding:8px 10px;text-align:right;color:#c0392b">${fmtMonto(interesTotal,moneda)}</td>
             <td style="padding:8px 10px;text-align:right">—</td>
+            ${hayTC ? `<td style="padding:8px 10px;text-align:right;color:#7a3a1a">${fmtMonto(totalAPagar * tcValor, monedaPago)}</td>` : ''}
           </tr>
         </tfoot>
       </table>
@@ -396,6 +420,9 @@ async function guardarCredito() {
     tasa_interes:     parseFloat(document.getElementById('cred-tasa').value) || null,
     tipo_tasa:        document.getElementById('cred-tipo-tasa').value,
     sistema:          document.getElementById('cred-sistema').value || 'frances',
+    moneda_pago:      document.getElementById('cred-moneda-pago').value || null,
+    tc_tipo:          document.getElementById('cred-tc-tipo').value || null,
+    tc_valor:         parseFloat(document.getElementById('cred-tc-valor').value) || null,
     observaciones:    document.getElementById('cred-obs').value.trim() || null,
     otros_gastos:     JSON.stringify(_credGastos),
     activo:           true,

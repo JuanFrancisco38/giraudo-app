@@ -2366,6 +2366,32 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
                 <option value="aleman">Alemán (capital fijo)</option>
               </select>
             </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">MONEDA DE PAGO</label>
+              <select id="cred-moneda-pago" onchange="toggleTipoCambio()" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px">
+                <option value="">Misma que el crédito</option>
+                <option value="ARS">ARS (pesos)</option>
+                <option value="USD">USD (dólares)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Tipo de cambio (solo si moneda de pago difiere) -->
+          <div id="cred-tc-row" style="display:none;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">TIPO DE CAMBIO</label>
+              <select id="cred-tc-tipo" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px">
+                <option value="oficial">Oficial</option>
+                <option value="mep">MEP / Bolsa</option>
+                <option value="ccl">CCL (Contado con Liqui)</option>
+                <option value="libre">Libre / Informal</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--texto-suave);display:block;margin-bottom:4px">VALOR TC (ARS por USD)</label>
+              <input id="cred-tc-valor" type="number" step="0.01" placeholder="Ej: 1200" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:13px">
+            </div>
           </div>
 
           <!-- Resumen auto -->
