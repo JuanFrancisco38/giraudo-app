@@ -113,15 +113,19 @@ async function cargarProyecciones() {
         montoCuota = capitalFijo + saldoRestante * tasaPeriodo;
       }
 
-      credsProy[key].total += montoCuota;
+      const hayTC = r.moneda_pago && r.moneda_pago !== r.moneda && r.tc_valor;
+      const montoFinal = hayTC ? montoCuota * r.tc_valor : montoCuota;
+      const monedaFinal = hayTC ? r.moneda_pago : (r.moneda||'ARS');
+
+      credsProy[key].total += montoFinal;
       credsProy[key].items.push({
         fecha: fechaCuota.toISOString().split('T')[0],
         banco: r.banco||'—',
         titular: r.titular||'—',
         num: i + 1,
         total: r.cuotas_total,
-        moneda: r.moneda||'ARS',
-        monto: montoCuota
+        moneda: monedaFinal,
+        monto: montoFinal
       });
     }
   });
