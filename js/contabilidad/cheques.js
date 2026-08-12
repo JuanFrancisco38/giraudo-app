@@ -118,7 +118,7 @@ async function cargarTodosCheques() {
   await Promise.all([cargarCheques('recibido'), cargarCheques('emitido')]);
 }
 
-const ESTADO_BADGE = { cartera: 'badge-bordo', efectivizado: 'badge-green', rechazado: 'badge-red' };
+const ESTADO_BADGE = { cartera: 'badge-bordo', efectivizado: 'badge-green', rechazado: 'badge-red', endosado: 'badge-blue' };
 
 const sumaState = { active: false, tipo: null, seleccionados: {} };
 
@@ -242,7 +242,7 @@ function renderCheques(tipo) {
     }
   }
 
-  const colspan = tipo === 'recibido' ? 15 : 10;
+  const colspan = tipo === 'recibido' ? 16 : 10;
   if (!rows.length) {
     const hayFiltro = fBusca || fEstado || st.mesFiltro;
     tbody.innerHTML = `<tr><td colspan="${colspan}"><div class="empty-state"><div class="icon">💳</div><h3>${hayFiltro ? 'Sin resultados para el filtro' : `Sin ${cfg.label}s`}</h3></div></td></tr>`;
@@ -256,7 +256,7 @@ function renderCheques(tipo) {
   document.getElementById(`${cfg.pref}-paginador`).innerHTML = htmlPaginador(st.pagina, rows.length, tipo === 'recibido' ? 'irPaginaCheque_chr' : 'irPaginaCheque_che');
 
   const estadoLabel = tipo === 'recibido'
-    ? { cartera: 'En cartera', efectivizado: 'Cobrado', rechazado: 'Rechazado' }
+    ? { cartera: 'En cartera', efectivizado: 'Cobrado', rechazado: 'Rechazado', endosado: 'Endosado' }
     : { cartera: 'En cartera', efectivizado: 'Pagado', rechazado: 'Rechazado' };
 
   const hoyStr = new Date().toISOString().split('T')[0];
@@ -273,6 +273,8 @@ function renderCheques(tipo) {
       else if (fechaPago === hoyStr) trStyle = 'background:rgba(220,140,0,0.12);border-left:3px solid #e08800';
     }
     const firmaCorta = c.firma === 'Francisco J. Giraudo' ? 'FJG' : (c.firma === 'Giraudo SH' ? 'SH' : (c.firma || '—'));
+    const inputStyle = 'border:1px solid var(--gris-borde);border-radius:4px;padding:2px 5px;font-size:11px;width:100%;background:#fff';
+    const esEndosado = c.estado === 'endosado';
     const filas = tipo === 'recibido' ? `
       <td>${fmtFecha(c.fecha_emision)}</td>
       <td><strong>${c.contraparte || '—'}</strong></td>
@@ -285,9 +287,16 @@ function renderCheques(tipo) {
       <td style="font-size:11px;color:var(--texto-suave)">${fmtFecha(c.fecha_cobro)}</td>
       <td><strong>${fmtMonto(c.monto, 'ARS')}</strong></td>
       <td>${badge}</td>
-      <td style="font-size:12px">${c.destino || '—'}</td>
-      <td style="font-size:11px">${c.factura_destino || '—'}</td>
-      <td><span class="badge badge-gray" style="font-size:10px">${c.rubro_destino || '—'}</span></td>
+      <td style="min-width:90px"><input type="date" value="${c.fecha_endoso || ''}" onchange="editarCampoCheque('${c.id}','recibido','fecha_endoso',this.value)" style="${inputStyle}" title="Fecha de endoso o cobro"></td>
+      <td style="font-size:12px;min-width:110px">${esEndosado
+        ? `<input type="text" value="${c.destino || ''}" placeholder="Destino..." onchange="editarCampoCheque('${c.id}','recibido','destino',this.value)" style="${inputStyle}">`
+        : (c.destino || '—')}</td>
+      <td style="font-size:11px;min-width:90px">${esEndosado
+        ? `<input type="text" value="${c.factura_destino || ''}" placeholder="Factura..." onchange="editarCampoCheque('${c.id}','recibido','factura_destino',this.value)" style="${inputStyle}">`
+        : (c.factura_destino || '—')}</td>
+      <td style="min-width:90px">${esEndosado
+        ? `<input type="text" value="${c.rubro_destino || ''}" placeholder="Rubro..." onchange="editarCampoCheque('${c.id}','recibido','rubro_destino',this.value)" style="${inputStyle}">`
+        : `<span class="badge badge-gray" style="font-size:10px">${c.rubro_destino || '—'}</span>`}</td>
     ` : `
       <td><strong style="font-size:14px">${fmtFecha(c.fecha_cobro)}</strong></td>
       <td style="font-size:11px">${c.numero || '—'}</td>
@@ -320,7 +329,9 @@ async function toggleRegistroCheque(id, tipo, btn) {
 }
 
 async function cicloEstadoCheque(id, tipo, btn) {
-  const orden = ['cartera', 'efectivizado', 'rechazado'];
+  const orden = tipo === 'recibido'
+    ? ['cartera', 'efectivizado', 'endosado', 'rechazado']
+    : ['cartera', 'efectivizado', 'rechazado'];
   const st = chequeState[tipo];
   const cheque = st.todas.find(c => c.id === id);
   if (!cheque) return;
@@ -331,6 +342,16 @@ async function cicloEstadoCheque(id, tipo, btn) {
     renderCheques(tipo);
     toast('✅ Estado actualizado');
   } else toast('❌ No se pudo cambiar', 'var(--rojo)');
+}
+
+async function editarCampoCheque(id, tipo, campo, valor) {
+  const st = chequeState[tipo];
+  const cheque = st.todas.find(c => c.id === id);
+  if (!cheque) return;
+  const r = await sb('PATCH', 'cheques', { [campo]: valor || null }, `?id=eq.${id}`);
+  if (r !== null) {
+    cheque[campo] = valor || null;
+  } else toast('❌ Error al guardar', 'var(--rojo)');
 }
 
 async function borrarCheque(id, tipo) {
