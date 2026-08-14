@@ -226,8 +226,15 @@ function renderContenidoFichaMaq(tab) {
     // Campañas disponibles
     const campanias = [...new Set(todosRegistros.map(t => campania(t.fecha)))].sort();
 
-    // Estado de filtros (persistido en el DOM para no perder al redibujar)
-    const prevCamp = document.getElementById('trab-f-camp')?.value || '';
+    // Campaña actual como default
+    function campActual() {
+      const hoy = new Date(); const mo = hoy.getMonth() + 1; const y = hoy.getFullYear();
+      const desde = mo >= 7 ? y : y - 1;
+      return `${String(desde).slice(2)}/${String(desde + 1).slice(2)}`;
+    }
+
+    // Estado de filtros (persistido en el DOM; si no hay selección previa, usa campaña actual)
+    const prevCamp = document.getElementById('trab-f-camp')?.value || campActual();
     const prevProp = document.getElementById('trab-f-prop')?.value?.toLowerCase() || '';
     const prevEstab = document.getElementById('trab-f-estab')?.value?.toLowerCase() || '';
     const prevCult = document.getElementById('trab-f-cult')?.value?.toLowerCase() || '';
@@ -519,10 +526,16 @@ function trabPaginar(delta) {
 }
 
 function trabLimpiarFiltros() {
-  ['trab-f-camp','trab-f-prop','trab-f-estab','trab-f-cult','trab-f-op'].forEach(id => {
+  ['trab-f-prop','trab-f-estab','trab-f-cult','trab-f-op'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  // Vuelve a la campaña actual, no a "todas"
+  const hoy = new Date(), mo = hoy.getMonth() + 1, y = hoy.getFullYear();
+  const desde = mo >= 7 ? y : y - 1;
+  const camp = `${String(desde).slice(2)}/${String(desde + 1).slice(2)}`;
+  const elCamp = document.getElementById('trab-f-camp');
+  if (elCamp) elCamp.value = camp;
   const pg = document.getElementById('trab-page-cur');
   if (pg) pg.value = '0';
   renderContenidoFichaMaq('trabajos');
