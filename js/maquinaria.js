@@ -307,32 +307,42 @@ function renderContenidoFichaMaq(tab) {
     }
 
     // ── Resumen sobre filtrados ──
-    const hasTot = filtrados.reduce((s, t) => s + (t.hectareas || 0), 0);
+    const porRollo = esEnrolladora;
+    const unidadTot = porRollo
+      ? filtrados.reduce((s, t) => s + ((t.extras||{}).rollos || 0), 0)
+      : filtrados.reduce((s, t) => s + (t.hectareas || 0), 0);
+    const unidadLabel = porRollo ? 'rollos' : 'ha';
+    const unidadTitulo = porRollo ? 'Rollos confeccionados' : 'HAS totales';
     const gasoilTot = filtrados.reduce((s, t) => { const e = t.extras||{}; return s + (e.consumo_total_lts || t.total_gasoil_lts || 0); }, 0);
     const usdTot = filtrados.reduce((s, t) => s + (t.total_usd || 0), 0);
     const costoOpTot = filtrados.reduce((s, t) => { const e = t.extras||{}; return s + (e.costo_operario || 0); }, 0);
-    const ganHaItems = filtrados.filter(t => t.hectareas > 0 && (t.extras?.ganancia_por_ha != null || t.extras?.ganancia_por_rollo != null));
-    const costoProm = hasTot > 0 ? usdTot / hasTot : null;
+    const costoProm = unidadTot > 0 ? usdTot / unidadTot : null;
     const ganTot = filtrados.reduce((s, t) => { const e = t.extras||{}; return s + (e.ganancia_total || 0); }, 0);
-    const ganProm = hasTot > 0 && ganTot > 0 ? ganTot / hasTot : null;
-    const consProm = hasTot > 0 && gasoilTot > 0 ? gasoilTot / hasTot : null;
+    const ganProm = unidadTot > 0 && ganTot > 0 ? ganTot / unidadTot : null;
+    const consProm = unidadTot > 0 && gasoilTot > 0 ? gasoilTot / unidadTot : null;
 
     // Operarios desglosados
     const opMap = {};
     filtrados.forEach(t => {
       const op = t.operario || '—';
-      opMap[op] = (opMap[op] || 0) + (t.hectareas || 0);
+      const val = porRollo ? ((t.extras||{}).rollos || 0) : (t.hectareas || 0);
+      opMap[op] = (opMap[op] || 0) + val;
     });
     const opEntries = Object.entries(opMap).filter(([k]) => k !== '—');
     const opHtml = opEntries.length
-      ? opEntries.map(([op, h]) => `<span style="display:block;font-size:11px">${op}: <b>${fmtNum(h)} ha</b></span>`).join('')
+      ? opEntries.map(([op, v]) => `<span style="display:block;font-size:11px">${op}: <b>${fmtNum(v)} ${unidadLabel}</b></span>`).join('')
       : '<span style="font-size:11px;color:var(--text-muted)">—</span>';
 
     // Cultivos desglosados
     const cultMap = {};
-    filtrados.forEach(t => { if (t.cultivo) cultMap[t.cultivo] = (cultMap[t.cultivo] || 0) + (t.hectareas || 0); });
+    filtrados.forEach(t => {
+      if (t.cultivo) {
+        const val = porRollo ? ((t.extras||{}).rollos || 0) : (t.hectareas || 0);
+        cultMap[t.cultivo] = (cultMap[t.cultivo] || 0) + val;
+      }
+    });
     const cultHtml = Object.entries(cultMap).length
-      ? Object.entries(cultMap).map(([c, h]) => `<span style="display:block;font-size:11px">${c}: <b>${fmtNum(h)} ha</b></span>`).join('')
+      ? Object.entries(cultMap).map(([c, v]) => `<span style="display:block;font-size:11px">${c}: <b>${fmtNum(v)} ${unidadLabel}</b></span>`).join('')
       : '<span style="font-size:11px;color:var(--text-muted)">—</span>';
 
     function kard(titulo, valor, sub = '') {
@@ -345,7 +355,7 @@ function renderContenidoFichaMaq(tab) {
 
     const resumen = filtrados.length === 0 ? '' : `
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
-        ${kard('HAS totales', fmtNum(hasTot) + ' ha', `${filtrados.length} trabajo${filtrados.length!==1?'s':''}`)}
+        ${kard(unidadTitulo, fmtNum(unidadTot) + ' ' + unidadLabel, `${filtrados.length} trabajo${filtrados.length!==1?'s':''}`)}
         <div style="background:var(--card-bg,var(--bg-secondary));border:1px solid var(--border-color);border-radius:8px;padding:10px 14px;min-width:130px;flex:1">
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Operario(s)</div>
           ${opHtml}
@@ -355,8 +365,8 @@ function renderContenidoFichaMaq(tab) {
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Cultivos</div>
           ${cultHtml}
         </div>
-        ${usdTot > 0 ? kard('Costo total', 'U$D ' + fmtNum(usdTot), costoProm != null ? 'U$D ' + fmtNum(costoProm) + '/ha prom.' : '') : ''}
-        ${gasoilTot > 0 ? kard('Gasoil total', fmtNum(gasoilTot) + ' lts', consProm != null ? fmtNum(consProm) + ' lts/ha prom.' : '') : ''}
+        ${usdTot > 0 ? kard('Costo total', 'U$D ' + fmtNum(usdTot), costoProm != null ? 'U$D ' + fmtNum(costoProm) + '/' + unidadLabel + ' prom.' : '') : ''}
+        ${gasoilTot > 0 ? kard('Gasoil total', fmtNum(gasoilTot) + ' lts', consProm != null ? fmtNum(consProm) + ' lts/' + unidadLabel + ' prom.' : '') : ''}
         ${ganProm != null ? kard('Ganancia/ha prom.', 'U$D ' + fmtNum(ganProm)) : ''}
       </div>`;
 
