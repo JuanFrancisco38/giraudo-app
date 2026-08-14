@@ -315,15 +315,29 @@ function renderContenidoFichaMaq(tab) {
     const unidadTitulo = porRollo ? 'Rollos confeccionados' : 'HAS totales';
     const gasoilTot = filtrados.reduce((s, t) => { const e = t.extras||{}; return s + (e.consumo_total_lts || t.total_gasoil_lts || 0); }, 0);
     const costoOpTot = filtrados.reduce((s, t) => { const e = t.extras||{}; return s + (e.costo_operario || 0); }, 0);
-    // Costo total: de extras.costo_total (pesos) y su conversión a USD por fila
-    const costoTotPesos = filtrados.reduce((s, t) => s + ((t.extras||{}).costo_total || 0), 0);
-    const costoTotUsd   = filtrados.reduce((s, t) => { const e = t.extras||{}; return s + (e.costo_total && t.tipo_cambio ? e.costo_total / t.tipo_cambio : 0); }, 0);
-    const costoPromPesos = unidadTot > 0 && costoTotPesos > 0 ? costoTotPesos / unidadTot : null;
-    // Ganancia total: de margen_total (pesos) y su conversión a USD por fila
-    const ganTotPesos = filtrados.reduce((s, t) => s + (t.margen_total || 0), 0);
-    const ganTotUsd   = filtrados.reduce((s, t) => s + (t.margen_total && t.tipo_cambio ? t.margen_total / t.tipo_cambio : 0), 0);
-    const ganPromPesos = unidadTot > 0 && ganTotPesos !== 0 ? ganTotPesos / unidadTot : null;
     const consProm = unidadTot > 0 && gasoilTot > 0 ? gasoilTot / unidadTot : null;
+
+    // COSTO TOTAL — de extras.costo_total
+    const costoTotPesos  = filtrados.reduce((s, t) => s + ((t.extras||{}).costo_total || 0), 0);
+    const costoTotUsd    = filtrados.reduce((s, t) => { const e = t.extras||{}; return s + (e.costo_total && t.tipo_cambio ? e.costo_total / t.tipo_cambio : 0); }, 0);
+    const costoPromPesos = unidadTot > 0 && costoTotPesos > 0 ? costoTotPesos / unidadTot : null;
+
+    // MARGEN TOTAL — de margen_total
+    const margenTotPesos  = filtrados.reduce((s, t) => s + (t.margen_total || 0), 0);
+    const margenTotUsd    = filtrados.reduce((s, t) => s + (t.margen_total && t.tipo_cambio ? t.margen_total / t.tipo_cambio : 0), 0);
+    const margenPromPesos = unidadTot > 0 ? margenTotPesos / unidadTot : null;
+
+    // GANANCIA TOTAL — de ganancia_por_rollo*rollos (enrolladora) o ganancia_por_ha*ha (resto)
+    const ganTotPesos = filtrados.reduce((s, t) => {
+      const e = t.extras||{};
+      return s + (porRollo ? (e.ganancia_por_rollo||0) * (e.rollos||0) : (e.ganancia_por_ha||0) * (t.hectareas||0));
+    }, 0);
+    const ganTotUsd    = filtrados.reduce((s, t) => {
+      const e = t.extras||{};
+      const g = porRollo ? (e.ganancia_por_rollo||0) * (e.rollos||0) : (e.ganancia_por_ha||0) * (t.hectareas||0);
+      return s + (t.tipo_cambio ? g / t.tipo_cambio : 0);
+    }, 0);
+    const ganPromPesos = unidadTot > 0 ? ganTotPesos / unidadTot : null;
 
     // Operarios desglosados
     const opMap = {};
@@ -349,12 +363,13 @@ function renderContenidoFichaMaq(tab) {
       ? Object.entries(cultMap).map(([c, v]) => `<span style="display:block;font-size:11px">${c}: <b>${fmtNum(v)} ${unidadLabel}</b></span>`).join('')
       : '<span style="font-size:11px;color:var(--text-muted)">—</span>';
 
-    function kard(titulo, valor, usd = null, sub = '') {
-      return `<div style="background:var(--card-bg,var(--bg-secondary));border:1px solid var(--border-color);border-radius:8px;padding:10px 14px;min-width:130px;flex:1">
+    function kard(titulo, valor, usd = null, unitPesos = null, unitLts = null) {
+      return `<div style="background:var(--card-bg,var(--bg-secondary));border:1px solid var(--border-color);border-radius:8px;padding:10px 14px;min-width:150px;flex:1">
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">${titulo}</div>
         <div style="font-size:18px;font-weight:700;color:var(--text-primary)">${valor}</div>
         ${usd != null ? `<div style="font-size:12px;color:var(--text-muted);margin-top:1px">${usd}</div>` : ''}
-        ${sub ? `<div style="font-size:11px;color:var(--text-muted);margin-top:3px">${sub}</div>` : ''}
+        ${unitPesos != null ? `<div style="font-size:11px;color:var(--text-muted);margin-top:4px;border-top:1px solid var(--border-color);padding-top:4px">${unitPesos}</div>` : ''}
+        ${unitLts != null ? `<div style="font-size:11px;color:var(--text-muted)">${unitLts}</div>` : ''}
       </div>`;
     }
 
@@ -370,9 +385,22 @@ function renderContenidoFichaMaq(tab) {
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Cultivos</div>
           ${cultHtml}
         </div>
-        ${costoTotPesos > 0 ? kard('Costo total', '$' + fmtNum(costoTotPesos), costoTotUsd > 0 ? 'U$D ' + fmtNum(costoTotUsd) : null, costoPromPesos != null ? '$' + fmtNum(costoPromPesos) + '/' + unidadLabel + ' prom.' : '') : ''}
-        ${ganTotPesos !== 0 ? kard('Ganancia total', '$' + fmtNum(ganTotPesos), ganTotUsd !== 0 ? 'U$D ' + fmtNum(ganTotUsd) : null, ganPromPesos != null ? '$' + fmtNum(ganPromPesos) + '/' + unidadLabel + ' prom.' : '') : ''}
-        ${gasoilTot > 0 ? kard('Gasoil total', fmtNum(gasoilTot) + ' lts', null, consProm != null ? fmtNum(consProm) + ' lts/' + unidadLabel + ' prom.' : '') : ''}
+        ${costoTotPesos > 0 ? kard('Costo total',
+            '$' + fmtNum(costoTotPesos),
+            costoTotUsd > 0 ? 'U$D ' + fmtNum(costoTotUsd) : null,
+            costoPromPesos != null ? '$' + fmtNum(costoPromPesos) + '/' + unidadLabel : null,
+            consProm != null ? fmtNum(consProm) + ' lts/' + unidadLabel : null) : ''}
+        ${kard('Margen total',
+            '$' + fmtNum(margenTotPesos),
+            margenTotUsd !== 0 ? 'U$D ' + fmtNum(margenTotUsd) : null,
+            margenPromPesos != null ? '$' + fmtNum(margenPromPesos) + '/' + unidadLabel : null,
+            consProm != null ? fmtNum(consProm) + ' lts/' + unidadLabel : null)}
+        ${kard('Ganancia total',
+            '$' + fmtNum(ganTotPesos),
+            ganTotUsd !== 0 ? 'U$D ' + fmtNum(ganTotUsd) : null,
+            ganPromPesos != null ? '$' + fmtNum(ganPromPesos) + '/' + unidadLabel : null,
+            consProm != null ? fmtNum(consProm) + ' lts/' + unidadLabel : null)}
+        ${gasoilTot > 0 ? kard('Gasoil total', fmtNum(gasoilTot) + ' lts', null, consProm != null ? fmtNum(consProm) + ' lts/' + unidadLabel : null) : ''}
       </div>`;
 
     const rows = registros.length
