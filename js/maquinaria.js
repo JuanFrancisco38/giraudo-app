@@ -546,7 +546,7 @@ function abrirModalTrabajo() {
 
   const g3 = 'display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px';
   const g2 = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px';
-  const fg = (lbl, id, tipo='number') => `<div class="form-group"><label>${lbl}</label><input type="${tipo}" id="${id}"></div>`;
+  const fg = (lbl, id, tipo='number') => `<div class="form-group"><label>${lbl}</label><input class="form-control" type="${tipo}" id="${id}"></div>`;
 
   const camposExtras = porRollo ? `
     <div style="${g3}">
