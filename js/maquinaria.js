@@ -5,14 +5,14 @@ const BADGE_CAT = {
   'Tractor': 'badge-bordo', 'Cosecha': 'badge-yellow', 'Siembra': 'badge-green',
   'Acondicionamiento de suelo': 'badge-tierra', 'Movimiento de granos': 'badge-yellow',
   'Movimiento de suelos': 'badge-tierra', 'Fumigacion': 'badge-blue',
-  'Henificacion': 'badge-green', 'Forraje': 'badge-tierra',
+  'Forraje': 'badge-tierra',
   'Movilidad': 'badge-blue', 'Otro': 'badge-gris'
 };
 const ICON_CAT = {
   'Tractor': '🚜', 'Cosecha': '🌾', 'Siembra': '🌱',
   'Acondicionamiento de suelo': '🪚', 'Movimiento de granos': '🚛',
   'Movimiento de suelos': '🪚', 'Fumigacion': '💦',
-  'Henificacion': '🌀', 'Forraje': '🌿',
+  'Forraje': '🌿',
   'Movilidad': '🚗', 'Otro': '⚙️'
 };
 
@@ -136,7 +136,7 @@ function renderContenidoFichaMaq(tab) {
           <div class="form-group"><label>Nombre</label><input type="text" id="medit-nombre" value="${m.nombre || ''}"></div>
           <div class="form-group"><label>Categoría</label>
             <select id="medit-cat">
-              ${['Tractor','Cosecha','Siembra','Acondicionamiento de suelo','Movimiento de granos','Movimiento de suelos','Fumigacion','Henificacion','Forraje','Movilidad','Otro'].map(c => `<option${m.categoria===c?' selected':''}>${c}</option>`).join('')}
+              ${['Tractor','Cosecha','Siembra','Acondicionamiento de suelo','Movimiento de granos','Movimiento de suelos','Fumigacion','Forraje','Movilidad','Otro'].map(c => `<option${m.categoria===c?' selected':''}>${c}</option>`).join('')}
             </select>
           </div>
           <div class="form-group"><label>Año</label><input type="number" id="medit-anio" value="${m.anio || ''}"></div>
