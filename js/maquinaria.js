@@ -561,7 +561,7 @@ function abrirModalTrabajo() {
     </div>`;
 
   const html = `<div id="modal-trabajo" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
-    <div style="background:var(--card,var(--bg-primary,#fff));padding:24px;border-radius:12px;width:min(860px,96vw)">
+    <div style="background:white;padding:24px;border-radius:12px;width:min(860px,96vw);border:1px solid #ddd">
       <h3 style="margin-bottom:16px">Nuevo trabajo — ${m.nombre}</h3>
       <div style="${g3};margin-top:0">
         ${fg('Fecha','trab-fecha','date')}${fg('Propietario','trab-propietario','text')}${fg('Establecimiento','trab-estab','text')}
