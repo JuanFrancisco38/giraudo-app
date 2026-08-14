@@ -550,33 +550,39 @@ function abrirModalTrabajoMaq() {
 
   const camposExtras = porRollo ? `
     <div style="${g3}">
-      ${fg('Rollos','trab-rollos')}${fg('Rendimiento','trab-rendimiento')}${fg('Tipo Rollo','trab-tipo-rollo','text')}
-      ${fg('Cons/Rollo (lts)','trab-cons-rollo')}${fg('Consumo Red (kg)','trab-cons-red')}${fg('Costo Red/Hilo $','trab-costo-red')}
-      ${fg('Costo Gasoil $','trab-costo-gasoil-p')}${fg('Costo Operario $','trab-costo-op')}${fg('Costo Total $','trab-costo-total-ext')}
-      ${fg('Costo/Rollo $','trab-costo-rollo')}${fg('Ganancia/Rollo $','trab-gan-rollo')}${fg('Margen/Rollo $','trab-mrg-rollo')}
+      ${fg('Rollos','tmaq-rollos')}${fg('Rendimiento','tmaq-rendimiento')}${fg('Tipo Rollo','tmaq-tipo-rollo','text')}
+      ${fg('Cons/Rollo (lts)','tmaq-cons-rollo')}${fg('Consumo Red (kg)','tmaq-cons-red')}${fg('Costo Red/Hilo $','tmaq-costo-red')}
+      ${fg('Costo Gasoil $','tmaq-costo-gasoil-p')}${fg('Costo Operario $','tmaq-costo-op')}${fg('Costo Total $','tmaq-costo-total-ext')}
+      ${fg('Costo/Rollo $','tmaq-costo-rollo')}${fg('Ganancia/Rollo $','tmaq-gan-rollo')}${fg('Margen/Rollo $','tmaq-mrg-rollo')}
     </div>` : `
     <div style="${g3}">
-      ${fg('Cons/Ha (lts)','trab-cons-ha')}${fg('Costo Gasoil $','trab-costo-gasoil-p')}${fg('Costo Operario $','trab-costo-op')}
-      ${fg('Costo/Ha $','trab-costo-ha')}${fg('Ganancia/Ha $','trab-gan-ha')}${fg('Margen/Ha $','trab-mrg-ha')}
+      ${fg('Cons/Ha (lts)','tmaq-cons-ha')}${fg('Costo Gasoil $','tmaq-costo-gasoil-p')}${fg('Costo Operario $','tmaq-costo-op')}
+      ${fg('Costo/Ha $','tmaq-costo-ha')}${fg('Ganancia/Ha $','tmaq-gan-ha')}${fg('Margen/Ha $','tmaq-mrg-ha')}
     </div>`;
 
-  const html = `<div id="modal-trabajo" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
-    <div style="background:white;padding:24px;border-radius:12px;width:min(860px,96vw);border:1px solid #ddd">
-      <h3 style="margin-bottom:16px">Nuevo trabajo — ${m.nombre}</h3>
+  const fgCalc = (lbl, id, calcId) => `<div class="form-group"><label>${lbl}</label><input class="form-control" type="number" id="${id}" oninput="calcTotGasoilMaq()"></div>`;
+
+  const html = `<div id="modal-trabajo-maq" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+    <div style="background:white;padding:24px;border-radius:12px;width:min(860px,96vw);border:1px solid #ddd;color:#111">
+      <h3 style="margin-bottom:16px;color:#8B1A2F">Nuevo trabajo — ${m.nombre}</h3>
       <div style="${g3};margin-top:0">
-        ${fg('Fecha','trab-fecha','date')}${fg('Propietario','trab-propietario','text')}${fg('Establecimiento','trab-estab','text')}
-        ${fg('Lote','trab-lote','text')}${fg('Hectáreas','trab-has')}${fg('Cultivo','trab-cultivo','text')}
+        ${fg('Fecha','tmaq-fecha','date')}${fg('Propietario','tmaq-propietario','text')}${fg('Establecimiento','tmaq-estab','text')}
+        ${fg('Lote','tmaq-lote','text')}
+        <div class="form-group"><label>Hectáreas</label><input class="form-control" type="number" id="tmaq-has" oninput="calcTotGasoilMaq()"></div>
+        ${fg('Cultivo','tmaq-cultivo','text')}
       </div>
       <div style="${g3}">
-        ${fg('Tarifa Gasoil (lts/unidad)','trab-tarifa-gas')}${fg('Total Gasoil (lts)','trab-tot-gas')}${fg('$ por litro','trab-costo-gas')}
-        ${fg('Total en $','trab-total-pesos')}${fg('Tipo de Cambio','trab-tc')}${fg('Total en U$D','trab-total-usd')}
+        <div class="form-group"><label>Tarifa (lts/unidad)</label><input class="form-control" type="number" id="tmaq-tarifa-gas" oninput="calcTotGasoilMaq()"></div>
+        <div class="form-group"><label>Total Gasoil (lts)</label><input class="form-control" type="number" id="tmaq-tot-gas" readonly style="background:#f5f5f5"></div>
+        ${fg('$ por litro','tmaq-costo-gas')}
+        ${fg('Total en $','tmaq-total-pesos')}${fg('Tipo de Cambio','tmaq-tc')}${fg('Total en U$D','tmaq-total-usd')}
       </div>
       <div style="${g2}">
-        ${fg('Operario','trab-operario','text')}${fg('Margen Total $','trab-margen-total')}
+        ${fg('Operario','tmaq-operario','text')}${fg('Margen Total $','tmaq-margen-total')}
       </div>
       <div style="margin-top:8px">${camposExtras}</div>
       <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
-        <button class="btn" onclick="document.getElementById('modal-trabajo').remove()">Cancelar</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('modal-trabajo-maq').remove()">Cancelar</button>
         <button class="btn btn-primary" onclick="guardarTrabajoMaq(${porRollo})">Guardar</button>
       </div>
     </div>
@@ -584,38 +590,45 @@ function abrirModalTrabajoMaq() {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
+function calcTotGasoilMaq() {
+  const tarifa = parseFloat(document.getElementById('tmaq-tarifa-gas')?.value || 0);
+  const has    = parseFloat(document.getElementById('tmaq-has')?.value || 0);
+  const tot    = document.getElementById('tmaq-tot-gas');
+  if (tot && tarifa && has) tot.value = (tarifa * has).toFixed(0);
+}
+
 async function guardarTrabajoMaq(porRollo) {
-  const v = id => { const el = document.getElementById(id); return el ? el.value : null; };
+  const v = id => { const el = document.getElementById(id); return el && el.value.trim() ? el.value.trim() : null; };
   const n = id => { const el = document.getElementById(id); return el && el.value ? parseFloat(el.value) : null; };
 
-  const has = n('trab-has');
-  const consHa = n('trab-cons-ha');
-  const rollos = n('trab-rollos');
-  const consRollo = n('trab-cons-rollo');
+  const has      = n('tmaq-has');
+  const consHa   = n('tmaq-cons-ha');
+  const rollos   = n('tmaq-rollos');
+  const consRollo = n('tmaq-cons-rollo');
 
   const extras = porRollo ? {
-    rollos, rendimiento: n('trab-rendimiento'), tipo_rollo: v('trab-tipo-rollo'),
+    rollos, rendimiento: n('tmaq-rendimiento'), tipo_rollo: v('tmaq-tipo-rollo'),
     consumo_por_rollo: consRollo,
     consumo_total_lts: consRollo && rollos ? consRollo * rollos : null,
-    consumo_red: n('trab-cons-red'), costo_red_hilo: n('trab-costo-red'),
-    costo_gasoil_pesos: n('trab-costo-gasoil-p'), costo_operario: n('trab-costo-op'),
-    costo_total: n('trab-costo-total-ext'),
-    costo_por_rollo: n('trab-costo-rollo'), ganancia_por_rollo: n('trab-gan-rollo'), margen_por_rollo: n('trab-mrg-rollo')
+    consumo_red: n('tmaq-cons-red'), costo_red_hilo: n('tmaq-costo-red'),
+    costo_gasoil_pesos: n('tmaq-costo-gasoil-p'), costo_operario: n('tmaq-costo-op'),
+    costo_total: n('tmaq-costo-total-ext'),
+    costo_por_rollo: n('tmaq-costo-rollo'), ganancia_por_rollo: n('tmaq-gan-rollo'), margen_por_rollo: n('tmaq-mrg-rollo')
   } : {
     consumo_por_ha: consHa,
     consumo_total_lts: consHa && has ? consHa * has : null,
-    costo_gasoil_pesos: n('trab-costo-gasoil-p'), costo_operario: n('trab-costo-op'),
-    costo_por_ha: n('trab-costo-ha'), ganancia_por_ha: n('trab-gan-ha'), margen_por_ha: n('trab-mrg-ha')
+    costo_gasoil_pesos: n('tmaq-costo-gasoil-p'), costo_operario: n('tmaq-costo-op'),
+    costo_por_ha: n('tmaq-costo-ha'), ganancia_por_ha: n('tmaq-gan-ha'), margen_por_ha: n('tmaq-mrg-ha')
   };
 
   const data = {
     maquina_id: maquinaSeleccionada.id,
-    fecha: v('trab-fecha'), propietario: v('trab-propietario'), establecimiento: v('trab-estab'),
-    lote: v('trab-lote'), hectareas: has, cultivo: v('trab-cultivo'),
-    tarifa_gasoil: n('trab-tarifa-gas'), total_gasoil_lts: n('trab-tot-gas'), costo_gasoil: n('trab-costo-gas'),
-    total_pesos: n('trab-total-pesos'), tipo_cambio: n('trab-tc'), total_usd: n('trab-total-usd'),
-    operario: v('trab-operario'),
-    margen_total: n('trab-margen-total'),
+    fecha: v('tmaq-fecha'), propietario: v('tmaq-propietario'), establecimiento: v('tmaq-estab'),
+    lote: v('tmaq-lote'), hectareas: has, cultivo: v('tmaq-cultivo'),
+    tarifa_gasoil: n('tmaq-tarifa-gas'), total_gasoil_lts: n('tmaq-tot-gas'), costo_gasoil: n('tmaq-costo-gas'),
+    total_pesos: n('tmaq-total-pesos'), tipo_cambio: n('tmaq-tc'), total_usd: n('tmaq-total-usd'),
+    operario: v('tmaq-operario'),
+    margen_total: n('tmaq-margen-total'),
     extras
   };
 
@@ -623,7 +636,7 @@ async function guardarTrabajoMaq(porRollo) {
   const r = await sb('POST', 'trabajos_agricolas', data);
   if (r) {
     toast('✅ Trabajo guardado');
-    document.getElementById('modal-trabajo').remove();
+    document.getElementById('modal-trabajo-maq').remove();
     await cargarMaquinaria();
     renderContenidoFichaMaq('trabajos');
   } else toast('❌ Error al guardar', 'var(--rojo)');
