@@ -268,15 +268,23 @@ function renderListaStatAnimales(label, ultimoSrvPorAnimal) {
         const rodeo = rodeos.find(r => r.id === a.rodeo_id);
         const srv = ultimoSrvPorAnimal[a.id];
         const colRes = { 'Preñada':'verde','Vacía':'rojo','Repetidora':'tierra','Pendiente':'gray','Abortó':'tierra' };
-        return `<div style="${cardStyle}" onclick="seleccionarAnimalGlobal('${a.id}')">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
-            <span class="badge badge-${color}" style="font-size:10px">${a.categoria || a.sexo}</span>
-            <span style="font-size:10px;color:var(--texto-suave)">${rodeo?.nombre || ''}</span>
+        const bgColor = color === 'bordo' ? '#8B1A2F' : color === 'cielo' ? '#1a6fa8' : color === 'verde' ? '#2d7a3a' : color === 'tierra' ? '#7a5c1a' : '#555';
+        const colResColor = { 'Preñada':'#2d7a3a','Vacía':'#c0392b','Repetidora':'#a06020','Pendiente':'#888','Abortó':'#c0392b' };
+        const srvColor = srv ? (colResColor[srv.resultado] || '#888') : null;
+        return `<div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;margin:4px" onclick="seleccionarAnimalGlobal('${a.id}')">
+          <!-- pestaña superior (remache) -->
+          <div style="width:16px;height:16px;background:${bgColor};border-radius:50%;border:2px solid rgba(255,255,255,0.6);box-shadow:0 1px 4px rgba(0,0,0,0.3);margin-bottom:-6px;z-index:1;position:relative"></div>
+          <!-- cuerpo caravana -->
+          <div style="background:${bgColor};border-radius:12px 12px 50% 50% / 12px 12px 28px 28px;padding:10px 14px 14px;min-width:88px;max-width:110px;text-align:center;box-shadow:2px 4px 10px rgba(0,0,0,0.25);color:#fff;position:relative">
+            <!-- orificio del remache -->
+            <div style="width:6px;height:6px;background:rgba(0,0,0,0.35);border-radius:50%;margin:0 auto 6px;border:1px solid rgba(255,255,255,0.3)"></div>
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:0.85;letter-spacing:.5px;margin-bottom:2px">${a.categoria || a.sexo}</div>
+            <div style="font-size:18px;font-weight:800;line-height:1.1">#${caravanaDisplay(a)}</div>
+            <div style="font-size:9px;opacity:0.75;margin-top:3px">${a.raza || ''}</div>
+            ${srv ? `<div style="margin-top:5px;background:${srvColor};border-radius:20px;padding:1px 7px;font-size:9px;font-weight:700;display:inline-block">${srv.resultado}</div>` : ''}
+            ${a.renspa_id ? `<div style="font-size:8px;opacity:0.8;margin-top:4px">🏷 ${renspaLabel(a.renspa_id)}</div>` : ''}
+            ${rodeo ? `<div style="font-size:8px;opacity:0.6;margin-top:2px">${rodeo.nombre}</div>` : ''}
           </div>
-          <div style="font-size:17px;font-weight:700;color:var(--${color})">#${caravanaDisplay(a)}</div>
-          <div style="font-size:11px;color:var(--texto-suave)">${a.raza || ''}</div>
-          ${srv ? `<div style="margin-top:4px"><span class="badge badge-${colRes[srv.resultado]||'gray'}" style="font-size:10px">${srv.resultado}</span></div>` : ''}
-          ${a.renspa_id ? `<div style="font-size:10px;color:var(--cielo);margin-top:2px">🏷️ ${renspaLabel(a.renspa_id)}</div>` : ''}
         </div>`;
       }).join('')}</div>`
       : `<div class="empty-state" style="padding:24px"><p>Sin animales en esta categoría</p></div>`}
@@ -918,24 +926,35 @@ function renderTabAnimales(rodeoId, animales) {
             : catNaranja  ? '#d4904a'
             : '#ccc';
 
-          return `<div style="${cardStyle};background:${bgCard};border-color:${borderCard};display:flex;justify-content:space-between;align-items:center;gap:10px;position:relative" onclick="seleccionarAnimal('${a.id}')">
-            <button class="btn btn-danger" style="position:absolute;top:8px;right:8px;padding:2px 7px;font-size:12px;z-index:1" onclick="event.stopPropagation();borrarAnimalManga('${a.id}')">🗑️</button>
-            <div style="flex:1;min-width:0">
-              <div style="margin-bottom:6px">
-                <span class="badge badge-${color}" style="font-size:13px;padding:4px 10px">${a.categoria || a.sexo || '—'}</span>
-              </div>
-              <div style="font-size:22px;font-weight:800;color:var(--${color});margin-bottom:3px">#${caravanaDisplay(a)}</div>
-              ${a.caravana_interna && a.caravana_electronica ? `<div style="font-size:12px;color:var(--texto-suave)">E: ${a.caravana_electronica}</div>` : ''}
-              <div style="font-size:13px;color:var(--texto-suave)">${a.raza || ''}</div>
-              ${a.caravana_madre ? `<div style="font-size:12px;color:var(--texto-suave);margin-top:3px">Madre: ${a.caravana_madre}</div>` : ''}
-              ${a.renspa_id ? `<div style="font-size:12px;color:var(--cielo);margin-top:3px">🏷️ ${renspaLabel(a.renspa_id) || ''}</div>` : ''}
-              ${crias ? `<div style="font-size:12px;color:var(--verde);margin-top:3px">🐣 ${crias} cría${crias !== 1 ? 's' : ''}</div>` : ''}
+          const bgMain = color === 'bordo' ? '#8B1A2F' : '#1a6fa8';
+          return `<div style="display:flex;flex-direction:column;align-items:stretch;cursor:pointer;position:relative" onclick="seleccionarAnimal('${a.id}')">
+            <button class="btn btn-danger" style="position:absolute;top:0;right:0;padding:2px 7px;font-size:11px;z-index:2;opacity:0.7" onclick="event.stopPropagation();borrarAnimalManga('${a.id}')">🗑️</button>
+            <!-- remache superior -->
+            <div style="display:flex;justify-content:center;margin-bottom:-6px;z-index:1">
+              <div style="width:18px;height:18px;background:${bgMain};border-radius:50%;border:2px solid rgba(255,255,255,0.6);box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>
             </div>
-            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;flex:1;text-align:center">
-              ${esHembraCard && ultimoSrv && estadoReprod ? `<div style="background:${bgReprod};color:${colReprod};border-radius:8px;padding:7px 12px;font-size:17px;font-weight:800;text-align:center;width:100%;box-sizing:border-box">${estadoReprod}</div>` : ''}
-              ${esHembraCard && ultimoSrv && estadoFisio ? `<div style="background:${bgFisio};color:${colFisio};border-radius:8px;padding:6px 12px;font-size:14px;font-weight:700;text-align:center;width:100%;box-sizing:border-box">${estadoFisio}</div>` : ''}
-              ${fppHtml}
-              ${pesadasCardHtml}
+            <!-- cuerpo caravana -->
+            <div style="background:${bgCard};border:2px solid ${borderCard};border-radius:12px 12px 40% 40% / 12px 12px 22px 22px;padding:10px 12px 16px;box-shadow:2px 4px 10px rgba(0,0,0,0.15);display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+              <!-- orificio + ID -->
+              <div style="flex:1;min-width:0">
+                <div style="width:7px;height:7px;background:rgba(0,0,0,0.2);border-radius:50%;margin:0 auto 5px;border:1px solid ${borderCard}"></div>
+                <div style="text-align:center;margin-bottom:6px">
+                  <span style="background:${bgMain};color:#fff;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700">${a.categoria || a.sexo || '—'}</span>
+                </div>
+                <div style="font-size:22px;font-weight:800;color:${bgMain};margin-bottom:3px;text-align:center">#${caravanaDisplay(a)}</div>
+                ${a.caravana_interna && a.caravana_electronica ? `<div style="font-size:11px;color:var(--texto-suave);text-align:center">E: ${a.caravana_electronica}</div>` : ''}
+                <div style="font-size:12px;color:var(--texto-suave);text-align:center">${a.raza || ''}</div>
+                ${a.caravana_madre ? `<div style="font-size:11px;color:var(--texto-suave);margin-top:3px;text-align:center">Madre: ${a.caravana_madre}</div>` : ''}
+                ${a.renspa_id ? `<div style="font-size:11px;color:var(--cielo);margin-top:3px;text-align:center">🏷️ ${renspaLabel(a.renspa_id) || ''}</div>` : ''}
+                ${crias ? `<div style="font-size:11px;color:var(--verde);margin-top:3px;text-align:center">🐣 ${crias} cría${crias !== 1 ? 's' : ''}</div>` : ''}
+              </div>
+              <!-- datos reproductivos / peso -->
+              <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;flex:1;text-align:center">
+                ${esHembraCard && ultimoSrv && estadoReprod ? `<div style="background:${bgReprod};color:${colReprod};border-radius:8px;padding:6px 10px;font-size:15px;font-weight:800;width:100%">${estadoReprod}</div>` : ''}
+                ${esHembraCard && ultimoSrv && estadoFisio ? `<div style="background:${bgFisio};color:${colFisio};border-radius:8px;padding:5px 10px;font-size:13px;font-weight:700;width:100%">${estadoFisio}</div>` : ''}
+                ${fppHtml}
+                ${pesadasCardHtml}
+              </div>
             </div>
           </div>`;
         }).join('')}</div>
