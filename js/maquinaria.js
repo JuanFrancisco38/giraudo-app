@@ -229,16 +229,9 @@ function renderContenidoFichaMaq(tab) {
     // Campañas disponibles
     const campanias = [...new Set(todosRegistros.map(t => campania(t.fecha)))].sort();
 
-    // Campaña actual como default
-    function campActual() {
-      const hoy = new Date(); const mo = hoy.getMonth() + 1; const y = hoy.getFullYear();
-      const desde = mo >= 7 ? y : y - 1;
-      return `${String(desde).slice(2)}/${String(desde + 1).slice(2)}`;
-    }
-
-    // Estado de filtros (persistido en el DOM; si el select no existe aún, usa campaña actual)
+    // Estado de filtros (persistido en el DOM; si el select no existe aún, usa la última campaña con datos)
     const _campEl = document.getElementById('trab-f-camp');
-    const prevCamp = _campEl ? _campEl.value : campActual();
+    const prevCamp = _campEl ? _campEl.value : (campanias.length ? campanias[campanias.length - 1] : '');
     const prevProp = document.getElementById('trab-f-prop')?.value?.toLowerCase() || '';
     const prevEstab = document.getElementById('trab-f-estab')?.value?.toLowerCase() || '';
     const prevCult = document.getElementById('trab-f-cult')?.value?.toLowerCase() || '';
@@ -536,12 +529,9 @@ function trabLimpiarFiltros() {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
-  // Vuelve a la campaña actual, no a "todas"
-  const hoy = new Date(), mo = hoy.getMonth() + 1, y = hoy.getFullYear();
-  const desde = mo >= 7 ? y : y - 1;
-  const camp = `${String(desde).slice(2)}/${String(desde + 1).slice(2)}`;
+  // Vuelve a la última opción del select (última campaña con datos)
   const elCamp = document.getElementById('trab-f-camp');
-  if (elCamp) elCamp.value = camp;
+  if (elCamp) elCamp.value = elCamp.options[elCamp.options.length - 1]?.value || '';
   const pg = document.getElementById('trab-page-cur');
   if (pg) pg.value = '0';
   renderContenidoFichaMaq('trabajos');
