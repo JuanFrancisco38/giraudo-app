@@ -205,20 +205,77 @@ function renderContenidoFichaMaq(tab) {
 
   } else if (tab === 'trabajos') {
     const registros = trabajosMaq.filter(t => t.maquina_id === m.id);
+    const cat = m.categoria;
+    const $ = v => v != null ? fmtNum(v) : '—';
+    const $p = v => v != null ? '$' + fmtNum(v) : '—';
+    const $u = v => v != null ? 'U$D ' + fmtNum(v) : '—';
+
+    let thead = '', rowFn;
+
+    if (cat === 'Forraje' && m.nombre && m.nombre.toLowerCase().includes('enrolladora') || m.nombre && m.nombre.toLowerCase().includes('rb4')) {
+      thead = `<tr>
+        <th>Fecha</th><th>Propietario</th><th>Establecimiento</th><th>Lote</th>
+        <th>Has</th><th>Cultivo</th><th>Rollos</th><th>Rdto</th><th>Tipo Rollo</th>
+        <th>Tarifa Gas.</th><th>Tot. Gas.(lts)</th><th>$ Gasoil</th>
+        <th>Total $</th><th>TC</th><th>Total U$D</th>
+        <th>Cons/Rollo</th><th>Cons.Total</th><th>Costo Gas.</th>
+        <th>Operario</th><th>% Op.</th><th>Red/Hilo</th><th>Tot.Red/Hilo</th>
+        <th>Costo Total</th><th>C/Rollo</th><th>Gan/Rollo</th><th>Mrg/Rollo</th><th>Mrg Total</th>
+      </tr>`;
+      rowFn = t => {
+        const e = t.extras || {};
+        return `<tr>
+          <td>${fmtFecha(t.fecha)}</td><td>${t.propietario||'—'}</td><td>${t.establecimiento||'—'}</td><td>${t.lote||'—'}</td>
+          <td>${$(t.hectareas)}</td><td>${t.cultivo||'—'}</td><td>${$(e.rollos)}</td><td>${$(e.rendimiento)}</td><td>${e.tipo_rollo||'—'}</td>
+          <td>${$p(t.tarifa_gasoil)}</td><td>${$(t.total_gasoil_lts)}</td><td>${$p(t.costo_gasoil)}</td>
+          <td>${$p(t.total_pesos)}</td><td>${$(t.tipo_cambio)}</td><td>${$u(t.total_usd)}</td>
+          <td>${$(e.consumo_por_rollo)}</td><td>${$(e.consumo_total_lts)}</td><td>${$p(t.costo_gasoil)}</td>
+          <td>${t.operario||'—'}</td><td>${$(t.porcentaje_operario)}%</td><td>${$(e.consumo_red)}</td><td>${$p(e.costo_red_hilo)}</td>
+          <td>${$p(t.costo_total)}</td><td>${$p(e.costo_por_rollo)}</td><td>${$p(e.ganancia_por_rollo)}</td><td>${$p(e.margen_por_rollo)}</td><td>${$p(t.margen_total)}</td>
+        </tr>`;
+      };
+    } else if (cat === 'Forraje' || cat === 'Cosecha' || cat === 'Siembra') {
+      // Segadora y similares — columnas por hectárea
+      thead = `<tr>
+        <th>Fecha</th><th>Propietario</th><th>Establecimiento</th><th>Lote</th>
+        <th>Has</th><th>Cultivo</th>
+        <th>Tarifa Gas.</th><th>Tot. Gas.(lts)</th><th>$ Gasoil</th>
+        <th>Total $</th><th>TC</th><th>Total U$D</th>
+        <th>Cons/Ha</th><th>Cons.Total</th><th>Costo Gas.</th>
+        <th>Operario</th><th>% Op.</th>
+        <th>Costo Total</th><th>C/Ha</th><th>Gan/Ha</th><th>Mrg/Ha</th><th>Mrg Total</th>
+      </tr>`;
+      rowFn = t => {
+        const e = t.extras || {};
+        return `<tr>
+          <td>${fmtFecha(t.fecha)}</td><td>${t.propietario||'—'}</td><td>${t.establecimiento||'—'}</td><td>${t.lote||'—'}</td>
+          <td>${$(t.hectareas)}</td><td>${t.cultivo||'—'}</td>
+          <td>${$p(t.tarifa_gasoil)}</td><td>${$(t.total_gasoil_lts)}</td><td>${$p(t.costo_gasoil)}</td>
+          <td>${$p(t.total_pesos)}</td><td>${$(t.tipo_cambio)}</td><td>${$u(t.total_usd)}</td>
+          <td>${$(e.consumo_por_ha)}</td><td>${$(e.consumo_total_lts)}</td><td>${$p(t.costo_gasoil)}</td>
+          <td>${t.operario||'—'}</td><td>${$(t.porcentaje_operario)}%</td>
+          <td>${$p(t.costo_total)}</td><td>${$p(e.costo_por_ha)}</td><td>${$p(e.ganancia_por_ha)}</td><td>${$p(e.margen_por_ha)}</td><td>${$p(t.margen_total)}</td>
+        </tr>`;
+      };
+    } else {
+      // Vista genérica para el resto
+      thead = `<tr><th>Fecha</th><th>Propietario</th><th>Establecimiento</th><th>Lote</th><th>Has</th><th>Cultivo</th><th>Total $</th><th>Total U$D</th><th>Margen Total</th></tr>`;
+      rowFn = t => `<tr>
+        <td>${fmtFecha(t.fecha)}</td><td>${t.propietario||'—'}</td><td>${t.establecimiento||'—'}</td><td>${t.lote||'—'}</td>
+        <td>${$(t.hectareas)}</td><td>${t.cultivo||'—'}</td><td>${$p(t.total_pesos)}</td><td>${$u(t.total_usd)}</td><td>${$p(t.margen_total)}</td>
+      </tr>`;
+    }
+
     const rows = registros.length
-      ? registros.map(t => `<tr>
-          <td>${fmtFecha(t.fecha)}</td>
-          <td>${t.tipo || '—'}</td>
-          <td>${t.campo || '—'}</td>
-          <td>${t.lote || '—'}</td>
-          <td>${t.hectareas ? fmtNum(t.hectareas) + ' has' : '—'}</td>
-          <td>${t.cultivo || '—'}</td>
-        </tr>`).join('')
-      : '<tr><td colspan="6"><div class="empty-state"><div class="icon">🌾</div><h3>Sin trabajos registrados</h3></div></td></tr>';
+      ? registros.map(rowFn).join('')
+      : `<tr><td colspan="20"><div class="empty-state"><div class="icon">🌾</div><h3>Sin trabajos registrados</h3></div></td></tr>`;
 
     cont.innerHTML = `
-      <div class="table-wrap"><table>
-        <thead><tr><th>Fecha</th><th>Tipo</th><th>Campo</th><th>Lote</th><th>Has</th><th>Cultivo</th></tr></thead>
+      <div style="margin-bottom:10px;text-align:right">
+        <button class="btn btn-sm btn-primary" onclick="abrirModalTrabajo()">+ Agregar trabajo</button>
+      </div>
+      <div class="table-wrap" style="overflow-x:auto"><table>
+        <thead>${thead}</thead>
         <tbody>${rows}</tbody>
       </table></div>`;
   }
@@ -282,6 +339,101 @@ async function borrarMantenimiento(id) {
   if (!confirm('¿Eliminar este registro de mantenimiento?')) return;
   await sb('DELETE', 'mantenimiento', null, `?id=eq.${id}`);
   await cargarMaquinaria();
+}
+
+function abrirModalTrabajo() {
+  const m = maquinaSeleccionada;
+  const cat = m.categoria;
+  const esEnrolladora = m.nombre && (m.nombre.toLowerCase().includes('enrolladora') || m.nombre.toLowerCase().includes('rb4'));
+  const porRollo = esEnrolladora;
+
+  const camposExtras = porRollo ? `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div class="form-group"><label>Rollos</label><input type="number" id="trab-rollos"></div>
+      <div class="form-group"><label>Rendimiento</label><input type="number" id="trab-rendimiento"></div>
+      <div class="form-group"><label>Tipo Rollo</label><input type="text" id="trab-tipo-rollo"></div>
+      <div class="form-group"><label>Cons/Rollo (lts)</label><input type="number" id="trab-cons-rollo"></div>
+      <div class="form-group"><label>Consumo Red</label><input type="number" id="trab-cons-red"></div>
+      <div class="form-group"><label>Costo Red/Hilo $</label><input type="number" id="trab-costo-red"></div>
+      <div class="form-group"><label>Costo/Rollo $</label><input type="number" id="trab-costo-rollo"></div>
+      <div class="form-group"><label>Ganancia/Rollo $</label><input type="number" id="trab-gan-rollo"></div>
+      <div class="form-group"><label>Margen/Rollo $</label><input type="number" id="trab-mrg-rollo"></div>
+    </div>` : `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div class="form-group"><label>Cons/Ha (lts)</label><input type="number" id="trab-cons-ha"></div>
+      <div class="form-group"><label>Costo/Ha $</label><input type="number" id="trab-costo-ha"></div>
+      <div class="form-group"><label>Ganancia/Ha $</label><input type="number" id="trab-gan-ha"></div>
+      <div class="form-group"><label>Margen/Ha $</label><input type="number" id="trab-mrg-ha"></div>
+    </div>`;
+
+  const html = `<div id="modal-trabajo" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;overflow-y:auto">
+    <div style="background:var(--card);padding:24px;border-radius:12px;width:min(900px,96vw);max-height:90vh;overflow-y:auto">
+      <h3 style="margin-bottom:16px">Nuevo trabajo — ${m.nombre}</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div class="form-group"><label>Fecha</label><input type="date" id="trab-fecha"></div>
+        <div class="form-group"><label>Propietario</label><input type="text" id="trab-propietario"></div>
+        <div class="form-group"><label>Establecimiento</label><input type="text" id="trab-estab"></div>
+        <div class="form-group"><label>Lote</label><input type="text" id="trab-lote"></div>
+        <div class="form-group"><label>Hectáreas</label><input type="number" id="trab-has"></div>
+        <div class="form-group"><label>Cultivo</label><input type="text" id="trab-cultivo"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
+        <div class="form-group"><label>Tarifa Gasoil $</label><input type="number" id="trab-tarifa-gas"></div>
+        <div class="form-group"><label>Total Gasoil (lts)</label><input type="number" id="trab-tot-gas"></div>
+        <div class="form-group"><label>$ Gasoil</label><input type="number" id="trab-costo-gas"></div>
+        <div class="form-group"><label>Total en $</label><input type="number" id="trab-total-pesos"></div>
+        <div class="form-group"><label>Tipo de Cambio</label><input type="number" id="trab-tc"></div>
+        <div class="form-group"><label>Total en U$D</label><input type="number" id="trab-total-usd"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        <div class="form-group"><label>Operario</label><input type="text" id="trab-operario"></div>
+        <div class="form-group"><label>% Operario</label><input type="number" id="trab-pct-op"></div>
+        <div class="form-group"><label>Costo Total $</label><input type="number" id="trab-costo-total"></div>
+        <div class="form-group"><label>Margen Total $</label><input type="number" id="trab-margen-total"></div>
+      </div>
+      <div style="margin-top:8px">${camposExtras}</div>
+      <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
+        <button class="btn" onclick="document.getElementById('modal-trabajo').remove()">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarTrabajo(${porRollo})">Guardar</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+async function guardarTrabajo(porRollo) {
+  const v = id => { const el = document.getElementById(id); return el ? el.value : null; };
+  const n = id => { const el = document.getElementById(id); return el && el.value ? parseFloat(el.value) : null; };
+
+  const extras = porRollo ? {
+    rollos: n('trab-rollos'), rendimiento: n('trab-rendimiento'), tipo_rollo: v('trab-tipo-rollo'),
+    consumo_por_rollo: n('trab-cons-rollo'), consumo_total_lts: n('trab-cons-rollo') && n('trab-rollos') ? n('trab-cons-rollo') * n('trab-rollos') : null,
+    consumo_red: n('trab-cons-red'), costo_red_hilo: n('trab-costo-red'),
+    costo_por_rollo: n('trab-costo-rollo'), ganancia_por_rollo: n('trab-gan-rollo'), margen_por_rollo: n('trab-mrg-rollo')
+  } : {
+    consumo_por_ha: n('trab-cons-ha'), consumo_total_lts: n('trab-cons-ha') && n('trab-has') ? n('trab-cons-ha') * parseFloat(document.getElementById('trab-has').value||0) : null,
+    costo_por_ha: n('trab-costo-ha'), ganancia_por_ha: n('trab-gan-ha'), margen_por_ha: n('trab-mrg-ha')
+  };
+
+  const data = {
+    maquina_id: maquinaSeleccionada.id,
+    fecha: v('trab-fecha'), propietario: v('trab-propietario'), establecimiento: v('trab-estab'),
+    lote: v('trab-lote'), hectareas: n('trab-has'), cultivo: v('trab-cultivo'),
+    tarifa_gasoil: n('trab-tarifa-gas'), total_gasoil_lts: n('trab-tot-gas'), costo_gasoil: n('trab-costo-gas'),
+    total_pesos: n('trab-total-pesos'), tipo_cambio: n('trab-tc'), total_usd: n('trab-total-usd'),
+    operario: v('trab-operario'), porcentaje_operario: n('trab-pct-op'),
+    costo_total: n('trab-costo-total'), margen_total: n('trab-margen-total'),
+    extras
+  };
+
+  if (!data.fecha) { toast('Ingresá una fecha', 'var(--rojo)'); return; }
+  const r = await sb('POST', 'trabajos_agricolas', data);
+  if (r) {
+    toast('✅ Trabajo guardado');
+    document.getElementById('modal-trabajo').remove();
+    await cargarMaquinaria();
+    renderContenidoFichaMaq('trabajos');
+  } else toast('❌ Error al guardar', 'var(--rojo)');
 }
 
 async function guardarMaquina() {
