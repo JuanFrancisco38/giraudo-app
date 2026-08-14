@@ -208,19 +208,57 @@ function renderContenidoFichaMaq(tab) {
       </table></div>`;
 
   } else if (tab === 'trabajos') {
-    const registros = trabajosMaq.filter(t => t.maquina_id === m.id);
+    const todosRegistros = trabajosMaq.filter(t => t.maquina_id === m.id);
     const cat = m.categoria;
-    const $ = v => v != null ? fmtNum(v) : '—';
+    const $n = v => v != null ? fmtNum(v) : '—';
     const $p = v => v != null ? '$' + fmtNum(v) : '—';
     const $u = v => v != null ? 'U$D ' + fmtNum(v) : '—';
 
+    // Campaña: 1/7 al 30/6
+    function campania(fecha) {
+      if (!fecha) return '—';
+      const d = new Date(fecha);
+      const y = d.getFullYear(), mo = d.getMonth() + 1;
+      const desde = mo >= 7 ? y : y - 1;
+      return `${String(desde).slice(2)}/${String(desde + 1).slice(2)}`;
+    }
+
+    // Campañas disponibles
+    const campanias = [...new Set(todosRegistros.map(t => campania(t.fecha)))].sort();
+
+    // Estado de filtros (persistido en el DOM para no perder al redibujar)
+    const prevCamp = document.getElementById('trab-f-camp')?.value || '';
+    const prevProp = document.getElementById('trab-f-prop')?.value?.toLowerCase() || '';
+    const prevEstab = document.getElementById('trab-f-estab')?.value?.toLowerCase() || '';
+    const prevCult = document.getElementById('trab-f-cult')?.value?.toLowerCase() || '';
+    const prevOp = document.getElementById('trab-f-op')?.value?.toLowerCase() || '';
+    const PAGE_SIZE = 30;
+    const prevPage = parseInt(document.getElementById('trab-page-cur')?.value || '0');
+
+    function filtrar(regs, camp, prop, estab, cult, op) {
+      return regs.filter(t => {
+        if (camp && campania(t.fecha) !== camp) return false;
+        if (prop && !(t.propietario||'').toLowerCase().includes(prop)) return false;
+        if (estab && !(t.establecimiento||'').toLowerCase().includes(estab)) return false;
+        if (cult && !(t.cultivo||'').toLowerCase().includes(cult)) return false;
+        if (op && !(t.operario||'').toLowerCase().includes(op)) return false;
+        return true;
+      });
+    }
+
+    const filtrados = filtrar(todosRegistros, prevCamp, prevProp, prevEstab, prevCult, prevOp);
+    const totalPags = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
+    const pagActual = Math.min(prevPage, totalPags - 1);
+    const registros = filtrados.slice(pagActual * PAGE_SIZE, (pagActual + 1) * PAGE_SIZE);
+
+    const esEnrolladora = m.nombre && (m.nombre.toLowerCase().includes('enrolladora') || m.nombre.toLowerCase().includes('rb4'));
     let thead = '', rowFn;
 
-    if (cat === 'Forraje' && m.nombre && m.nombre.toLowerCase().includes('enrolladora') || m.nombre && m.nombre.toLowerCase().includes('rb4')) {
+    if (esEnrolladora) {
       thead = `<tr>
         <th>Fecha</th><th>Propietario</th><th>Establecimiento</th><th>Lote</th>
         <th>Has</th><th>Cultivo</th><th>Rollos</th><th>Rdto</th><th>Tipo Rollo</th>
-        <th>Tarifa Gas.</th><th>Tot. Gas.(lts)</th><th>$ Gasoil</th>
+        <th>Tarifa Gas.</th><th>Tot.Gas(lts)</th><th>$Gasoil</th>
         <th>Total $</th><th>TC</th><th>Total U$D</th>
         <th>Cons/Rollo</th><th>Cons.Total</th><th>Costo Gas.</th>
         <th>Operario</th><th>% Op.</th><th>Red/Hilo</th><th>Tot.Red/Hilo</th>
@@ -230,58 +268,74 @@ function renderContenidoFichaMaq(tab) {
         const e = t.extras || {};
         return `<tr>
           <td>${fmtFecha(t.fecha)}</td><td>${t.propietario||'—'}</td><td>${t.establecimiento||'—'}</td><td>${t.lote||'—'}</td>
-          <td>${$(t.hectareas)}</td><td>${t.cultivo||'—'}</td><td>${$(e.rollos)}</td><td>${$(e.rendimiento)}</td><td>${e.tipo_rollo||'—'}</td>
-          <td>${$p(t.tarifa_gasoil)}</td><td>${$(t.total_gasoil_lts)}</td><td>${$p(t.costo_gasoil)}</td>
-          <td>${$p(t.total_pesos)}</td><td>${$(t.tipo_cambio)}</td><td>${$u(t.total_usd)}</td>
-          <td>${$(e.consumo_por_rollo)}</td><td>${$(e.consumo_total_lts)}</td><td>${$p(t.costo_gasoil)}</td>
-          <td>${t.operario||'—'}</td><td>${$(t.porcentaje_operario)}%</td><td>${$(e.consumo_red)}</td><td>${$p(e.costo_red_hilo)}</td>
+          <td>${$n(t.hectareas)}</td><td>${t.cultivo||'—'}</td><td>${$n(e.rollos)}</td><td>${$n(e.rendimiento)}</td><td>${e.tipo_rollo||'—'}</td>
+          <td>${$p(t.tarifa_gasoil)}</td><td>${$n(t.total_gasoil_lts)}</td><td>${$p(t.costo_gasoil)}</td>
+          <td>${$p(t.total_pesos)}</td><td>${$n(t.tipo_cambio)}</td><td>${$u(t.total_usd)}</td>
+          <td>${$n(e.consumo_por_rollo)}</td><td>${$n(e.consumo_total_lts)}</td><td>${$p(e.costo_gasoil_pesos)}</td>
+          <td>${t.operario||'—'}</td><td>${$n(t.porcentaje_operario)}%</td><td>${$n(e.consumo_red)}</td><td>${$p(e.costo_red_hilo)}</td>
           <td>${$p(t.costo_total)}</td><td>${$p(e.costo_por_rollo)}</td><td>${$p(e.ganancia_por_rollo)}</td><td>${$p(e.margen_por_rollo)}</td><td>${$p(t.margen_total)}</td>
         </tr>`;
       };
     } else if (cat === 'Forraje' || cat === 'Cosecha' || cat === 'Siembra') {
-      // Segadora y similares — columnas por hectárea
       thead = `<tr>
         <th>Fecha</th><th>Propietario</th><th>Establecimiento</th><th>Lote</th>
         <th>Has</th><th>Cultivo</th>
-        <th>Tarifa Gas.</th><th>Tot. Gas.(lts)</th><th>$ Gasoil</th>
+        <th>Tarifa Gas.</th><th>Tot.Gas(lts)</th><th>$Gasoil</th>
         <th>Total $</th><th>TC</th><th>Total U$D</th>
         <th>Cons/Ha</th><th>Cons.Total</th><th>Costo Gas.</th>
-        <th>Operario</th><th>% Op.</th>
+        <th>Operario</th><th>Costo Op.</th>
         <th>Costo Total</th><th>C/Ha</th><th>Gan/Ha</th><th>Mrg/Ha</th><th>Mrg Total</th>
       </tr>`;
       rowFn = t => {
         const e = t.extras || {};
         return `<tr>
           <td>${fmtFecha(t.fecha)}</td><td>${t.propietario||'—'}</td><td>${t.establecimiento||'—'}</td><td>${t.lote||'—'}</td>
-          <td>${$(t.hectareas)}</td><td>${t.cultivo||'—'}</td>
-          <td>${$p(t.tarifa_gasoil)}</td><td>${$(t.total_gasoil_lts)}</td><td>${$p(t.costo_gasoil)}</td>
-          <td>${$p(t.total_pesos)}</td><td>${$(t.tipo_cambio)}</td><td>${$u(t.total_usd)}</td>
-          <td>${$(e.consumo_por_ha)}</td><td>${$(e.consumo_total_lts)}</td><td>${$p(t.costo_gasoil)}</td>
-          <td>${t.operario||'—'}</td><td>${$(t.porcentaje_operario)}%</td>
+          <td>${$n(t.hectareas)}</td><td>${t.cultivo||'—'}</td>
+          <td>${$p(t.tarifa_gasoil)}</td><td>${$n(t.total_gasoil_lts)}</td><td>${$p(t.costo_gasoil)}</td>
+          <td>${$p(t.total_pesos)}</td><td>${$n(t.tipo_cambio)}</td><td>${$u(t.total_usd)}</td>
+          <td>${$n(e.consumo_por_ha)}</td><td>${$n(e.consumo_total_lts)}</td><td>${$p(e.costo_gasoil_pesos)}</td>
+          <td>${t.operario||'—'}</td><td>${$p(e.costo_operario)}</td>
           <td>${$p(t.costo_total)}</td><td>${$p(e.costo_por_ha)}</td><td>${$p(e.ganancia_por_ha)}</td><td>${$p(e.margen_por_ha)}</td><td>${$p(t.margen_total)}</td>
         </tr>`;
       };
     } else {
-      // Vista genérica para el resto
       thead = `<tr><th>Fecha</th><th>Propietario</th><th>Establecimiento</th><th>Lote</th><th>Has</th><th>Cultivo</th><th>Total $</th><th>Total U$D</th><th>Margen Total</th></tr>`;
       rowFn = t => `<tr>
         <td>${fmtFecha(t.fecha)}</td><td>${t.propietario||'—'}</td><td>${t.establecimiento||'—'}</td><td>${t.lote||'—'}</td>
-        <td>${$(t.hectareas)}</td><td>${t.cultivo||'—'}</td><td>${$p(t.total_pesos)}</td><td>${$u(t.total_usd)}</td><td>${$p(t.margen_total)}</td>
+        <td>${$n(t.hectareas)}</td><td>${t.cultivo||'—'}</td><td>${$p(t.total_pesos)}</td><td>${$u(t.total_usd)}</td><td>${$p(t.margen_total)}</td>
       </tr>`;
     }
 
     const rows = registros.length
       ? registros.map(rowFn).join('')
-      : `<tr><td colspan="20"><div class="empty-state"><div class="icon">🌾</div><h3>Sin trabajos registrados</h3></div></td></tr>`;
+      : `<tr><td colspan="25"><div class="empty-state"><div class="icon">🌾</div><h3>Sin trabajos</h3></div></td></tr>`;
+
+    const paginador = totalPags > 1 ? `
+      <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:10px">
+        <button class="btn btn-sm" onclick="trabPaginar(-1)" ${pagActual===0?'disabled':''}>&#8592;</button>
+        <span style="font-size:13px">Pág. ${pagActual+1} / ${totalPags} (${filtrados.length} registros)</span>
+        <button class="btn btn-sm" onclick="trabPaginar(1)" ${pagActual>=totalPags-1?'disabled':''}>&#8594;</button>
+        <input type="hidden" id="trab-page-cur" value="${pagActual}">
+      </div>` : `<div style="font-size:12px;color:var(--text-muted);margin-top:6px;text-align:right">${filtrados.length} registros</div>`;
 
     cont.innerHTML = `
-      <div style="margin-bottom:10px;text-align:right">
-        <button class="btn btn-sm btn-primary" onclick="abrirModalTrabajo()">+ Agregar trabajo</button>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px">
+        <select id="trab-f-camp" class="form-control" style="width:110px;font-size:12px" onchange="renderContenidoFichaMaq('trabajos')">
+          <option value="">Todas las campañas</option>
+          ${campanias.map(c => `<option value="${c}"${prevCamp===c?' selected':''}>${c}</option>`).join('')}
+        </select>
+        <input id="trab-f-prop" class="form-control" style="width:140px;font-size:12px" placeholder="Propietario" value="${prevProp}" oninput="trabFiltrar()">
+        <input id="trab-f-estab" class="form-control" style="width:140px;font-size:12px" placeholder="Establecimiento" value="${prevEstab}" oninput="trabFiltrar()">
+        <input id="trab-f-cult" class="form-control" style="width:110px;font-size:12px" placeholder="Cultivo" value="${prevCult}" oninput="trabFiltrar()">
+        <input id="trab-f-op" class="form-control" style="width:110px;font-size:12px" placeholder="Operario" value="${prevOp}" oninput="trabFiltrar()">
+        <button class="btn btn-sm" onclick="trabLimpiarFiltros()">✕ Limpiar</button>
+        <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="abrirModalTrabajo()">+ Agregar trabajo</button>
       </div>
       <div class="table-wrap" style="overflow-x:auto"><table>
         <thead>${thead}</thead>
         <tbody>${rows}</tbody>
-      </table></div>`;
+      </table></div>
+      ${paginador}`;
   }
 }
 
@@ -343,6 +397,34 @@ async function borrarMantenimiento(id) {
   if (!confirm('¿Eliminar este registro de mantenimiento?')) return;
   await sb('DELETE', 'mantenimiento', null, `?id=eq.${id}`);
   await cargarMaquinaria();
+}
+
+function trabFiltrar() {
+  // Debounce ligero para inputs de texto
+  clearTimeout(window._trabFiltrarTimer);
+  window._trabFiltrarTimer = setTimeout(() => {
+    // Resetear página al filtrar
+    const pg = document.getElementById('trab-page-cur');
+    if (pg) pg.value = '0';
+    renderContenidoFichaMaq('trabajos');
+  }, 300);
+}
+
+function trabPaginar(delta) {
+  const pg = document.getElementById('trab-page-cur');
+  if (!pg) return;
+  pg.value = Math.max(0, parseInt(pg.value || '0') + delta);
+  renderContenidoFichaMaq('trabajos');
+}
+
+function trabLimpiarFiltros() {
+  ['trab-f-camp','trab-f-prop','trab-f-estab','trab-f-cult','trab-f-op'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const pg = document.getElementById('trab-page-cur');
+  if (pg) pg.value = '0';
+  renderContenidoFichaMaq('trabajos');
 }
 
 function abrirModalTrabajo() {
