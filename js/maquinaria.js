@@ -316,6 +316,9 @@ function renderContenidoFichaMaq(tab) {
     const gasoilTot = filtrados.reduce((s, t) => { const e = t.extras||{}; return s + (e.consumo_total_lts || t.total_gasoil_lts || 0); }, 0);
     const costoOpTot = filtrados.reduce((s, t) => { const e = t.extras||{}; return s + (e.costo_operario || 0); }, 0);
     const consProm = unidadTot > 0 && gasoilTot > 0 ? gasoilTot / unidadTot : null;
+    // Precio promedio ponderado del litro de gasoil → para convertir montos a litros equivalentes
+    const gasoilCostoPesos = filtrados.reduce((s, t) => { const e = t.extras||{}; return s + (e.costo_gasoil_pesos || 0); }, 0);
+    const precioLtProm = gasoilTot > 0 && gasoilCostoPesos > 0 ? gasoilCostoPesos / gasoilTot : null;
 
     // COSTO TOTAL — de extras.costo_total
     const costoTotPesos  = filtrados.reduce((s, t) => s + ((t.extras||{}).costo_total || 0), 0);
@@ -389,17 +392,17 @@ function renderContenidoFichaMaq(tab) {
             '$' + fmtNum(costoTotPesos),
             costoTotUsd > 0 ? 'U$D ' + fmtNum(costoTotUsd) : null,
             costoPromPesos != null ? '$' + fmtNum(costoPromPesos) + '/' + unidadLabel : null,
-            consProm != null ? fmtNum(consProm) + ' lts/' + unidadLabel : null) : ''}
+            costoPromPesos != null && precioLtProm ? fmtNum(costoPromPesos / precioLtProm) + ' lts/' + unidadLabel : null) : ''}
         ${kard('Margen total',
             '$' + fmtNum(margenTotPesos),
             margenTotUsd !== 0 ? 'U$D ' + fmtNum(margenTotUsd) : null,
             margenPromPesos != null ? '$' + fmtNum(margenPromPesos) + '/' + unidadLabel : null,
-            consProm != null ? fmtNum(consProm) + ' lts/' + unidadLabel : null)}
+            margenPromPesos != null && precioLtProm ? fmtNum(margenPromPesos / precioLtProm) + ' lts/' + unidadLabel : null)}
         ${kard('Ganancia total',
             '$' + fmtNum(ganTotPesos),
             ganTotUsd !== 0 ? 'U$D ' + fmtNum(ganTotUsd) : null,
             ganPromPesos != null ? '$' + fmtNum(ganPromPesos) + '/' + unidadLabel : null,
-            consProm != null ? fmtNum(consProm) + ' lts/' + unidadLabel : null)}
+            ganPromPesos != null && precioLtProm ? fmtNum(ganPromPesos / precioLtProm) + ' lts/' + unidadLabel : null)}
         ${gasoilTot > 0 ? kard('Gasoil total', fmtNum(gasoilTot) + ' lts', null, consProm != null ? fmtNum(consProm) + ' lts/' + unidadLabel : null) : ''}
       </div>`;
 
