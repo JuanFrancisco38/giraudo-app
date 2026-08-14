@@ -116,9 +116,12 @@ function renderContenidoFichaMaq(tab) {
 
   if (tab === 'datos') {
     const trabsMaq = trabajosMaq.filter(t => t.maquina_id === m.id);
-    const hasTotal = trabsMaq.length ? trabsMaq.reduce((s, t) => s + (t.hectareas || 0), 0) : null;
-    const uso = hasTotal != null && m.unidad_uso === 'has'
+    const hasTotal    = trabsMaq.reduce((s, t) => s + (t.hectareas || 0), 0);
+    const rollosTotal = trabsMaq.reduce((s, t) => s + ((t.extras||{}).rollos || 0), 0);
+    const uso = m.unidad_uso === 'has' && hasTotal > 0
       ? `${fmtNum(hasTotal)} has`
+      : m.unidad_uso === 'rollos' && rollosTotal > 0
+      ? `${fmtNum(rollosTotal)} rollos`
       : m.horas_actuales != null ? `${fmtNum(m.horas_actuales)} ${m.unidad_uso || 'hs'}` : '—';
     const valor = m.valor_compra ? `${m.moneda_compra || 'USD'} ${fmtNum(m.valor_compra)}` : '—';
     cont.innerHTML = `
