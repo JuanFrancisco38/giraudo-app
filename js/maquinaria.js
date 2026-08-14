@@ -324,9 +324,10 @@ function renderContenidoFichaMaq(tab) {
     const gasoilCostoPesos = filtrados.reduce((s, t) => { const e = t.extras||{}; return s + (e.costo_gasoil_pesos || 0); }, 0);
     const precioLtProm = gasoilTot > 0 && gasoilCostoPesos > 0 ? gasoilCostoPesos / gasoilTot : null;
 
-    // COSTO TOTAL — de extras.costo_total
-    const costoTotPesos  = filtrados.reduce((s, t) => s + ((t.extras||{}).costo_total || 0), 0);
-    const costoTotUsd    = filtrados.reduce((s, t) => { const e = t.extras||{}; return s + (e.costo_total && t.tipo_cambio ? e.costo_total / t.tipo_cambio : 0); }, 0);
+    // COSTO TOTAL — de extras.costo_total; si no existe, suma costo_gasoil_pesos + costo_operario
+    const _costoFila = t => { const e = t.extras||{}; return e.costo_total != null ? e.costo_total : (e.costo_gasoil_pesos||0) + (e.costo_operario||0); };
+    const costoTotPesos  = filtrados.reduce((s, t) => s + _costoFila(t), 0);
+    const costoTotUsd    = filtrados.reduce((s, t) => s + (t.tipo_cambio ? _costoFila(t) / t.tipo_cambio : 0), 0);
     const costoPromPesos = unidadTot > 0 && costoTotPesos > 0 ? costoTotPesos / unidadTot : null;
 
     // MARGEN TOTAL — de margen_total
