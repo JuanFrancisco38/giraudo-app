@@ -132,6 +132,8 @@ async function cargarLiqGranos() {
   liqgrPoblarSelect('liqgr-f-firma', liqgrTodas.map(l => l.firma));
   liqgrPoblarSelect('liqgr-f-razon', liqgrTodas.map(l => l.razon_social));
   liqgrPoblarSelect('liqgr-f-camp', liqgrTodas.map(l => l.campania));
+  const fd = document.getElementById('liqgr-f-fecha');
+  if (fd) fd.value = '';
   renderLiqGranos();
 }
 

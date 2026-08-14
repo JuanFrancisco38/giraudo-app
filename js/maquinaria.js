@@ -2,16 +2,18 @@ let maquinas = [], mantenimientos = [], trabajosMaq = [];
 let maquinaSeleccionada = null, tabMaqActiva = 'datos', catFiltroActiva = null;
 
 const BADGE_CAT = {
-  'Tractores': 'badge-bordo', 'Cosecha': 'badge-yellow', 'Labranza': 'badge-tierra',
-  'Siembra': 'badge-green', 'Fertilización': 'badge-blue', 'Pulverización': 'badge-green',
-  'Forrajes': 'badge-tierra', 'Viales': 'badge-gris', 'Movilidad': 'badge-blue',
-  'Logística': 'badge-gris', 'Otro': 'badge-gris'
+  'Tractor': 'badge-bordo', 'Cosecha': 'badge-yellow', 'Siembra': 'badge-green',
+  'Acondicionamiento de suelo': 'badge-tierra', 'Movimiento de granos': 'badge-yellow',
+  'Movimiento de suelos': 'badge-tierra', 'Fumigacion': 'badge-blue',
+  'Henificacion': 'badge-green', 'Forraje': 'badge-tierra',
+  'Movilidad': 'badge-blue', 'Otro': 'badge-gris'
 };
 const ICON_CAT = {
-  'Tractores': '🚜', 'Cosecha': '🌾', 'Labranza': '🪛',
-  'Siembra': '🌱', 'Fertilización': '🧪', 'Pulverización': '💧',
-  'Forrajes': '🌀', 'Viales': '🛣️', 'Movilidad': '🚗',
-  'Logística': '📦', 'Otro': '⚙️'
+  'Tractor': '🚜', 'Cosecha': '🌾', 'Siembra': '🌱',
+  'Acondicionamiento de suelo': '🪚', 'Movimiento de granos': '🚛',
+  'Movimiento de suelos': '🪚', 'Fumigacion': '💦',
+  'Henificacion': '🌀', 'Forraje': '🌿',
+  'Movilidad': '🚗', 'Otro': '⚙️'
 };
 
 async function cargarMaquinaria() {
@@ -134,7 +136,7 @@ function renderContenidoFichaMaq(tab) {
           <div class="form-group"><label>Nombre</label><input type="text" id="medit-nombre" value="${m.nombre || ''}"></div>
           <div class="form-group"><label>Categoría</label>
             <select id="medit-cat">
-              ${['Tractores','Cosecha','Labranza','Siembra','Fertilización','Pulverización','Forrajes','Viales','Movilidad','Logística','Otro'].map(c => `<option${m.categoria===c?' selected':''}>${c}</option>`).join('')}
+              ${['Tractor','Cosecha','Siembra','Acondicionamiento de suelo','Movimiento de granos','Movimiento de suelos','Fumigacion','Henificacion','Forraje','Movilidad','Otro'].map(c => `<option${m.categoria===c?' selected':''}>${c}</option>`).join('')}
             </select>
           </div>
           <div class="form-group"><label>Año</label><input type="number" id="medit-anio" value="${m.anio || ''}"></div>
