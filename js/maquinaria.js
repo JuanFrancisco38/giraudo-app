@@ -266,7 +266,7 @@ function renderContenidoFichaMaq(tab) {
         <th>Total $</th><th>TC</th><th>Total U$D</th>
         <th>Cons/Rollo</th><th>Cons.Total</th><th>Costo Gas.</th>
         <th>Operario</th><th>% Op.</th><th>Red/Hilo</th><th>Tot.Red/Hilo</th>
-        <th>Costo Total</th><th>C/Rollo</th><th>Gan/Rollo</th><th>Mrg/Rollo</th><th>Mrg Total</th>
+        <th>Costo Total</th><th>C/Rollo</th><th>Gan/Rollo</th><th>Mrg/Rollo</th><th>Mrg Total</th><th></th>
       </tr>`;
       rowFn = t => {
         const e = t.extras || {};
@@ -278,6 +278,7 @@ function renderContenidoFichaMaq(tab) {
           <td>${$n(e.consumo_por_rollo)}</td><td>${$n(e.consumo_total_lts)}</td><td>${$p(e.costo_gasoil_pesos)}</td>
           <td>${t.operario||'—'}</td><td>${$n(t.porcentaje_operario)}%</td><td>${$n(e.consumo_red)}</td><td>${$p(e.costo_red_hilo)}</td>
           <td>${$p(t.costo_total)}</td><td>${$p(e.costo_por_rollo)}</td><td>${$p(e.ganancia_por_rollo)}</td><td>${$p(e.margen_por_rollo)}</td><td>${$p(t.margen_total)}</td>
+          <td><button class="btn btn-sm" style="color:#c0392b;padding:2px 6px" onclick="eliminarTrabajoMaq('${t.id}')">🗑</button></td>
         </tr>`;
       };
     } else if (cat === 'Forraje' || cat === 'Cosecha' || cat === 'Siembra') {
@@ -288,7 +289,7 @@ function renderContenidoFichaMaq(tab) {
         <th>Total $</th><th>TC</th><th>Total U$D</th>
         <th>Cons/Ha</th><th>Cons.Total</th><th>Costo Gas.</th>
         <th>Operario</th><th>Costo Op.</th>
-        <th>Costo Total</th><th>C/Ha</th><th>Gan/Ha</th><th>Mrg/Ha</th><th>Mrg Total</th>
+        <th>Costo Total</th><th>C/Ha</th><th>Gan/Ha</th><th>Mrg/Ha</th><th>Mrg Total</th><th></th>
       </tr>`;
       rowFn = t => {
         const e = t.extras || {};
@@ -300,13 +301,15 @@ function renderContenidoFichaMaq(tab) {
           <td>${$n(e.consumo_por_ha)}</td><td>${$n(e.consumo_total_lts)}</td><td>${$p(e.costo_gasoil_pesos)}</td>
           <td>${t.operario||'—'}</td><td>${$p(e.costo_operario)}</td>
           <td>${$p(t.costo_total)}</td><td>${$p(e.costo_por_ha)}</td><td>${$p(e.ganancia_por_ha)}</td><td>${$p(e.margen_por_ha)}</td><td>${$p(t.margen_total)}</td>
+          <td><button class="btn btn-sm" style="color:#c0392b;padding:2px 6px" onclick="eliminarTrabajoMaq('${t.id}')">🗑</button></td>
         </tr>`;
       };
     } else {
-      thead = `<tr><th>Fecha</th><th>Propietario</th><th>Establecimiento</th><th>Lote</th><th>Has</th><th>Cultivo</th><th>Total $</th><th>Total U$D</th><th>Margen Total</th></tr>`;
+      thead = `<tr><th>Fecha</th><th>Propietario</th><th>Establecimiento</th><th>Lote</th><th>Has</th><th>Cultivo</th><th>Total $</th><th>Total U$D</th><th>Margen Total</th><th></th></tr>`;
       rowFn = t => `<tr>
         <td>${fmtFecha(t.fecha)}</td><td>${t.propietario||'—'}</td><td>${t.establecimiento||'—'}</td><td>${t.lote||'—'}</td>
         <td>${$n(t.hectareas)}</td><td>${t.cultivo||'—'}</td><td>${$p(t.total_pesos)}</td><td>${$u(t.total_usd)}</td><td>${$p(t.margen_total)}</td>
+        <td><button class="btn btn-sm" style="color:#c0392b;padding:2px 6px" onclick="eliminarTrabajoMaq('${t.id}')">🗑</button></td>
       </tr>`;
     }
 
@@ -595,6 +598,15 @@ function calcTotGasoilMaq() {
   const has    = parseFloat(document.getElementById('tmaq-has')?.value || 0);
   const tot    = document.getElementById('tmaq-tot-gas');
   if (tot && tarifa && has) tot.value = (tarifa * has).toFixed(0);
+}
+
+async function eliminarTrabajoMaq(id) {
+  if (!confirm('¿Borrar este trabajo? Esta acción no se puede deshacer.')) return;
+  // Borrar de tabla nueva (cascade a trabajo_maquinaria/insumos) via origen_id
+  await sb('DELETE', 'trabajos', null, `?origen_id=eq.${id}`);
+  // Borrar de tabla vieja
+  await sb('DELETE', 'trabajos_agricolas', null, `?id=eq.${id}`);
+  await cargarMaquinaria();
 }
 
 async function guardarTrabajoMaq(porRollo) {

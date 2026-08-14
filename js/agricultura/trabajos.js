@@ -347,13 +347,59 @@ async function guardarTrabajoModal() {
     }
   }
 
+  const TIPO_MAP_TRAB = {
+    'Siembra':'siembra','Pulverización':'pulverizacion','Fertilización':'fertilizacion',
+    'Cosecha':'cosecha','Henificación':'enrollado','Enrollado':'enrollado',
+    'Labranza':'movimiento_suelos','Otro':'otro'
+  };
+  const tipoLabor = TIPO_MAP_TRAB[baseHeader.tipo] || (baseHeader.tipo || '').toLowerCase();
+  const contratistaNombre = baseHeader.contratista;
+  const campo = baseHeader.campo;
+
   let ok = 0;
-  for (const data of registros) {
-    const r = await sb('POST', 'trabajos_agricolas', data);
-    if (r) ok++;
+  for (const l of lotes) {
+    // 1. Escribir a tabla vieja (legacy, mantener funcionando)
+    const header = { ...baseHeader, lote: l.lote, hectareas: l.hectareas };
+    if (insumos.length) {
+      for (const ins of insumos) {
+        await sb('POST', 'trabajos_agricolas', {
+          ...header, descripcion: ins.descripcion, dosis: ins.dosis,
+          consumo_total: ins.consumo_total, precio_unitario: ins.precio_unitario || null
+        });
+      }
+    } else {
+      await sb('POST', 'trabajos_agricolas', header);
+    }
+
+    // 2. Escribir a tablas nuevas
+    const loteId = await resolverLoteId(campo, l.lote, l.hectareas);
+    const tRes = await sb('POST', 'trabajos', {
+      fecha, tipo_labor: tipoLabor, hectareas: l.hectareas,
+      cultivo: baseHeader.cultivo, campania: baseHeader.campania,
+      lote_id: loteId || undefined
+    });
+    if (tRes?.[0]) {
+      const tid = tRes[0].id;
+      if (baseHeader.maquina_id) {
+        await sb('POST', 'trabajo_maquinaria', { trabajo_id: tid, maquina_id: baseHeader.maquina_id });
+      }
+      if (contratistaNombre && contratistaNombre !== 'Propio') {
+        const contId = await resolverParteId(contratistaNombre);
+        if (contId) await sb('POST', 'trabajo_contratista', { trabajo_id: tid, contratista_id: contId });
+      }
+      for (const ins of insumos) {
+        await sb('POST', 'trabajo_insumos', {
+          trabajo_id: tid, insumo: ins.descripcion, cantidad: ins.consumo_total,
+          costo_total: ins.precio_unitario && ins.consumo_total
+            ? Math.round(ins.precio_unitario * (parseNumeroDeTexto(ins.consumo_total) || 0)) : null
+        });
+      }
+      ok++;
+    }
   }
+
   if (ok) {
-    toast(`✅ ${ok > 1 ? ok + ' registros guardados' : 'Trabajo guardado'}`);
+    toast(`✅ ${ok > 1 ? ok + ' trabajos guardados' : 'Trabajo guardado'}`);
     cerrarModalTrabajo();
     cargarTrabajos();
   } else toast('❌ Error al guardar', 'var(--rojo)');
@@ -402,30 +448,68 @@ let trabajosPagina = 1;
 function filtrarTrabajosReset() { trabajosPagina = 1; renderTrabajos(); }
 function irPaginaTrabajos(p) { trabajosPagina = p; renderTrabajos(); window.scrollTo({ top: document.getElementById('section-trabajos_agri').offsetTop, behavior: 'smooth' }); }
 
+// Resuelve o crea un lote en la tabla lotes por campo+numero
+async function resolverLoteId(campo, loteNum, hectareas) {
+  if (!campo || !loteNum) return null;
+  const rows = await sb('GET', 'lotes', '', `?campo=eq.${encodeURIComponent(campo)}&lote=eq.${encodeURIComponent(loteNum)}`);
+  if (rows && rows.length) return rows[0].id;
+  const r = await sb('POST', 'lotes', { campo, lote: loteNum, hectareas: hectareas || null });
+  return r?.[0]?.id || null;
+}
+
+// Resuelve o crea una parte (tercero) por nombre
+async function resolverParteId(nombre) {
+  if (!nombre || nombre === 'Propio') return null;
+  const rows = await sb('GET', 'partes', '', `?nombre=eq.${encodeURIComponent(nombre)}`);
+  if (rows && rows.length) return rows[0].id;
+  const r = await sb('POST', 'partes', { nombre });
+  return r?.[0]?.id || null;
+}
+
 async function cargarTrabajos() {
   const [rows] = await Promise.all([
-    sb('GET', 'trabajos_agricolas', '', '?tipo=neq.alimentacion&order=fecha.desc'),
+    sb('GET', 'trabajos', '', '?select=id,fecha,tipo_labor,hectareas,cultivo,campania,origen_id,lotes(campo,lote),trabajo_insumos(*),trabajo_contratista(partes(nombre))&order=fecha.desc'),
     cargarDatosCostosInsumos()
   ]);
   trabajosTodos = rows || [];
   renderTrabajos();
 }
 
+const TIPO_LABEL_TRAB = {
+  siembra:'Siembra', pulverizacion:'Pulverización', fertilizacion:'Fertilización',
+  cosecha:'Cosecha', enrollado:'Enrollado', corte:'Corte', rastrillado:'Rastrillado',
+  movimiento_suelos:'Labranza', otro:'Otro'
+};
+const TIPO_COLORS_TRAB = {
+  siembra:'green', pulverizacion:'blue', fertilizacion:'yellow',
+  cosecha:'tierra', enrollado:'bordo', corte:'bordo', rastrillado:'gris',
+  movimiento_suelos:'tierra'
+};
+
+function normTipoTrab(s) {
+  return (s || '').toLowerCase()
+    .replace(/á/g,'a').replace(/é/g,'e').replace(/í/g,'i').replace(/ó/g,'o').replace(/ú/g,'u').replace(/ñ/g,'n').trim();
+}
+
 function renderTrabajos() {
   const tbody = document.getElementById('tabla-trabajos');
   if (!tbody) return;
   const fBusca = (document.getElementById('trab-filtro-busca')?.value || '').trim().toLowerCase();
-  const fTipo = document.getElementById('trab-filtro-tipo')?.value || '';
+  const fTipo  = normTipoTrab(document.getElementById('trab-filtro-tipo')?.value || '');
+
   const rows = trabajosTodos.filter(t => {
-    if (fTipo && t.tipo !== fTipo) return false;
-    if (fBusca && !`${t.lote || ''} ${t.cultivo || ''} ${t.contratista || ''}`.toLowerCase().includes(fBusca)) return false;
+    const tl = normTipoTrab(t.tipo_labor);
+    if (fTipo && tl !== fTipo) return false;
+    const lote = t.lotes?.lote || '';
+    const cultivo = t.cultivo || '';
+    const cont = t.trabajo_contratista?.[0]?.partes?.nombre || 'Propio';
+    if (fBusca && !`${lote} ${cultivo} ${cont}`.toLowerCase().includes(fBusca)) return false;
     return true;
   });
 
   const pag = document.getElementById('trab-paginador');
   if (!rows.length) {
-    const hayFiltro = fBusca || fTipo;
-    tbody.innerHTML = `<tr><td colspan="12"><div class="empty-state"><div class="icon">🌾</div><h3>${hayFiltro ? 'Sin resultados para el filtro' : 'Sin trabajos'}</h3></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="icon">🌾</div><h3>${fBusca || fTipo ? 'Sin resultados para el filtro' : 'Sin trabajos'}</h3></div></td></tr>`;
     if (pag) pag.innerHTML = '';
     return;
   }
@@ -435,45 +519,31 @@ function renderTrabajos() {
   const pagina = rows.slice((trabajosPagina - 1) * FILAS_POR_PAGINA, trabajosPagina * FILAS_POR_PAGINA);
   if (pag) pag.innerHTML = htmlPaginador(trabajosPagina, rows.length, 'irPaginaTrabajos');
 
-  const colors = {Siembra:'green',Pulverización:'blue',Fertilización:'yellow',Cosecha:'tierra',Henificación:'bordo'};
   tbody.innerHTML = pagina.map(t => {
-    // Costo del trabajo desde tabla de tarifas
-    const tarifaRow = (tarifasTrabajos || []).find(r => r.tipo === t.tipo);
-    const costoTrabajo = tarifaRow?.tarifa_ha && t.hectareas ? tarifaRow.tarifa_ha * t.hectareas : null;
-    // Costo de insumos (para referencia)
-    let precioUnit = t.precio_unitario;
-    let cantidad = parseNumeroDeTexto(t.consumo_total) || parseNumeroDeTexto(t.dosis) * (t.hectareas || 0);
-    if (precioUnit == null && t.descripcion) {
-      const unidadTrabajo = parseUnidadDeTexto(t.consumo_total) || parseUnidadDeTexto(t.dosis);
-      const r = buscarCostoUnitarioInsumo(t.descripcion, t.campania);
-      if (r) {
-        if (unidadTrabajo && r.unidad) cantidad = convertirCantidad(cantidad, unidadTrabajo, r.unidad);
-        precioUnit = r.precio;
-      }
-    }
-    const costoInsumos = precioUnit != null && cantidad ? precioUnit * cantidad : null;
-    // Total: para terceros = tarifa cobrada × has; para propios = tarifa tabla + insumos
-    let totalMostrar;
-    if (t.tarifa_cobrada && t.hectareas) {
-      totalMostrar = fmtMonto(t.tarifa_cobrada * t.hectareas, t.moneda_cobrada || 'ARS');
-    } else {
-      const total = (costoTrabajo || 0) + (costoInsumos || 0);
-      totalMostrar = total ? fmtMonto(total, 'ARS') : '—';
-    }
+    const tl = t.tipo_labor || '';
+    const tipoLabel = TIPO_LABEL_TRAB[tl] || tl;
+    const campo = t.lotes?.campo || '—';
+    const lote  = t.lotes?.lote  || '—';
+    const cont  = t.trabajo_contratista?.[0]?.partes?.nombre || 'Propio';
+    const insList = t.trabajo_insumos || [];
+    const insDisplay = insList.length
+      ? insList.map(i => `${i.insumo || ''}${i.cantidad ? ` (${i.cantidad})` : ''}`).join('<br>')
+      : '—';
+    const costoIns = insList.reduce((s, i) => s + (i.costo_total || 0), 0);
+    const tarifaRow = (tarifasTrabajos || []).find(r => normTipoTrab(r.tipo) === normTipoTrab(tl));
+    const costoTrab = tarifaRow?.tarifa_ha && t.hectareas ? tarifaRow.tarifa_ha * t.hectareas : null;
+    const total = costoIns || costoTrab;
+    const totalMostrar = total ? fmtMonto(total, 'ARS') : '—';
     const tarifaLabel = tarifaRow ? `<small style="color:#888;display:block">${fmtMonto(tarifaRow.tarifa_ha,'ARS')}/ha</small>` : '';
-    return `
-    <tr>
+    return `<tr>
       <td>${fmtFecha(t.fecha)}</td>
-      <td><span class="badge badge-${colors[t.tipo] || 'gray'}">${t.tipo}</span>${tarifaLabel}</td>
-      <td>${t.cliente ? `<span title="Trabajo a terceros" style="color:#b8860b;font-weight:600">👤 ${t.cliente}</span><br><small style="color:#888">${t.campo || ''}</small>` : (t.campo || '—')}</td>
-      <td>${inputEditableTrabajo(t.id, 'lote', t.lote, 50)}</td>
+      <td><span class="badge badge-${TIPO_COLORS_TRAB[tl] || 'gris'}">${tipoLabel}</span>${tarifaLabel}</td>
+      <td>${campo}</td>
+      <td>${lote}</td>
       <td>${t.hectareas ? t.hectareas + ' has' : '—'}</td>
       <td>${inputEditableTrabajo(t.id, 'cultivo', t.cultivo, 70)}</td>
-      <td>${inputEditableTrabajo(t.id, 'contratista', t.contratista, 80)}</td>
-      <td>${inputEditableTrabajo(t.id, 'descripcion', t.descripcion, 160)}</td>
-      <td>${inputEditableTrabajo(t.id, 'dosis', t.dosis, 70, 'Ej: 3 lt/ha')}</td>
-      <td>${inputEditableTrabajo(t.id, 'consumo_total', t.consumo_total, 80, 'Ej: 270 lts')}</td>
-      <td>${inputEditableTrabajoNum(t.id, 'precio_unitario', precioUnit, 80)}</td>
+      <td>${cont}</td>
+      <td style="max-width:200px">${insDisplay}</td>
       <td>${totalMostrar}</td>
       <td>${inputEditableTrabajo(t.id, 'campania', t.campania, 70, 'Ej: 25/26')}</td>
       <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarTrabajo('${t.id}')">🗑️</button></td>
@@ -493,14 +563,20 @@ function inputEditableTrabajoNum(id, campo, valor, ancho) {
 async function editarCampoTrabajo(id, campo, valor) {
   const t = trabajosTodos.find(x => x.id === id);
   if (t) t[campo] = valor;
-  const r = await sb('PATCH', 'trabajos_agricolas', { [campo]: valor }, `?id=eq.${id}`);
-  if (r) toast('✅ Actualizado');
-  else toast('❌ Error al actualizar', 'var(--rojo)');
+  const r = await sb('PATCH', 'trabajos', { [campo]: valor }, `?id=eq.${id}`);
+  if (r) {
+    if (t?.origen_id) await sb('PATCH', 'trabajos_agricolas', { [campo]: valor }, `?id=eq.${t.origen_id}`);
+    toast('✅ Actualizado');
+  } else toast('❌ Error al actualizar', 'var(--rojo)');
 }
 
 async function borrarTrabajo(id) {
   if (!confirm('¿Borrar este trabajo? Esta acción no se puede deshacer.')) return;
-  await sb('DELETE', 'trabajos_agricolas', '', `?id=eq.${id}`);
+  const t = trabajosTodos.find(x => x.id === id);
+  // Borrar de tabla nueva (cascade a insumos/contratista)
+  await sb('DELETE', 'trabajos', null, `?id=eq.${id}`);
+  // Borrar de tabla vieja por origen_id
+  if (t?.origen_id) await sb('DELETE', 'trabajos_agricolas', null, `?id=eq.${t.origen_id}`);
   toast('🗑️ Trabajo borrado');
   cargarTrabajos();
 }
