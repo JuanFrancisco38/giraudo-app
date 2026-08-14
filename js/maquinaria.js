@@ -436,7 +436,7 @@ function renderContenidoFichaMaq(tab) {
         <input id="trab-f-cult" class="form-control" style="width:110px;font-size:12px" placeholder="Cultivo" value="${prevCult}" oninput="trabFiltrar()">
         <input id="trab-f-op" class="form-control" style="width:110px;font-size:12px" placeholder="Operario" value="${prevOp}" oninput="trabFiltrar()">
         <button class="btn btn-sm" onclick="trabLimpiarFiltros()">✕ Limpiar</button>
-        <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="abrirModalTrabajo()">+ Agregar trabajo</button>
+        <button class="btn btn-sm btn-primary" style="margin-left:auto" onclick="abrirModalTrabajoMaq()">+ Agregar trabajo</button>
       </div>
       ${resumen}
       <div class="table-wrap" style="overflow-x:auto"><table>
@@ -538,7 +538,7 @@ function trabLimpiarFiltros() {
   renderContenidoFichaMaq('trabajos');
 }
 
-function abrirModalTrabajo() {
+function abrirModalTrabajoMaq() {
   const m = maquinaSeleccionada;
   const cat = m.categoria;
   const esEnrolladora = m.nombre && (m.nombre.toLowerCase().includes('enrolladora') || m.nombre.toLowerCase().includes('rb4'));
@@ -577,14 +577,14 @@ function abrirModalTrabajo() {
       <div style="margin-top:8px">${camposExtras}</div>
       <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end">
         <button class="btn" onclick="document.getElementById('modal-trabajo').remove()">Cancelar</button>
-        <button class="btn btn-primary" onclick="guardarTrabajo(${porRollo})">Guardar</button>
+        <button class="btn btn-primary" onclick="guardarTrabajoMaq(${porRollo})">Guardar</button>
       </div>
     </div>
   </div>`;
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
-async function guardarTrabajo(porRollo) {
+async function guardarTrabajoMaq(porRollo) {
   const v = id => { const el = document.getElementById(id); return el ? el.value : null; };
   const n = id => { const el = document.getElementById(id); return el && el.value ? parseFloat(el.value) : null; };
 
