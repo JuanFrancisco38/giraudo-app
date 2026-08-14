@@ -233,8 +233,9 @@ function renderContenidoFichaMaq(tab) {
       return `${String(desde).slice(2)}/${String(desde + 1).slice(2)}`;
     }
 
-    // Estado de filtros (persistido en el DOM; si no hay selección previa, usa campaña actual)
-    const prevCamp = document.getElementById('trab-f-camp')?.value || campActual();
+    // Estado de filtros (persistido en el DOM; si el select no existe aún, usa campaña actual)
+    const _campEl = document.getElementById('trab-f-camp');
+    const prevCamp = _campEl ? _campEl.value : campActual();
     const prevProp = document.getElementById('trab-f-prop')?.value?.toLowerCase() || '';
     const prevEstab = document.getElementById('trab-f-estab')?.value?.toLowerCase() || '';
     const prevCult = document.getElementById('trab-f-cult')?.value?.toLowerCase() || '';
