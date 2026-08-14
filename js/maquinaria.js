@@ -358,11 +358,14 @@ function renderContenidoFichaMaq(tab) {
     filtrados.forEach(t => {
       const op = t.operario || '—';
       const val = porRollo ? ((t.extras||{}).rollos || 0) : (t.hectareas || 0);
-      opMap[op] = (opMap[op] || 0) + val;
+      const sueldo = (t.extras||{}).costo_operario || 0;
+      if (!opMap[op]) opMap[op] = { val: 0, sueldo: 0 };
+      opMap[op].val    += val;
+      opMap[op].sueldo += sueldo;
     });
     const opEntries = Object.entries(opMap).filter(([k]) => k !== '—');
     const opHtml = opEntries.length
-      ? opEntries.map(([op, v]) => `<span style="display:block;font-size:11px">${op}: <b>${fmtNum(v)} ${unidadLabel}</b></span>`).join('')
+      ? opEntries.map(([op, d]) => `<span style="display:block;font-size:11px">${op}: <b>${fmtNum(d.val)} ${unidadLabel}</b>${d.sueldo > 0 ? ` — <b>$${fmtNum(d.sueldo)}</b>` : ''}</span>`).join('')
       : '<span style="font-size:11px;color:var(--text-muted)">—</span>';
 
     // Cultivos desglosados
@@ -393,7 +396,6 @@ function renderContenidoFichaMaq(tab) {
         <div style="background:var(--card-bg,var(--bg-secondary));border:1px solid var(--border-color);border-radius:8px;padding:10px 14px;min-width:130px;flex:1">
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Operario(s)</div>
           ${opHtml}
-          ${costoOpTot > 0 ? `<div style="font-size:11px;color:var(--text-muted);margin-top:4px">Costo op.: <b>$${fmtNum(costoOpTot)}</b></div>` : ''}
         </div>
         <div style="background:var(--card-bg,var(--bg-secondary));border:1px solid var(--border-color);border-radius:8px;padding:10px 14px;min-width:130px;flex:1">
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Cultivos</div>
