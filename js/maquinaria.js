@@ -258,7 +258,7 @@ function renderContenidoFichaMaq(tab) {
       thead = `<tr>
         <th>Fecha</th><th>Propietario</th><th>Establecimiento</th><th>Lote</th>
         <th>Has</th><th>Cultivo</th><th>Rollos</th><th>Rdto</th><th>Tipo Rollo</th>
-        <th>Tarifa Gas.</th><th>Tot.Gas(lts)</th><th>$Gasoil</th>
+        <th>Tarifa (lts/rollo)</th><th>Tot.Gas(lts)</th><th>$Gasoil</th>
         <th>Total $</th><th>TC</th><th>Total U$D</th>
         <th>Cons/Rollo</th><th>Cons.Total</th><th>Costo Gas.</th>
         <th>Operario</th><th>% Op.</th><th>Red/Hilo</th><th>Tot.Red/Hilo</th>
@@ -269,7 +269,7 @@ function renderContenidoFichaMaq(tab) {
         return `<tr>
           <td>${fmtFecha(t.fecha)}</td><td>${t.propietario||'—'}</td><td>${t.establecimiento||'—'}</td><td>${t.lote||'—'}</td>
           <td>${$n(t.hectareas)}</td><td>${t.cultivo||'—'}</td><td>${$n(e.rollos)}</td><td>${$n(e.rendimiento)}</td><td>${e.tipo_rollo||'—'}</td>
-          <td>${$p(t.tarifa_gasoil)}</td><td>${$n(t.total_gasoil_lts)}</td><td>${$p(t.costo_gasoil)}</td>
+          <td>${$n(t.tarifa_gasoil)}</td><td>${$n(t.total_gasoil_lts)}</td><td>${$p(t.costo_gasoil)}</td>
           <td>${$p(t.total_pesos)}</td><td>${$n(t.tipo_cambio)}</td><td>${$u(t.total_usd)}</td>
           <td>${$n(e.consumo_por_rollo)}</td><td>${$n(e.consumo_total_lts)}</td><td>${$p(e.costo_gasoil_pesos)}</td>
           <td>${t.operario||'—'}</td><td>${$n(t.porcentaje_operario)}%</td><td>${$n(e.consumo_red)}</td><td>${$p(e.costo_red_hilo)}</td>
@@ -280,7 +280,7 @@ function renderContenidoFichaMaq(tab) {
       thead = `<tr>
         <th>Fecha</th><th>Propietario</th><th>Establecimiento</th><th>Lote</th>
         <th>Has</th><th>Cultivo</th>
-        <th>Tarifa Gas.</th><th>Tot.Gas(lts)</th><th>$Gasoil</th>
+        <th>Tarifa (lts/ha)</th><th>Tot.Gas(lts)</th><th>$Gasoil</th>
         <th>Total $</th><th>TC</th><th>Total U$D</th>
         <th>Cons/Ha</th><th>Cons.Total</th><th>Costo Gas.</th>
         <th>Operario</th><th>Costo Op.</th>
@@ -291,7 +291,7 @@ function renderContenidoFichaMaq(tab) {
         return `<tr>
           <td>${fmtFecha(t.fecha)}</td><td>${t.propietario||'—'}</td><td>${t.establecimiento||'—'}</td><td>${t.lote||'—'}</td>
           <td>${$n(t.hectareas)}</td><td>${t.cultivo||'—'}</td>
-          <td>${$p(t.tarifa_gasoil)}</td><td>${$n(t.total_gasoil_lts)}</td><td>${$p(t.costo_gasoil)}</td>
+          <td>${$n(t.tarifa_gasoil)}</td><td>${$n(t.total_gasoil_lts)}</td><td>${$p(t.costo_gasoil)}</td>
           <td>${$p(t.total_pesos)}</td><td>${$n(t.tipo_cambio)}</td><td>${$u(t.total_usd)}</td>
           <td>${$n(e.consumo_por_ha)}</td><td>${$n(e.consumo_total_lts)}</td><td>${$p(e.costo_gasoil_pesos)}</td>
           <td>${t.operario||'—'}</td><td>${$p(e.costo_operario)}</td>
@@ -314,12 +314,15 @@ function renderContenidoFichaMaq(tab) {
     const unidadLabel = porRollo ? 'rollos' : 'ha';
     const unidadTitulo = porRollo ? 'Rollos confeccionados' : 'HAS totales';
     const gasoilTot = filtrados.reduce((s, t) => { const e = t.extras||{}; return s + (e.consumo_total_lts || t.total_gasoil_lts || 0); }, 0);
-    const usdTot = filtrados.reduce((s, t) => s + (t.total_usd || 0), 0);
     const costoOpTot = filtrados.reduce((s, t) => { const e = t.extras||{}; return s + (e.costo_operario || 0); }, 0);
-    const costoProm = unidadTot > 0 ? usdTot / unidadTot : null;
-    const ganTot = filtrados.reduce((s, t) => { const e = t.extras||{}; return s + (e.ganancia_total || 0); }, 0);
-    const ganUsdTot = filtrados.reduce((s, t) => s + (t.margen_total && t.tipo_cambio ? t.margen_total / t.tipo_cambio : 0), 0);
-    const ganProm = unidadTot > 0 && ganTot > 0 ? ganTot / unidadTot : null;
+    // Costo total: de extras.costo_total (pesos) y su conversión a USD por fila
+    const costoTotPesos = filtrados.reduce((s, t) => s + ((t.extras||{}).costo_total || 0), 0);
+    const costoTotUsd   = filtrados.reduce((s, t) => { const e = t.extras||{}; return s + (e.costo_total && t.tipo_cambio ? e.costo_total / t.tipo_cambio : 0); }, 0);
+    const costoPromPesos = unidadTot > 0 && costoTotPesos > 0 ? costoTotPesos / unidadTot : null;
+    // Ganancia total: de margen_total (pesos) y su conversión a USD por fila
+    const ganTotPesos = filtrados.reduce((s, t) => s + (t.margen_total || 0), 0);
+    const ganTotUsd   = filtrados.reduce((s, t) => s + (t.margen_total && t.tipo_cambio ? t.margen_total / t.tipo_cambio : 0), 0);
+    const ganPromPesos = unidadTot > 0 && ganTotPesos !== 0 ? ganTotPesos / unidadTot : null;
     const consProm = unidadTot > 0 && gasoilTot > 0 ? gasoilTot / unidadTot : null;
 
     // Operarios desglosados
@@ -346,17 +349,18 @@ function renderContenidoFichaMaq(tab) {
       ? Object.entries(cultMap).map(([c, v]) => `<span style="display:block;font-size:11px">${c}: <b>${fmtNum(v)} ${unidadLabel}</b></span>`).join('')
       : '<span style="font-size:11px;color:var(--text-muted)">—</span>';
 
-    function kard(titulo, valor, sub = '') {
+    function kard(titulo, valor, usd = null, sub = '') {
       return `<div style="background:var(--card-bg,var(--bg-secondary));border:1px solid var(--border-color);border-radius:8px;padding:10px 14px;min-width:130px;flex:1">
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">${titulo}</div>
         <div style="font-size:18px;font-weight:700;color:var(--text-primary)">${valor}</div>
-        ${sub ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px">${sub}</div>` : ''}
+        ${usd != null ? `<div style="font-size:12px;color:var(--text-muted);margin-top:1px">${usd}</div>` : ''}
+        ${sub ? `<div style="font-size:11px;color:var(--text-muted);margin-top:3px">${sub}</div>` : ''}
       </div>`;
     }
 
     const resumen = filtrados.length === 0 ? '' : `
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
-        ${kard(unidadTitulo, fmtNum(unidadTot) + ' ' + unidadLabel, `${filtrados.length} trabajo${filtrados.length!==1?'s':''}`)}
+        ${kard(unidadTitulo, fmtNum(unidadTot) + ' ' + unidadLabel, null, `${filtrados.length} trabajo${filtrados.length!==1?'s':''}`)}
         <div style="background:var(--card-bg,var(--bg-secondary));border:1px solid var(--border-color);border-radius:8px;padding:10px 14px;min-width:130px;flex:1">
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Operario(s)</div>
           ${opHtml}
@@ -366,9 +370,9 @@ function renderContenidoFichaMaq(tab) {
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Cultivos</div>
           ${cultHtml}
         </div>
-        ${usdTot > 0 ? kard('Costo total', 'U$D ' + fmtNum(usdTot), costoProm != null ? 'U$D ' + fmtNum(costoProm) + '/' + unidadLabel + ' prom.' : '') : ''}
-        ${ganUsdTot > 0 ? kard('Ganancia total', 'U$D ' + fmtNum(ganUsdTot), ganProm != null ? 'U$D ' + fmtNum(ganProm) + '/' + unidadLabel + ' prom.' : '') : ''}
-        ${gasoilTot > 0 ? kard('Gasoil total', fmtNum(gasoilTot) + ' lts', consProm != null ? fmtNum(consProm) + ' lts/' + unidadLabel + ' prom.' : '') : ''}
+        ${costoTotPesos > 0 ? kard('Costo total', '$' + fmtNum(costoTotPesos), costoTotUsd > 0 ? 'U$D ' + fmtNum(costoTotUsd) : null, costoPromPesos != null ? '$' + fmtNum(costoPromPesos) + '/' + unidadLabel + ' prom.' : '') : ''}
+        ${ganTotPesos !== 0 ? kard('Ganancia total', '$' + fmtNum(ganTotPesos), ganTotUsd !== 0 ? 'U$D ' + fmtNum(ganTotUsd) : null, ganPromPesos != null ? '$' + fmtNum(ganPromPesos) + '/' + unidadLabel + ' prom.' : '') : ''}
+        ${gasoilTot > 0 ? kard('Gasoil total', fmtNum(gasoilTot) + ' lts', null, consProm != null ? fmtNum(consProm) + ' lts/' + unidadLabel + ' prom.' : '') : ''}
       </div>`;
 
     const rows = registros.length
