@@ -2495,11 +2495,11 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 <script src="js/dashboard.js"></script>
 
 <!-- Modal Cargar Trabajo -->
-<div id="modal-trabajo-overlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:#111;z-index:9998"></div>
-<div id="modal-trabajo" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 0">
+<div id="modal-trabajo-overlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:9998" onclick="cerrarModalTrabajo()"></div>
+<div id="modal-trabajo" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 0" onclick="event.stopPropagation()">
   <div style="display:flex;gap:16px;margin:auto;align-items:flex-start;max-width:98vw">
   <!-- Panel lateral: precios de insumos -->
-  <div id="panel-precios-insumos" style="background:#fff;border-radius:14px;width:340px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,0.5);border:1px solid #ccc;color:#111;flex-shrink:0">
+  <div id="panel-precios-insumos" style="background:#fff;border-radius:14px;width:300px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,0.5);border:1px solid #ccc;color:#111;flex-shrink:0">
     <div style="padding:14px 16px 10px;border-bottom:2px solid #8B1A2F">
       <div style="font-weight:700;font-size:13px;color:#8B1A2F;margin-bottom:8px">🧾 Precios de insumos</div>
       <select id="panel-insumos-camp" onchange="filtrarPanelInsumos()" style="width:100%;padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;margin-bottom:8px;box-sizing:border-box">
@@ -2516,80 +2516,10 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
       <div style="padding:20px;text-align:center;color:#aaa;font-size:13px">Cargando...</div>
     </div>
   </div>
-  <div style="background:#fff;border-radius:14px;width:680px;max-width:96vw;box-shadow:0 16px 48px rgba(0,0,0,0.5);border:1px solid #ccc;color:#111">
-    <!-- Header -->
-    <div style="padding:20px 24px 16px;border-bottom:2px solid #8B1A2F;display:flex;justify-content:space-between;align-items:center">
-      <h3 style="margin:0;color:#8B1A2F;font-size:17px">✚ Nuevo trabajo de campo</h3>
-      <button onclick="cerrarModalTrabajo()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#666;line-height:1">✕</button>
-    </div>
-    <div style="padding:20px 24px">
-
-      <!-- SECCIÓN 1: EL TRABAJO -->
-      <div style="margin-bottom:20px">
-        <div style="font-weight:700;font-size:13px;color:#8B1A2F;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #e0e0e0;display:flex;align-items:center;justify-content:space-between">
-          <span>📋 Datos del trabajo</span>
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#555;text-transform:none;cursor:pointer">
-            <input type="checkbox" id="mtr-tercero" onchange="toggleTerceroModal()" style="width:16px;height:16px;cursor:pointer">
-            Trabajo a terceros
-          </label>
-        </div>
-        <!-- Panel tercero -->
-        <div id="mtr-panel-tercero" style="display:none;background:#fff8e1;border:1px solid #f0c040;border-radius:8px;padding:12px;margin-bottom:12px">
-          <div style="font-size:12px;font-weight:700;color:#b8860b;margin-bottom:8px">👤 DATOS DEL CLIENTE</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-            <div class="form-group" style="margin:0"><label>Cliente</label><input type="text" id="mtr-cliente" placeholder="Nombre del cliente" oninput="acInput(this,'cliente')" onfocus="acInput(this,'cliente')" onblur="cerrarSugerencias()"></div>
-            <div class="form-group" style="margin:0"><label>Campo / Establecimiento</label><input type="text" id="mtr-campo-tercero" placeholder="Nombre del campo" oninput="acInput(this,'campo_tercero')" onfocus="acInput(this,'campo_tercero')" onblur="cerrarSugerencias()"></div>
-            <div class="form-group" style="margin:0"><label>Tarifa cobrada $/ha</label><input type="text" id="mtr-tarifa-cobrada" placeholder="Ej: 30000" oninput="acInput(this,'tarifa')" onfocus="acInput(this,'tarifa')" onblur="cerrarSugerencias()"></div>
-            <div class="form-group" style="margin:0"><label>Moneda</label><select id="mtr-moneda-cobrada"><option value="ARS">ARS $</option><option value="USD">USD U$S</option></select></div>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div class="form-group" style="margin:0"><label>Fecha</label><input type="date" id="mtr-fecha"></div>
-          <div class="form-group" style="margin:0"><label>Tipo de trabajo</label>
-            <select id="mtr-tipo" onchange="actualizarSelectMaquinaria(this.value)">
-              <option value="">— Seleccioná —</option>
-              <option>Siembra</option><option>Pulverización</option><option>Fertilización</option>
-              <option>Cosecha</option><option>Doble acción</option><option>Cincel</option>
-              <option>Corte</option><option>Enrollado</option><option>Henificación</option>
-              <option>Picado de forraje</option><option>Labranza</option><option>Otro</option>
-            </select>
-          </div>
-          <div class="form-group" style="margin:0"><label>Herramienta / Maquinaria</label>
-            <select id="mtr-herramienta"><option value="">— Seleccioná tipo primero —</option></select>
-          </div>
-          <div class="form-group" style="margin:0"><label>Contratista</label><input type="text" id="mtr-cont" placeholder="Dejar vacío = Propio" oninput="acInput(this,'contratista')" onfocus="acInput(this,'contratista')" onblur="cerrarSugerencias()"></div>
-          <div id="mtr-campo-propio-wrap" class="form-group" style="margin:0"><label>Campo</label>
-            <select id="mtr-campo">
-              <option>Don Alfredo (Azcona)</option><option>Doña Vica</option><option>Sant-Yago</option>
-            </select>
-          </div>
-          <div class="form-group" style="margin:0"><label>Cultivo</label><input type="text" id="mtr-cultivo" placeholder="Ej: Maíz, Soja, Trigo" oninput="acInput(this,'cultivo')" onfocus="acInput(this,'cultivo')" onblur="cerrarSugerencias()"></div>
-          <div class="form-group" style="margin:0"><label>Campaña</label><input type="text" id="mtr-campania" placeholder="Ej: 25/26"></div>
-        </div>
-
-        <!-- LOTES DINÁMICOS -->
-        <div style="margin-top:12px">
-          <div style="font-weight:600;font-size:12px;color:#555;margin-bottom:6px">Lotes y hectáreas</div>
-          <div id="mtr-lotes-list"></div>
-          <button type="button" onclick="agregarFilaLoteModal()" style="margin-top:4px;padding:5px 12px;font-size:12px;border:1px dashed #8B1A2F;background:none;color:#8B1A2F;border-radius:6px;cursor:pointer">+ Agregar lote</button>
-        </div>
-
-      <!-- SECCIÓN 2: INSUMOS -->
-      <div>
-        <div style="font-weight:700;font-size:13px;color:#8B1A2F;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #e0e0e0">🧪 Insumos / Productos</div>
-        <p style="font-size:12px;color:#888;margin:0 0 10px">Si usaste varios productos, agregá una fila por cada uno.</p>
-        <div id="mtr-insumos-list"></div>
-        <button type="button" onclick="agregarFilaInsumoModal()" style="margin-top:6px;padding:6px 12px;font-size:12px;border:1px dashed #8B1A2F;background:none;color:#8B1A2F;border-radius:6px;cursor:pointer">+ Agregar insumo</button>
-      </div>
-    </div>
-
-    <!-- Footer -->
-    <div style="padding:16px 24px;border-top:1px solid #e0e0e0;display:flex;gap:10px;justify-content:flex-end">
-      <button onclick="cerrarModalTrabajo()" style="padding:8px 20px;border:1px solid #ccc;background:#fff;border-radius:7px;cursor:pointer;font-size:14px">Cancelar</button>
-      <button onclick="guardarTrabajoModal()" style="padding:8px 22px;background:#8B1A2F;color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:14px;font-weight:600">💾 Guardar</button>
-    </div>
+  <!-- Formulario principal: JS lo construye -->
+  <div id="mtr-form-contenido" style="background:#fff;border-radius:14px;width:720px;max-width:96vw;box-shadow:0 16px 48px rgba(0,0,0,0.5);border:1px solid #ccc;color:#111;max-height:95vh;overflow-y:auto">
   </div>
-  </div><!-- cierre flex contenedor -->
+  </div>
 </div>
 
 </body>

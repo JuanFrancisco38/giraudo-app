@@ -112,9 +112,11 @@ const MAQUINARIA_POR_TIPO = {
 };
 
 let maquinariaModalCache = [];
+let _mtrTipo = null;
+let _mtrLotes = [];
+let _mtrLoteSeleccionado = null;
 
 async function cargarMaquinariaModal() {
-  // Reusar el array global si ya fue cargado por el módulo de maquinaria
   if (typeof maquinas !== 'undefined' && maquinas.length) {
     maquinariaModalCache = maquinas;
     return maquinariaModalCache;
@@ -254,45 +256,270 @@ function filtrarPanelInsumos() {
   renderPanelInsumos();
 }
 
-async function abrirModalTrabajo() {
-  document.getElementById('modal-trabajo-overlay').style.display = 'block';
-  const m = document.getElementById('modal-trabajo');
-  m.style.display = 'flex';
+function mtrSeleccionarTipo(tipo) {
+  _mtrTipo = tipo;
+  document.querySelectorAll('.mtr-tipo-btn').forEach(b => {
+    const sel = b.dataset.tipo === tipo;
+    b.style.background = sel ? '#8B1A2F' : '#fff';
+    b.style.color = sel ? '#fff' : '#333';
+    b.style.borderColor = sel ? '#8B1A2F' : '#ddd';
+  });
+  document.getElementById('mtr-resto').style.display = '';
+  const esRollos  = ['enrollado','recoleccion_rollos'].includes(tipo);
+  const esCosecha = tipo === 'cosecha';
+  const esInsumos = ['siembra','pulverizacion','fertilizacion'].includes(tipo);
+  document.getElementById('mtr-wrap-rollos').style.display      = esRollos  ? '' : 'none';
+  document.getElementById('mtr-wrap-rendimiento').style.display  = esCosecha ? '' : 'none';
+  document.getElementById('mtr-wrap-insumos').style.display      = esInsumos ? '' : 'none';
+  if (esInsumos && !document.querySelector('#mtr-insumos-list .insumo-row')) agregarFilaInsumoModal();
+  const labelEl = document.getElementById('mtr-tarifa-unidad');
+  if (labelEl) labelEl.textContent = esRollos ? 'rollo' : 'ha';
+  // Pre-llenar tarifa estándar
+  const tarifaEl = document.getElementById('mtr-tarifa-lts');
+  if (tarifaEl && !tarifaEl.value) {
+    if (tipo === 'enrollado' || tipo === 'recoleccion_rollos') tarifaEl.value = 10;
+    else if (tipo === 'corte') tarifaEl.value = 23;
+  }
+  mtrMostrarCobro();
+  mtrCalcCobro();
+}
 
-  // Cargar panel de precios y cache de autocomplete en paralelo
+function mtrMostrarCobro() {
+  const esTercero = !!_mtrLoteSeleccionado?.propietario_id;
+  const el = document.getElementById('mtr-panel-cobro');
+  if (el) el.style.display = esTercero && _mtrTipo ? '' : 'none';
+}
+
+function mtrLoteChange() {
+  const loteId = document.getElementById('mtr-lote-id')?.value;
+  _mtrLoteSeleccionado = _mtrLotes.find(l => l.id === loteId) || null;
+  // Auto-fill hectareas
+  const hasEl = document.getElementById('mtr-has');
+  if (hasEl && !hasEl.value && _mtrLoteSeleccionado?.hectareas) {
+    hasEl.value = _mtrLoteSeleccionado.hectareas;
+    mtrRecalcInsumos();
+  }
+  // Aviso tercero
+  const esTercero = !!_mtrLoteSeleccionado?.propietario_id;
+  const avisoEl = document.getElementById('mtr-aviso-tercero');
+  if (avisoEl) {
+    avisoEl.style.display = esTercero ? '' : 'none';
+    if (esTercero) {
+      const n = document.getElementById('mtr-tercero-nombre');
+      if (n) n.textContent = _mtrLoteSeleccionado?.partes?.nombre || '(propietario)';
+    }
+  }
+  mtrMostrarCobro();
+  mtrCalcCobro();
+}
+
+function mtrActualizarCampania() {
+  const fecha = document.getElementById('mtr-fecha')?.value;
+  if (!fecha) return;
+  const d = new Date(fecha), m = d.getMonth()+1, y = d.getFullYear();
+  const from = m >= 7 ? y : y-1;
+  const camp = `${String(from).slice(2)}/${String(from+1).slice(2)}`;
+  const el = document.getElementById('mtr-campania');
+  if (el && !el.dataset.editado) el.value = camp;
+}
+
+function mtrCalcCobro() {
+  const tarifa = parseFloat(document.getElementById('mtr-tarifa-lts')?.value) || 0;
+  const esRollos = ['enrollado','recoleccion_rollos'].includes(_mtrTipo);
+  const qty = esRollos
+    ? parseFloat(document.getElementById('mtr-rollos')?.value) || 0
+    : parseFloat(document.getElementById('mtr-has')?.value) || 0;
+  const el = document.getElementById('mtr-cobro-lts');
+  if (el) el.value = tarifa && qty ? (tarifa * qty).toFixed(1) : '';
+}
+
+function mtrCalcRindeHa() {
+  const total = parseFloat(document.getElementById('mtr-rendimiento')?.value) || 0;
+  const has   = parseFloat(document.getElementById('mtr-has')?.value) || 0;
+  const el    = document.getElementById('mtr-rinde-ha');
+  if (el) el.value = total && has ? fmtNum(Math.round(total / has)) + ' kg/ha' : '';
+}
+
+function mtrEjecutorChange() {
+  const val = document.querySelector('input[name="mtr-ejecutor"]:checked')?.value;
+  const pp = document.getElementById('mtr-panel-propio');
+  const pc = document.getElementById('mtr-panel-contratista');
+  if (pp) pp.style.display = val === 'propio'      ? '' : 'none';
+  if (pc) pc.style.display = val === 'contratista' ? '' : 'none';
+}
+
+function mtrRecalcInsumos() {
+  document.querySelectorAll('#mtr-insumos-list .insumo-row').forEach(row => {
+    const d = row.querySelector('.ins-dosis');
+    if (d?.value) calcConsumoInsumo(d);
+  });
+  mtrCalcCobro();
+}
+
+async function abrirModalTrabajo() {
+  _mtrTipo = null;
+  _mtrLoteSeleccionado = null;
+
+  const [lotes, empleados, partes] = await Promise.all([
+    sb('GET', 'lotes', '', '?select=id,campo,lote,propietario_id,hectareas,partes(nombre)&order=campo,lote'),
+    sb('GET', 'empleados', '', '?order=nombre'),
+    sb('GET', 'partes', '', '?order=nombre'),
+    cargarMaquinariaModal(),
+  ]);
+  _mtrLotes = lotes || [];
+
   cargarPanelPreciosInsumos();
   cargarCacheAutocomplete();
 
-  // Cargar maquinaria si no está en caché
-  await cargarMaquinariaModal();
+  // Opciones lotes agrupadas por campo
+  const porCampo = {};
+  for (const l of _mtrLotes) {
+    const c = l.campo || '—';
+    if (!porCampo[c]) porCampo[c] = [];
+    porCampo[c].push(l);
+  }
+  const lotesOpts = Object.entries(porCampo).map(([campo, ls]) =>
+    `<optgroup label="${campo}">${ls.map(l =>
+      `<option value="${l.id}">${l.lote}${l.hectareas ? ` — ${l.hectareas} ha` : ''}${l.propietario_id ? ' 👤' : ''}</option>`
+    ).join('')}</optgroup>`
+  ).join('');
 
-  // Limpiar campos
-  ['mtr-cultivo','mtr-campania','mtr-cont','mtr-cliente','mtr-campo-tercero','mtr-tarifa-cobrada'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-  document.getElementById('mtr-tipo').value = '';
-  document.getElementById('mtr-fecha').value = new Date().toISOString().split('T')[0];
-  actualizarSelectMaquinaria('');
+  // Opciones maquinaria agrupadas por categoría
+  const porCat = {};
+  for (const m of maquinariaModalCache) {
+    const c = m.categoria || 'Otro';
+    if (!porCat[c]) porCat[c] = [];
+    porCat[c].push(m);
+  }
+  const maqOpts = `<option value="">— Sin especificar —</option>` +
+    Object.entries(porCat).map(([cat, items]) =>
+      `<optgroup label="${cat}">${items.map(m => `<option value="${m.id}">${m.nombre}</option>`).join('')}</optgroup>`
+    ).join('');
 
-  // Reset tercero
-  const chk = document.getElementById('mtr-tercero');
-  if (chk) chk.checked = false;
-  toggleTerceroModal();
+  const empOpts = (empleados || []).map(e => `<option value="${e.id}">${e.nombre}</option>`).join('');
+  const partesOpts = (partes || []).map(p => `<option value="${p.nombre}">`).join('');
 
-  // Lotes: una fila inicial
-  document.getElementById('mtr-lotes-list').innerHTML = '';
-  agregarFilaLoteModal();
+  const hoy = new Date().toISOString().split('T')[0];
+  const TIPOS = [
+    {k:'siembra',label:'🌱 Siembra'},
+    {k:'pulverizacion',label:'💧 Pulverización'},
+    {k:'fertilizacion',label:'🌿 Fertilización'},
+    {k:'cosecha',label:'🌾 Cosecha'},
+    {k:'corte',label:'✂️ Corte'},
+    {k:'rastrillado',label:'〰️ Rastrillado'},
+    {k:'enrollado',label:'🟤 Enrollado'},
+    {k:'recoleccion_rollos',label:'📦 Recolección'},
+    {k:'picado',label:'⚙️ Picado (silaje)'},
+    {k:'movimiento_suelos',label:'🪚 Mov. suelos'},
+  ];
+  const tipoBtns = TIPOS.map(t =>
+    `<button class="mtr-tipo-btn" data-tipo="${t.k}" onclick="mtrSeleccionarTipo('${t.k}')"
+      style="padding:10px 6px;border:1.5px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:12px;font-weight:600;text-align:center;line-height:1.3;transition:all .15s">
+      ${t.label}
+    </button>`
+  ).join('');
 
-  // Insumos: una fila inicial
-  document.getElementById('mtr-insumos-list').innerHTML = '';
-  agregarFilaInsumoModal();
+  document.getElementById('mtr-form-contenido').innerHTML = `
+    <div style="padding:20px 24px 16px;border-bottom:2px solid #8B1A2F;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff;z-index:1">
+      <h3 style="margin:0;color:#8B1A2F;font-size:17px">✚ Nuevo trabajo de campo</h3>
+      <button onclick="cerrarModalTrabajo()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#666;line-height:1">✕</button>
+    </div>
+    <div style="padding:20px 24px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#8B1A2F;letter-spacing:.5px;margin-bottom:10px">1. Tipo de trabajo</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:22px">${tipoBtns}</div>
+
+      <div id="mtr-resto" style="display:none">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#8B1A2F;letter-spacing:.5px;margin-bottom:10px">2. Datos generales</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+          <div class="form-group" style="margin:0"><label>Fecha</label>
+            <input type="date" id="mtr-fecha" value="${hoy}" oninput="mtrActualizarCampania()"></div>
+          <div class="form-group" style="margin:0"><label>Lote</label>
+            <select id="mtr-lote-id" onchange="mtrLoteChange()" style="width:100%">
+              <option value="">— Elegir lote —</option>${lotesOpts}
+            </select></div>
+          <div class="form-group" style="margin:0"><label>Hectáreas trabajadas</label>
+            <input type="number" id="mtr-has" placeholder="Ej: 78" oninput="mtrRecalcInsumos()"></div>
+          <div class="form-group" style="margin:0"><label>Cultivo</label>
+            <input type="text" id="mtr-cultivo" placeholder="Ej: Soja, Maíz, Alfalfa"></div>
+          <div class="form-group" style="margin:0"><label>Campaña</label>
+            <input type="text" id="mtr-campania" placeholder="Auto" oninput="this.dataset.editado='1'"></div>
+        </div>
+
+        <div id="mtr-aviso-tercero" style="display:none;background:#fff8e1;border:1px solid #f0c040;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px">
+          👤 Campo de tercero: <strong id="mtr-tercero-nombre"></strong>. Se calculará lo que se le cobra en gasoil.
+        </div>
+
+        <div id="mtr-wrap-rollos" style="display:none;margin-bottom:16px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#8B1A2F;letter-spacing:.5px;margin-bottom:8px">3. Producción</div>
+          <div class="form-group" style="margin:0;max-width:220px"><label>Cantidad de rollos</label>
+            <input type="number" id="mtr-rollos" placeholder="Ej: 120" oninput="mtrCalcCobro()"></div>
+        </div>
+
+        <div id="mtr-wrap-rendimiento" style="display:none;margin-bottom:16px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#8B1A2F;letter-spacing:.5px;margin-bottom:8px">3. Producción cosechada</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:420px">
+            <div class="form-group" style="margin:0"><label>Total cosechado (kg)</label>
+              <input type="number" id="mtr-rendimiento" placeholder="Ej: 195000" oninput="mtrCalcRindeHa()"></div>
+            <div class="form-group" style="margin:0"><label>Rinde/ha (auto)</label>
+              <input type="text" id="mtr-rinde-ha" readonly style="background:#f5f5f5" placeholder="—"></div>
+          </div>
+        </div>
+
+        <div id="mtr-wrap-insumos" style="display:none;margin-bottom:16px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#8B1A2F;letter-spacing:.5px;margin-bottom:8px">3. Insumos / Productos</div>
+          <p style="font-size:12px;color:#888;margin:0 0 8px">Un insumo por fila. El consumo total se calcula solo si cargás la dosis y las hectáreas.</p>
+          <div id="mtr-insumos-list"></div>
+          <button type="button" onclick="agregarFilaInsumoModal()" style="margin-top:6px;padding:6px 12px;font-size:12px;border:1px dashed #8B1A2F;background:none;color:#8B1A2F;border-radius:6px;cursor:pointer">+ Agregar insumo</button>
+        </div>
+
+        <div style="margin-bottom:14px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#8B1A2F;letter-spacing:.5px;margin-bottom:10px">4. ¿Quién lo ejecuta?</div>
+          <div style="display:flex;gap:20px;margin-bottom:12px">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500">
+              <input type="radio" name="mtr-ejecutor" value="propio" checked onchange="mtrEjecutorChange()"> Maquinaria propia
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500">
+              <input type="radio" name="mtr-ejecutor" value="contratista" onchange="mtrEjecutorChange()"> Contratista externo
+            </label>
+          </div>
+          <div id="mtr-panel-propio" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="form-group" style="margin:0"><label>Maquinaria</label>
+              <select id="mtr-herramienta" style="width:100%">${maqOpts}</select></div>
+            <div class="form-group" style="margin:0"><label>Operario</label>
+              <select id="mtr-operario-id" style="width:100%"><option value="">— Sin especificar —</option>${empOpts}</select></div>
+          </div>
+          <div id="mtr-panel-contratista" style="display:none;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="form-group" style="margin:0"><label>Contratista</label>
+              <input type="text" id="mtr-contratista-nombre" list="mtr-partes-list" placeholder="Nombre" style="width:100%">
+              <datalist id="mtr-partes-list">${partesOpts}</datalist></div>
+            <div class="form-group" style="margin:0"><label>Costo $</label>
+              <input type="number" id="mtr-contratista-costo" placeholder="0" style="width:100%"></div>
+          </div>
+        </div>
+
+        <div id="mtr-panel-cobro" style="display:none;background:#eef5ff;border:1px solid #6699cc;border-radius:8px;padding:12px;margin-bottom:14px">
+          <div style="font-size:11px;font-weight:700;color:#1a4a80;margin-bottom:8px">5. 💰 Cobro al tercero (en litros de gasoil)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:400px">
+            <div class="form-group" style="margin:0"><label>Tarifa (lts/<span id="mtr-tarifa-unidad">ha</span>)</label>
+              <input type="number" id="mtr-tarifa-lts" placeholder="0" step="0.1" oninput="mtrCalcCobro()" style="width:100%"></div>
+            <div class="form-group" style="margin:0"><label>Total a cobrar (lts)</label>
+              <input type="number" id="mtr-cobro-lts" readonly style="background:#f5f5f5;width:100%"></div>
+          </div>
+          <div style="font-size:11px;color:#555;margin-top:6px">Tarifas estándar: enrollado 10 lts/rollo · corte 23 lts/ha</div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:16px 24px;border-top:1px solid #e0e0e0;display:flex;gap:10px;justify-content:flex-end;position:sticky;bottom:0;background:#fff">
+      <button onclick="cerrarModalTrabajo()" style="padding:8px 20px;border:1px solid #ccc;background:#fff;border-radius:7px;cursor:pointer;font-size:14px">Cancelar</button>
+      <button onclick="guardarTrabajoModal()" style="padding:8px 22px;background:#8B1A2F;color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:14px;font-weight:600">💾 Guardar</button>
+    </div>`;
+
+  document.getElementById('modal-trabajo-overlay').style.display = 'block';
+  document.getElementById('modal-trabajo').style.display = 'flex';
+  mtrActualizarCampania();
 }
 
-function toggleTerceroModal() {
-  const esTercero = document.getElementById('mtr-tercero')?.checked;
-  document.getElementById('mtr-panel-tercero').style.display = esTercero ? 'block' : 'none';
-  document.getElementById('mtr-campo-propio-wrap').style.display = esTercero ? 'none' : '';
-}
+function toggleTerceroModal() {} // conservado por compatibilidad
 
 function cerrarModalTrabajo() {
   document.getElementById('modal-trabajo-overlay').style.display = 'none';
@@ -300,109 +527,102 @@ function cerrarModalTrabajo() {
 }
 
 async function guardarTrabajoModal() {
-  const fecha = document.getElementById('mtr-fecha').value;
-  const tipo = document.getElementById('mtr-tipo').value;
-  if (!fecha || !tipo) { toast('Completá fecha y tipo de trabajo', 'var(--tierra)'); return; }
+  if (!_mtrTipo) { toast('Elegí un tipo de trabajo primero', 'var(--tierra)'); return; }
 
-  // Leer lotes
-  const lotesFilas = [...document.querySelectorAll('#mtr-lotes-list .lote-row')];
-  const lotes = lotesFilas.map(f => ({
-    lote: f.querySelector('.lot-num').value.trim(),
-    hectareas: parseFloat(f.querySelector('.lot-has').value) || null,
-  })).filter(l => l.lote);
-  if (!lotes.length) { toast('Agregá al menos un lote', 'var(--tierra)'); return; }
+  const fecha    = document.getElementById('mtr-fecha')?.value;
+  const loteId   = document.getElementById('mtr-lote-id')?.value;
+  const has      = parseFloat(document.getElementById('mtr-has')?.value) || null;
+  const cultivo  = document.getElementById('mtr-cultivo')?.value || null;
+  const campania = document.getElementById('mtr-campania')?.value || null;
 
-  // Leer insumos
+  if (!fecha)  { toast('Completá la fecha', 'var(--tierra)'); return; }
+  if (!loteId) { toast('Elegí un lote', 'var(--tierra)'); return; }
+
+  const lote      = _mtrLotes.find(l => l.id === loteId);
+  const esTercero = !!lote?.propietario_id;
+
+  const cantRollos  = parseFloat(document.getElementById('mtr-rollos')?.value)     || null;
+  const rendimiento = parseFloat(document.getElementById('mtr-rendimiento')?.value) || null;
+
+  const ejecutor           = document.querySelector('input[name="mtr-ejecutor"]:checked')?.value || 'propio';
+  const maquinaId          = document.getElementById('mtr-herramienta')?.value || null;
+  const operarioId         = document.getElementById('mtr-operario-id')?.value || null;
+  const contratistaNombre  = document.getElementById('mtr-contratista-nombre')?.value?.trim() || null;
+  const contratistaCosto   = parseFloat(document.getElementById('mtr-contratista-costo')?.value) || null;
+  const tarifaLts          = parseFloat(document.getElementById('mtr-tarifa-lts')?.value)        || null;
+  const cobroLts           = parseFloat(document.getElementById('mtr-cobro-lts')?.value)         || null;
+
   const insFilas = [...document.querySelectorAll('#mtr-insumos-list .insumo-row')];
   const insumos = insFilas.map(f => ({
-    descripcion: f.querySelector('.ins-desc').value,
-    dosis: f.querySelector('.ins-dosis').value,
-    consumo_total: f.querySelector('.ins-consumo').value,
-    precio_unitario: parseFloat(f.querySelector('.ins-precio').value) || null,
-  })).filter(i => i.descripcion || i.dosis);
+    insumo:        f.querySelector('.ins-desc')?.value?.trim() || '',
+    dosis:         f.querySelector('.ins-dosis')?.value?.trim() || '',
+    cantidad:      f.querySelector('.ins-consumo')?.value?.trim() || '',
+    precio_unit:   parseFloat(f.querySelector('.ins-precio')?.value) || null,
+    costo_total:   parseFloat(f.querySelector('.ins-total')?.value) || null,
+  })).filter(i => i.insumo);
 
-  const esTercero = document.getElementById('mtr-tercero')?.checked;
-  const baseHeader = {
-    tipo,
-    fecha,
-    campo: esTercero ? (document.getElementById('mtr-campo-tercero').value || 'Tercero') : document.getElementById('mtr-campo').value,
-    cultivo: document.getElementById('mtr-cultivo').value,
-    contratista: document.getElementById('mtr-cont').value || 'Propio',
-    campania: document.getElementById('mtr-campania').value,
-    herramienta: document.getElementById('mtr-herramienta').selectedOptions[0]?.dataset.nombre || '',
-    maquina_id: document.getElementById('mtr-herramienta').value || null,
-    cliente: esTercero ? document.getElementById('mtr-cliente').value : null,
-    tarifa_cobrada: esTercero ? (parseFloat(document.getElementById('mtr-tarifa-cobrada').value) || null) : null,
-    moneda_cobrada: esTercero ? document.getElementById('mtr-moneda-cobrada').value : null,
-  };
+  // 1. Insertar en tabla nueva TRABAJOS
+  const tRes = await sb('POST', 'trabajos', {
+    fecha, tipo_labor: _mtrTipo, lote_id: loteId,
+    hectareas: has, cultivo, campania,
+    cantidad_rollos: cantRollos, rendimiento
+  });
+  if (!tRes?.[0]) { toast('❌ Error al guardar', 'var(--rojo)'); return; }
+  const tid = tRes[0].id;
 
-  // Generar registros: un registro por lote × insumo (o uno por lote si no hay insumos)
-  const registros = [];
-  for (const l of lotes) {
-    const header = { ...baseHeader, lote: l.lote, hectareas: l.hectareas };
-    if (insumos.length) {
-      insumos.forEach(ins => registros.push({ ...header, ...ins }));
-    } else {
-      registros.push({ ...header });
-    }
-  }
-
-  const TIPO_MAP_TRAB = {
-    'Siembra':'siembra','Pulverización':'pulverizacion','Fertilización':'fertilizacion',
-    'Cosecha':'cosecha','Henificación':'enrollado','Enrollado':'enrollado',
-    'Labranza':'movimiento_suelos','Otro':'otro'
-  };
-  const tipoLabor = TIPO_MAP_TRAB[baseHeader.tipo] || (baseHeader.tipo || '').toLowerCase();
-  const contratistaNombre = baseHeader.contratista;
-  const campo = baseHeader.campo;
-
-  let ok = 0;
-  for (const l of lotes) {
-    // 1. Escribir a tabla vieja (legacy, mantener funcionando)
-    const header = { ...baseHeader, lote: l.lote, hectareas: l.hectareas };
-    if (insumos.length) {
-      for (const ins of insumos) {
-        await sb('POST', 'trabajos_agricolas', {
-          ...header, descripcion: ins.descripcion, dosis: ins.dosis,
-          consumo_total: ins.consumo_total, precio_unitario: ins.precio_unitario || null
-        });
-      }
-    } else {
-      await sb('POST', 'trabajos_agricolas', header);
-    }
-
-    // 2. Escribir a tablas nuevas
-    const loteId = await resolverLoteId(campo, l.lote, l.hectareas);
-    const tRes = await sb('POST', 'trabajos', {
-      fecha, tipo_labor: tipoLabor, hectareas: l.hectareas,
-      cultivo: baseHeader.cultivo, campania: baseHeader.campania,
-      lote_id: loteId || undefined
+  // 2. Ejecutor
+  if (ejecutor === 'propio' && (maquinaId || operarioId)) {
+    await sb('POST', 'trabajo_maquinaria', {
+      trabajo_id: tid,
+      maquina_id:   maquinaId || undefined,
+      operario_id:  operarioId || undefined,
+      tarifa_gasoil: esTercero ? tarifaLts : null
     });
-    if (tRes?.[0]) {
-      const tid = tRes[0].id;
-      if (baseHeader.maquina_id) {
-        await sb('POST', 'trabajo_maquinaria', { trabajo_id: tid, maquina_id: baseHeader.maquina_id });
-      }
-      if (contratistaNombre && contratistaNombre !== 'Propio') {
-        const contId = await resolverParteId(contratistaNombre);
-        if (contId) await sb('POST', 'trabajo_contratista', { trabajo_id: tid, contratista_id: contId });
-      }
-      for (const ins of insumos) {
-        await sb('POST', 'trabajo_insumos', {
-          trabajo_id: tid, insumo: ins.descripcion, cantidad: ins.consumo_total,
-          costo_total: ins.precio_unitario && ins.consumo_total
-            ? Math.round(ins.precio_unitario * (parseNumeroDeTexto(ins.consumo_total) || 0)) : null
-        });
-      }
-      ok++;
-    }
+  } else if (ejecutor === 'contratista' && contratistaNombre) {
+    const contId = await resolverParteId(contratistaNombre);
+    if (contId) await sb('POST', 'trabajo_contratista', {
+      trabajo_id: tid, contratista_id: contId, costo: contratistaCosto
+    });
   }
 
-  if (ok) {
-    toast(`✅ ${ok > 1 ? ok + ' trabajos guardados' : 'Trabajo guardado'}`);
-    cerrarModalTrabajo();
-    cargarTrabajos();
-  } else toast('❌ Error al guardar', 'var(--rojo)');
+  // 3. Insumos
+  for (const ins of insumos) {
+    await sb('POST', 'trabajo_insumos', {
+      trabajo_id: tid, insumo: ins.insumo,
+      cantidad: ins.cantidad, costo_total: ins.costo_total
+    });
+  }
+
+  // 4. Dual-write a trabajos_agricolas (legacy)
+  const TIPO_INV = {
+    siembra:'Siembra', pulverizacion:'Pulverización', fertilizacion:'Fertilización',
+    cosecha:'Cosecha', enrollado:'Henificación', corte:'Segadora',
+    rastrillado:'Rastrillo', movimiento_suelos:'Labranza',
+    recoleccion_rollos:'Enrollado', picado:'Picado'
+  };
+  const legBase = {
+    tipo: TIPO_INV[_mtrTipo] || _mtrTipo,
+    fecha, campo: lote?.campo || '', lote: lote?.lote || '',
+    hectareas: has, cultivo, campania,
+    maquina_id: maquinaId || null,
+    contratista: ejecutor === 'contratista' ? (contratistaNombre || 'Propio') : 'Propio',
+    cliente: esTercero ? lote?.partes?.nombre : null,
+    tarifa_cobrada: esTercero ? cobroLts : null,
+  };
+  if (insumos.length) {
+    for (const ins of insumos) {
+      await sb('POST', 'trabajos_agricolas', {
+        ...legBase, descripcion: ins.insumo, dosis: ins.dosis,
+        consumo_total: ins.cantidad, precio_unitario: ins.precio_unit
+      });
+    }
+  } else {
+    await sb('POST', 'trabajos_agricolas', legBase);
+  }
+
+  toast('✅ Trabajo guardado');
+  cerrarModalTrabajo();
+  cargarTrabajos();
 }
 
 async function guardarTrabajo() {
