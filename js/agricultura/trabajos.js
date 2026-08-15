@@ -349,6 +349,14 @@ function mtrCalcCobro() {
     : parseFloat(document.getElementById('mtr-has')?.value) || 0;
   const el = document.getElementById('mtr-cobro-lts');
   if (el) el.value = tarifa && qty ? (tarifa * qty).toFixed(1) : '';
+  mtrCalcCobroPesos();
+}
+
+function mtrCalcCobroPesos() {
+  const lts    = parseFloat(document.getElementById('mtr-cobro-lts')?.value)     || 0;
+  const precio = parseFloat(document.getElementById('mtr-precio-gasoil')?.value) || 0;
+  const el     = document.getElementById('mtr-cobro-pesos');
+  if (el) el.value = lts && precio ? Math.round(lts * precio) : '';
 }
 
 function mtrCalcRindeHa() {
@@ -523,13 +531,17 @@ async function abrirModalTrabajo() {
 
         <div id="mtr-panel-cobro" style="display:none;background:#eef5ff;border:1px solid #6699cc;border-radius:8px;padding:12px;margin-bottom:14px">
           <div style="font-size:11px;font-weight:700;color:#1a4a80;margin-bottom:8px">5. 💰 Cobro al tercero (en litros de gasoil)</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:400px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">
             <div class="form-group" style="margin:0"><label>Tarifa (lts/<span id="mtr-tarifa-unidad">ha</span>)</label>
               <input type="number" id="mtr-tarifa-lts" placeholder="0" step="0.1" oninput="mtrCalcCobro()" style="width:100%"></div>
             <div class="form-group" style="margin:0"><label>Total a cobrar (lts)</label>
               <input type="number" id="mtr-cobro-lts" readonly style="background:#f5f5f5;width:100%"></div>
+            <div class="form-group" style="margin:0"><label>Precio gasoil ($/lt)</label>
+              <input type="number" id="mtr-precio-gasoil" placeholder="0" step="1" oninput="mtrCalcCobroPesos()" style="width:100%"></div>
+            <div class="form-group" style="margin:0"><label>Total trabajo ($)</label>
+              <input type="number" id="mtr-cobro-pesos" readonly style="background:#f5f5f5;width:100%"></div>
           </div>
-          <div style="font-size:11px;color:#555;margin-top:6px">Tarifas estándar: enrollado 10 lts/rollo · corte 23 lts/ha</div>
+          <div style="font-size:11px;color:#555;margin-top:8px">Tarifas estándar: enrollado 10 lts/rollo · corte 23 lts/ha</div>
         </div>
       </div>
     </div>
@@ -575,6 +587,8 @@ async function guardarTrabajoModal() {
   const contratistaCosto   = parseFloat(document.getElementById('mtr-contratista-costo')?.value) || null;
   const tarifaLts          = parseFloat(document.getElementById('mtr-tarifa-lts')?.value)        || null;
   const cobroLts           = parseFloat(document.getElementById('mtr-cobro-lts')?.value)         || null;
+  const precioGasoil       = parseFloat(document.getElementById('mtr-precio-gasoil')?.value)     || null;
+  const cobroPesos         = parseFloat(document.getElementById('mtr-cobro-pesos')?.value)       || null;
 
   const insFilas = [...document.querySelectorAll('#mtr-insumos-list .insumo-row')];
   const insumos = insFilas.map(f => ({
@@ -600,7 +614,9 @@ async function guardarTrabajoModal() {
       trabajo_id: tid,
       maquina_id:   maquinaId || undefined,
       operario_id:  operarioId || undefined,
-      tarifa_gasoil: esTercero ? tarifaLts : null
+      tarifa_gasoil:      esTercero ? tarifaLts    : null,
+      precio_gasoil_ars:  esTercero ? precioGasoil : null,
+      cobro_total_pesos:  esTercero ? cobroPesos   : null,
     });
   } else if (ejecutor === 'contratista' && contratistaNombre) {
     const contId = await resolverParteId(contratistaNombre);
@@ -631,7 +647,9 @@ async function guardarTrabajoModal() {
     maquina_id: maquinaId || null,
     contratista: ejecutor === 'contratista' ? (contratistaNombre || 'Propio') : 'Propio',
     cliente: esTercero ? lote?.partes?.nombre : null,
-    tarifa_cobrada: esTercero ? cobroLts : null,
+    tarifa_cobrada:    esTercero ? cobroLts    : null,
+    precio_gasoil_ars: esTercero ? precioGasoil: null,
+    total_pesos:       esTercero ? cobroPesos  : null,
   };
   if (insumos.length) {
     for (const ins of insumos) {
