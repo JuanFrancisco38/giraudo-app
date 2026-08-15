@@ -134,6 +134,7 @@ function normCat(s) {
 
 function actualizarSelectMaquinaria(tipo) {
   const sel = document.getElementById('mtr-herramienta');
+  if (!sel) return;
   const cats = MAQUINARIA_POR_TIPO[tipo];
   let filtradas = maquinariaModalCache;
   if (tipo && cats) {
@@ -256,30 +257,37 @@ function filtrarPanelInsumos() {
   renderPanelInsumos();
 }
 
+const _MTR_TIPO_MAQ = {
+  siembra:'Siembra', pulverizacion:'Pulverización', fertilizacion:'Fertilización',
+  cosecha:'Cosecha', enrollado:'Henificación', recoleccion_rollos:'Henificación',
+  corte:'Henificación', rastrillado:'Labranza', movimiento_suelos:'Labranza', picado:'Labranza'
+};
+
 function mtrSeleccionarTipo(tipo) {
   _mtrTipo = tipo;
   document.querySelectorAll('.mtr-tipo-btn').forEach(b => {
     const sel = b.dataset.tipo === tipo;
-    b.style.background = sel ? '#8B1A2F' : '#fff';
-    b.style.color = sel ? '#fff' : '#333';
+    b.style.background  = sel ? '#8B1A2F' : '#fff';
+    b.style.color       = sel ? '#fff'    : '#333';
     b.style.borderColor = sel ? '#8B1A2F' : '#ddd';
   });
   document.getElementById('mtr-resto').style.display = '';
   const esRollos  = ['enrollado','recoleccion_rollos'].includes(tipo);
   const esCosecha = tipo === 'cosecha';
   const esInsumos = ['siembra','pulverizacion','fertilizacion'].includes(tipo);
-  document.getElementById('mtr-wrap-rollos').style.display      = esRollos  ? '' : 'none';
-  document.getElementById('mtr-wrap-rendimiento').style.display  = esCosecha ? '' : 'none';
-  document.getElementById('mtr-wrap-insumos').style.display      = esInsumos ? '' : 'none';
+  document.getElementById('mtr-wrap-rollos').style.display     = esRollos  ? '' : 'none';
+  document.getElementById('mtr-wrap-rendimiento').style.display = esCosecha ? '' : 'none';
+  document.getElementById('mtr-wrap-insumos').style.display     = esInsumos ? '' : 'none';
   if (esInsumos && !document.querySelector('#mtr-insumos-list .insumo-row')) agregarFilaInsumoModal();
   const labelEl = document.getElementById('mtr-tarifa-unidad');
   if (labelEl) labelEl.textContent = esRollos ? 'rollo' : 'ha';
-  // Pre-llenar tarifa estándar
   const tarifaEl = document.getElementById('mtr-tarifa-lts');
   if (tarifaEl && !tarifaEl.value) {
-    if (tipo === 'enrollado' || tipo === 'recoleccion_rollos') tarifaEl.value = 10;
+    if (esRollos) tarifaEl.value = 10;
     else if (tipo === 'corte') tarifaEl.value = 23;
   }
+  // Filtrar maquinaria por tipo
+  actualizarSelectMaquinaria(_MTR_TIPO_MAQ[tipo] || '');
   mtrMostrarCobro();
   mtrCalcCobro();
 }
@@ -311,6 +319,16 @@ function mtrLoteChange() {
   }
   mtrMostrarCobro();
   mtrCalcCobro();
+}
+
+function mtrCampoChange() {
+  const campo = document.getElementById('mtr-campo-sel')?.value;
+  const sel   = document.getElementById('mtr-lote-id');
+  if (!sel) return;
+  const filtrados = campo ? _mtrLotes.filter(l => l.campo === campo) : _mtrLotes;
+  sel.innerHTML = '<option value="">— Elegir lote —</option>' +
+    filtrados.map(l => `<option value="${l.id}">${l.lote}${l.hectareas ? ' — '+l.hectareas+' ha' : ''}</option>`).join('');
+  _mtrLoteSeleccionado = null;
 }
 
 function mtrActualizarCampania() {
@@ -346,6 +364,7 @@ function mtrEjecutorChange() {
   const pc = document.getElementById('mtr-panel-contratista');
   if (pp) pp.style.display = val === 'propio'      ? '' : 'none';
   if (pc) pc.style.display = val === 'contratista' ? '' : 'none';
+  if (val === 'propio' && _mtrTipo) actualizarSelectMaquinaria(_MTR_TIPO_MAQ[_mtrTipo] || '');
 }
 
 function mtrRecalcInsumos() {
@@ -433,12 +452,17 @@ async function abrirModalTrabajo() {
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
           <div class="form-group" style="margin:0"><label>Fecha</label>
             <input type="date" id="mtr-fecha" value="${hoy}" oninput="mtrActualizarCampania()"></div>
-          <div class="form-group" style="margin:0"><label>Lote</label>
-            <select id="mtr-lote-id" onchange="mtrLoteChange()" style="width:100%">
-              <option value="">— Elegir lote —</option>${lotesOpts}
+          <div class="form-group" style="margin:0"><label>Establecimiento</label>
+            <select id="mtr-campo-sel" onchange="mtrCampoChange()" style="width:100%">
+              <option value="">— Elegir campo —</option>
+              ${[...new Set(_mtrLotes.map(l=>l.campo))].sort().map(c=>`<option value="${c}">${c}</option>`).join('')}
             </select></div>
           <div class="form-group" style="margin:0"><label>Hectáreas trabajadas</label>
             <input type="number" id="mtr-has" placeholder="Ej: 78" oninput="mtrRecalcInsumos()"></div>
+          <div class="form-group" style="margin:0"><label>Lote</label>
+            <select id="mtr-lote-id" onchange="mtrLoteChange()" style="width:100%">
+              <option value="">— Elegir lote —</option>
+            </select></div>
           <div class="form-group" style="margin:0"><label>Cultivo</label>
             <input type="text" id="mtr-cultivo" placeholder="Ej: Soja, Maíz, Alfalfa"></div>
           <div class="form-group" style="margin:0"><label>Campaña</label>
