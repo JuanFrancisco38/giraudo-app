@@ -18,6 +18,7 @@ let statFiltroActivo = null;
 
 const CATS_MACHO = ['Ternero', 'Novillito', 'Novillo', 'Torito', 'Toro'];
 const CATS_HEMBRA = ['Ternera', 'Vaquillona', 'Vaca', 'Vaca Preñada'];
+const esVaca = a => a.categoria === 'Vaca' || a.categoria === 'Vaca Preñada';
 
 function caravanaDisplay(a) {
   return a.caravana_interna || a.caravana_electronica || 'S/N';
@@ -170,8 +171,8 @@ function renderEstadisticasManga() {
   const porCat = {};
   animalesRodeo.forEach(a => { porCat[a.categoria] = (porCat[a.categoria] || 0) + 1; });
 
-  const vacasPreñadas = animalesRodeo.filter(a => a.categoria === 'Vaca' && ultimoSrvPorAnimal[a.id]?.resultado === 'Preñada').length;
-  const vacasVacias = animalesRodeo.filter(a => a.categoria === 'Vaca' && ultimoSrvPorAnimal[a.id]?.resultado === 'Vacía').length;
+  const vacasPreñadas = animalesRodeo.filter(a => esVaca(a) && (ultimoSrvPorAnimal[a.id]?.resultado === 'Preñada' || a.categoria === 'Vaca Preñada')).length;
+  const vacasVacias = animalesRodeo.filter(a => esVaca(a) && ultimoSrvPorAnimal[a.id]?.resultado === 'Vacía').length;
 
   // Sub-texto RENSPA para un grupo de animales
   function subRenspa(lista) {
@@ -189,9 +190,9 @@ function renderEstadisticasManga() {
   const tieneCria = id => animalesRodeo.some(x => x.caravana_madre && (x.caravana_madre === animalesRodeo.find(a=>a.id===id)?.caravana_interna || x.caravana_madre === animalesRodeo.find(a=>a.id===id)?.caravana_electronica));
 
   const ORDEN_CATS = [
-    { label: 'Vacas preñadas',    filtro: a => a.categoria === 'Vaca' && ultimoSrvPorAnimal[a.id]?.resultado === 'Preñada', color: 'verde' },
-    { label: 'Vacas vacías',      filtro: a => a.categoria === 'Vaca' && ultimoSrvPorAnimal[a.id]?.resultado !== 'Preñada', color: 'rojo' },
-    { label: 'Vacas en lactancia',filtro: a => a.categoria === 'Vaca' && tieneCria(a.id), color: 'cielo' },
+    { label: 'Vacas preñadas',    filtro: a => esVaca(a) && (ultimoSrvPorAnimal[a.id]?.resultado === 'Preñada' || a.categoria === 'Vaca Preñada'), color: 'verde' },
+    { label: 'Vacas vacías',      filtro: a => esVaca(a) && ultimoSrvPorAnimal[a.id]?.resultado !== 'Preñada' && a.categoria !== 'Vaca Preñada', color: 'rojo' },
+    { label: 'Vacas en lactancia',filtro: a => esVaca(a) && tieneCria(a.id), color: 'cielo' },
     { label: 'Vaquillonas', filtro: a => a.categoria === 'Vaquillona', color: 'tierra' },
     { label: 'Terneras', filtro: a => a.categoria === 'Ternera', color: 'verde' },
     { label: 'Terneros', filtro: a => a.categoria === 'Ternero', color: 'verde' },
@@ -242,9 +243,9 @@ function renderListaStatAnimales(label, ultimoSrvPorAnimal) {
 
   const FILTROS = {
     'total': a => true,
-    'Vacas preñadas': a => a.categoria === 'Vaca' && ultimoSrvPorAnimal[a.id]?.resultado === 'Preñada',
-    'Vacas vacías': a => a.categoria === 'Vaca' && ultimoSrvPorAnimal[a.id]?.resultado !== 'Preñada',
-    'Vacas en lactancia': a => a.categoria === 'Vaca' && animalesRodeo.some(x => x.caravana_madre && (x.caravana_madre === a.caravana_interna || x.caravana_madre === a.caravana_electronica)),
+    'Vacas preñadas': a => esVaca(a) && (ultimoSrvPorAnimal[a.id]?.resultado === 'Preñada' || a.categoria === 'Vaca Preñada'),
+    'Vacas vacías': a => esVaca(a) && ultimoSrvPorAnimal[a.id]?.resultado !== 'Preñada' && a.categoria !== 'Vaca Preñada',
+    'Vacas en lactancia': a => esVaca(a) && animalesRodeo.some(x => x.caravana_madre && (x.caravana_madre === a.caravana_interna || x.caravana_madre === a.caravana_electronica)),
     'Vaquillonas': a => a.categoria === 'Vaquillona',
     'Terneras': a => a.categoria === 'Ternera',
     'Terneros': a => a.categoria === 'Ternero',
@@ -615,14 +616,14 @@ function renderIndicesCrecimiento(rodeoId, novFilt, campSelec) {
   }
 
   // Cálculos derivados de manuales
-  const nVacas = animalesDelRodeo.filter(a => a.categoria === 'Vaca').length;
+  const nVacas = animalesDelRodeo.filter(a => esVaca(a)).length;
   const nToros = animalesDelRodeo.filter(a => a.categoria === 'Toro').length || (man.relacion_toro_vaca ? Math.round(nVacas / man.relacion_toro_vaca) : null);
   const cargaAnimal = man.hectareas && animalesDelRodeo.length ? (animalesDelRodeo.length / man.hectareas).toFixed(2) : null;
   const kgPorHa = man.hectareas && pesoDestete && pesoDesteVals.length ? ((parseFloat(pesoDestete) * pesoDesteVals.length) / man.hectareas).toFixed(1) : null;
   const efVaca = pesoDestete && man.peso_promedio_vaca ? ((parseFloat(pesoDestete) / man.peso_promedio_vaca) * 100).toFixed(1) : null;
 
   // Muertes de vientres
-  const muertesVientres = novFilt.filter(n => n.tipo === 'Muerte' && (n.categoria === 'Vaca' || n.categoria === 'Vientres')).reduce((s,n) => s+(n.cantidad||1), 0);
+  const muertesVientres = novFilt.filter(n => n.tipo === 'Muerte' && (n.categoria === 'Vaca' || n.categoria === 'Vaca Preñada' || n.categoria === 'Vientres')).reduce((s,n) => s+(n.cantidad||1), 0);
   const pctMortVientres = nVacas ? (muertesVientres / nVacas * 100).toFixed(1) : null;
 
   function ref(ok, text) {
