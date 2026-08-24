@@ -17,7 +17,7 @@ let paginaManga = 1;
 let statFiltroActivo = null;
 
 const CATS_MACHO = ['Ternero', 'Novillito', 'Novillo', 'Torito', 'Toro'];
-const CATS_HEMBRA = ['Ternera', 'Vaquillona', 'Vaca'];
+const CATS_HEMBRA = ['Ternera', 'Vaquillona', 'Vaca', 'Vaca Preñada'];
 
 function caravanaDisplay(a) {
   return a.caravana_interna || a.caravana_electronica || 'S/N';

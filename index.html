@@ -383,7 +383,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
           <div class="card-body">
             <div class="form-grid cols-3">
               <div class="form-group"><label>N° caravana electrónica</label><input type="text" id="ani-caravana" placeholder="Ej: 032010035961100"></div>
-              <div class="form-group"><label>Categoría</label><select id="ani-cat"><option>Vaca</option><option>Vaquillona</option><option>Toro</option><option>Torito</option><option>Ternero</option><option>Ternera</option><option>Novillo</option></select></div>
+              <div class="form-group"><label>Categoría</label><select id="ani-cat"><option>Vaca</option><option>Vaca Preñada</option><option>Vaquillona</option><option>Toro</option><option>Torito</option><option>Ternero</option><option>Ternera</option><option>Novillo</option></select></div>
               <div class="form-group"><label>Sexo</label><select id="ani-sexo"><option>Macho</option><option>Hembra</option></select></div>
               <div class="form-group"><label>Raza</label><input type="text" id="ani-raza" placeholder="Aberdeen Angus" value="Aberdeen Angus"></div>
               <div class="form-group"><label>Fecha nacimiento</label><input type="date" id="ani-fnac"></div>
@@ -695,7 +695,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             <input type="hidden" id="rodeo-id-edit">
             <div class="form-grid">
               <div class="form-group"><label>Nombre</label><input type="text" id="rodeo-nombre" placeholder="Ej: Vacas CUT, Terneros destete"></div>
-              <div class="form-group"><label>Categoría</label><select id="rodeo-cat"><option>Vacas</option><option>Vaquillonas</option><option>Terneros</option><option>Terneras</option><option>Toros</option><option>Otro</option></select></div>
+              <div class="form-group"><label>Categoría</label><select id="rodeo-cat"><option>Vacas</option><option>Vacas Preñadas</option><option>Vaquillonas</option><option>Terneros</option><option>Terneras</option><option>Toros</option><option>Otro</option></select></div>
               <div class="form-group"><label>Campo</label><select id="rodeo-campo"><option>Don Alfredo (Azcona)</option><option>Doña Vica</option><option>Sant-Yago</option></select></div>
               <div class="form-group"><label>Ubicación actual</label><input type="text" id="rodeo-ubi" placeholder="Ej: Lote 3, Corral norte"></div>
               <div class="form-group"><label>Observaciones</label><input type="text" id="rodeo-obs" placeholder="Opcional"></div>
@@ -779,7 +779,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
               <div class="form-grid">
                 <div class="form-group"><label>Cantidad</label><input type="number" id="ing-cantidad" placeholder="Ej: 5"></div>
                 <div class="form-group"><label>Sexo</label><select id="ing-sexo" onchange="actualizarCats('ing-sexo','ing-categoria')"><option>Hembra</option><option>Macho</option></select></div>
-                <div class="form-group"><label>Categoría</label><select id="ing-categoria"><option>Ternera</option><option>Vaquillona</option><option>Vaca</option></select></div>
+                <div class="form-group"><label>Categoría</label><select id="ing-categoria"><option>Ternera</option><option>Vaquillona</option><option>Vaca</option><option>Vaca Preñada</option></select></div>
                 <div class="form-group"><label>Raza</label><input type="text" id="ing-raza" placeholder="Ej: Angus"></div>
                 <div class="form-group"><label>Procedencia</label><input type="text" id="ing-procedencia" placeholder="Ej: Establecimiento X"></div>
                 <div class="form-group"><label>RENSPA / Propietario</label><select id="ing-renspa"><option value="">— Propio —</option></select></div>
@@ -863,7 +863,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
                   <button type="button" class="btn btn-secondary" style="font-size:12px;margin-bottom:6px" onclick="toggleSelectorAnimalesNov('sel-cat')">👆 Seleccionar de la lista</button>
                   <div id="sel-cat" style="display:none"></div>
                 </div>
-                <div class="form-group"><label>Nueva categoría</label><select id="cat-nueva"><option>Vacas</option><option>Vaquillonas</option><option>Terneros</option><option>Terneras</option><option>Toros</option><option>Otro</option></select></div>
+                <div class="form-group"><label>Nueva categoría</label><select id="cat-nueva"><option>Vacas</option><option>Vacas Preñadas</option><option>Vaquillonas</option><option>Terneros</option><option>Terneras</option><option>Toros</option><option>Otro</option></select></div>
                 <div class="form-group"><label>Rodeo destino (opcional)</label><select id="cat-rodeo-destino"><option value="">— Mismo rodeo —</option></select></div>
               </div>
             </div>
