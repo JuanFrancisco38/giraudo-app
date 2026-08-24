@@ -854,7 +854,7 @@ function renderTabAnimales(rodeoId, animales) {
           const esHembraCard = a.sexo === 'Hembra';
 
           // Estado reproductivo
-          const resUlt = ultimoSrv?.resultado || '';
+          const resUlt = ultimoSrv?.resultado || (a.categoria === 'Vaca Preñada' ? 'Preñada' : '');
           const estadoReprod = resUlt || (esHembraCard ? 'Sin datos' : '');
           const colReprod = resUlt === 'Preñada' ? '#1a7a3a' : resUlt === 'Vacía' ? '#b32b2b' : resUlt === 'Pendiente' ? '#7a5a00' : resUlt === 'Abortó' ? '#7a2020' : '#666';
           const bgReprod  = resUlt === 'Preñada' ? '#d4edda' : resUlt === 'Vacía' ? '#fce8e8' : resUlt === 'Pendiente' ? '#fff3cd' : resUlt === 'Abortó' ? '#fce8e8' : '#f0f0f0';
@@ -950,8 +950,8 @@ function renderTabAnimales(rodeoId, animales) {
               </div>
               <!-- datos reproductivos / peso -->
               <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;flex:1;text-align:center">
-                ${esHembraCard && ultimoSrv && estadoReprod ? `<div style="background:${bgReprod};color:${colReprod};border-radius:8px;padding:6px 10px;font-size:15px;font-weight:800;width:100%">${estadoReprod}</div>` : ''}
-                ${esHembraCard && ultimoSrv && estadoFisio ? `<div style="background:${bgFisio};color:${colFisio};border-radius:8px;padding:5px 10px;font-size:13px;font-weight:700;width:100%">${estadoFisio}</div>` : ''}
+                ${esHembraCard && resUlt ? `<div style="background:${bgReprod};color:${colReprod};border-radius:8px;padding:6px 10px;font-size:15px;font-weight:800;width:100%">${estadoReprod}</div>` : ''}
+                ${esHembraCard && estadoFisio ? `<div style="background:${bgFisio};color:${colFisio};border-radius:8px;padding:5px 10px;font-size:13px;font-weight:700;width:100%">${estadoFisio}</div>` : ''}
                 ${fppHtml}
                 ${pesadasCardHtml}
               </div>
