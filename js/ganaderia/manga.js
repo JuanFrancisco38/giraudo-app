@@ -458,7 +458,7 @@ function renderTabIndices(rodeoId, novedades) {
   const abortos = novFilt.filter(n => n.tipo === 'Aborto').reduce((s,n) => s + (n.cantidad||1), 0);
 
   // Muertes terneros
-  const muertesTerneros = novFilt.filter(n => n.tipo === 'Muerte' && (n.categoria==='Terneros'||n.categoria==='Terneras')).reduce((s,n) => s + (n.cantidad||1), 0);
+  const muertesTerneros = novFilt.filter(n => n.tipo === 'Muerte' && ['Terneros','Terneras','Ternero','Ternera'].includes(n.categoria)).reduce((s,n) => s + (n.cantidad||1), 0);
 
   // Destetes
   const destetes = novFilt.filter(n => n.tipo === 'Destete').reduce((s,n) => s + (n.cantidad||1), 0);
@@ -2031,8 +2031,10 @@ async function procesarNovBaja(rodeoId, fecha, tipo) {
   }
 
   const desc = `${animalesAfectados.length} animal${animalesAfectados.length !== 1 ? 'es' : ''}${motivo ? ': ' + motivo : ''} · ${getCaravanaResumen(animalesAfectados)}`;
+  const cats = [...new Set(animalesAfectados.map(a => a.categoria).filter(Boolean))];
+  const catNov = cats.length === 1 ? cats[0] : (cats.length ? 'Mixto' : null);
   await sb('POST', 'novedades_ganaderas', {
-    rodeo_id: rodeoId, fecha, tipo, cantidad: animalesAfectados.length, descripcion: desc
+    rodeo_id: rodeoId, fecha, tipo, cantidad: animalesAfectados.length, descripcion: desc, categoria: catNov
   });
 
   toast(`✅ ${tipo} registrada · ${animalesAfectados.length} animal${animalesAfectados.length !== 1 ? 'es' : ''}`);
