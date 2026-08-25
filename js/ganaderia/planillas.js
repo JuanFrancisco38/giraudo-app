@@ -1,3 +1,13 @@
+const _sortCaravana = (a, b) => {
+  const av = a.caravana_interna; const bv = b.caravana_interna;
+  if (av == null && bv == null) return 0;
+  if (av == null) return 1;
+  if (bv == null) return -1;
+  const an = Number(av); const bn = Number(bv);
+  if (!isNaN(an) && !isNaN(bn)) return an - bn;
+  return String(av).localeCompare(String(bv), 'es', { numeric: true });
+};
+
 function abrirModalPlanilla() {
   // Crear overlay sólido separado
   let ov = document.getElementById('planilla-overlay');
@@ -51,8 +61,7 @@ function cargarAnimalesPlanilla() {
   }
 
   if (filasRow) filasRow.style.display = 'none';
-  const animales = animalesRodeo.filter(a => a.rodeo_id === rodeoId)
-    .sort((a, b) => (parseInt(a.caravana_interna) || 9999999) - (parseInt(b.caravana_interna) || 9999999));
+  const animales = animalesRodeo.filter(a => a.rodeo_id === rodeoId).sort(_sortCaravana);
 
   if (!animales.length) {
     cont.innerHTML = '<span style="color:var(--texto-suave)">Sin animales en este rodeo</span>';
@@ -98,7 +107,7 @@ function generarPlanillaPDF() {
     const idsSeleccionados = new Set([...document.querySelectorAll('.pl-check:checked')].map(c => c.dataset.id));
     const animales = animalesRodeo
       .filter(a => a.rodeo_id === rodeoId && idsSeleccionados.has(a.id))
-      .sort((a, b) => (parseInt(a.caravana_interna) || 9999999) - (parseInt(b.caravana_interna) || 9999999));
+      .sort(_sortCaravana);
     if (!animales.length) { toast('Seleccioná al menos un animal', 'var(--tierra)'); return; }
     ids = animales.map(a => caravanaDisplay(a));
     nombreRodeo = rodeo?.nombre || '';
