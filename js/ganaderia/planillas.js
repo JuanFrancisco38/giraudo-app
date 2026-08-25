@@ -1,5 +1,6 @@
 const _sortCaravana = (a, b) => {
-  const av = a.caravana_interna; const bv = b.caravana_interna;
+  const av = a.caravana_interna || a.caravana_electronica;
+  const bv = b.caravana_interna || b.caravana_electronica;
   if (av == null && bv == null) return 0;
   if (av == null) return 1;
   if (bv == null) return -1;
