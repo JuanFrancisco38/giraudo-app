@@ -1384,6 +1384,29 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
     <!-- LOTES -->
     <div id="section-lotes" class="section">
 
+      <!-- Gestión de establecimientos/lotes -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header">
+          <h3>⚙️ Establecimientos y lotes</h3>
+          <button class="btn btn-primary" onclick="toggleForm('form-lote-nuevo')" style="font-size:13px">+ Nuevo lote</button>
+        </div>
+        <div id="form-lote-nuevo" style="display:none;padding:14px 16px;border-top:1px solid var(--gris-borde)">
+          <div class="form-grid">
+            <div class="form-group"><label>Campo / Establecimiento</label><input type="text" id="lnuevo-campo" placeholder="Ej: Doña Vica"></div>
+            <div class="form-group"><label>Lote</label><input type="text" id="lnuevo-lote" placeholder="Ej: 1A"></div>
+            <div class="form-group"><label>Hectáreas</label><input type="number" id="lnuevo-has" placeholder="Ej: 120"></div>
+            <div class="form-group"><label>Cultivo actual (opcional)</label><input type="text" id="lnuevo-cultivo"></div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="guardarLoteNuevo()">Guardar</button>
+            <button class="btn btn-secondary" onclick="toggleForm('form-lote-nuevo')">Cancelar</button>
+          </div>
+        </div>
+        <div class="card-body" style="padding:10px 16px">
+          <div id="lotes-gestion-lista" style="font-size:13px"></div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-header"><h3>🗺️ Lotes por campo</h3>
           <select id="lotes-campania" onchange="renderLotes()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px">

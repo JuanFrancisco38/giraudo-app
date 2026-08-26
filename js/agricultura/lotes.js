@@ -57,9 +57,15 @@ async function cargarDatosCostosInsumos() {
   });
 }
 
+let todosLotesGestion = [];
+
 async function cargarLotes() {
+  // Para gestión: todos los lotes propios (activos e inactivos)
+  todosLotesGestion = await sb('GET', 'lotes', '', '?propietario_id=is.null&order=activo.desc,campo,lote') || [];
+  renderGestionLotes();
+
   const [lotes, trabajos, boletas, liqs, precios] = await Promise.all([
-    sb('GET', 'lotes', '', '?order=campo,lote'),
+    sb('GET', 'lotes', '', '?propietario_id=is.null&activo=eq.true&order=campo,lote'),
     sb('GET', 'trabajos_agricolas', '', '?tipo=neq.alimentacion'),
     sb('GET', 'boletas', ''),
     sb('GET', 'liquidaciones_granos', ''),
@@ -368,4 +374,56 @@ function renderDetalleLote(campania) {
       </tr>`;
     }).join('') : `<tr><td colspan="9"><div class="empty-state"><div class="icon">🌾</div><h3>Sin trabajos en este lote para esta campaña</h3></div></td></tr>`}</tbody></table></div>
   </div>`;
+}
+
+function renderGestionLotes() {
+  const el = document.getElementById('lotes-gestion-lista');
+  if (!el) return;
+  if (!todosLotesGestion.length) { el.innerHTML = '<p style="color:var(--texto-suave)">Sin lotes cargados.</p>'; return; }
+  const grupos = {};
+  todosLotesGestion.forEach(l => {
+    if (!grupos[l.campo]) grupos[l.campo] = [];
+    grupos[l.campo].push(l);
+  });
+  el.innerHTML = Object.entries(grupos).map(([campo, lotes]) => `
+    <div style="margin-bottom:10px">
+      <div style="font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--texto-suave);margin-bottom:4px">${campo}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${lotes.map(l => {
+          const inactivo = l.activo === false;
+          return `<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;font-size:12px;border:1px solid var(--gris-borde);background:${inactivo ? 'var(--gris-fondo,#f5f5f5)' : 'var(--bg)'};opacity:${inactivo ? '.6' : '1'}">
+            <span style="${inactivo ? 'text-decoration:line-through;color:var(--texto-suave)' : ''}">Lote ${l.lote}${l.hectareas ? ' · ' + l.hectareas + ' ha' : ''}</span>
+            <button onclick="toggleActivoLote('${l.id}', ${!inactivo})" style="border:none;background:none;cursor:pointer;font-size:11px;padding:0;color:${inactivo ? 'var(--verde)' : 'var(--rojo)'}" title="${inactivo ? 'Dar de alta' : 'Dar de baja'}">${inactivo ? 'Alta' : 'Baja'}</button>
+          </span>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+}
+
+async function toggleActivoLote(id, nuevoEstado) {
+  const accion = nuevoEstado ? 'dar de alta' : 'dar de baja';
+  if (!confirm(`¿Confirmar ${accion} este lote?`)) return;
+  const r = await sb('PATCH', 'lotes', { activo: nuevoEstado }, `?id=eq.${id}`);
+  if (r !== null) {
+    toast(nuevoEstado ? '✅ Lote dado de alta' : '⚠️ Lote dado de baja');
+    cargarLotes();
+  } else toast('❌ Error', 'var(--rojo)');
+}
+
+async function guardarLoteNuevo() {
+  const campo   = document.getElementById('lnuevo-campo')?.value?.trim();
+  const lote    = document.getElementById('lnuevo-lote')?.value?.trim();
+  const has     = parseFloat(document.getElementById('lnuevo-has')?.value) || null;
+  const cultivo = document.getElementById('lnuevo-cultivo')?.value?.trim() || null;
+  if (!campo || !lote) return toast('❌ Campo y lote son obligatorios', 'var(--rojo)');
+  const r = await sb('POST', 'lotes', { campo, lote, hectareas: has, cultivo_actual: cultivo, activo: true });
+  if (r) {
+    toast('✅ Lote creado');
+    toggleForm('form-lote-nuevo');
+    document.getElementById('lnuevo-campo').value = '';
+    document.getElementById('lnuevo-lote').value = '';
+    document.getElementById('lnuevo-has').value = '';
+    document.getElementById('lnuevo-cultivo').value = '';
+    cargarLotes();
+  } else toast('❌ Error al crear lote', 'var(--rojo)');
 }
