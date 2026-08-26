@@ -101,7 +101,8 @@ async function procesarBoleta(input) {
 Identificá la firma receptora (a quién le facturaron): si el destinatario tiene CUIT 20-16226904-7 o dice "Francisco J. Giraudo" (sin Juan) es "Francisco J. Giraudo". Si tiene CUIT 30-71599118-3 o dice "Giraudo Francisco J. y Giraudo Juan F. SH" es "Giraudo SH".
 MUY IMPORTANTE: la factura puede tener VARIOS productos/renglones. Tenés que devolver UN ítem por cada producto/línea de la factura en el array "items". NO los juntes en uno solo.
 Para cada ítem:
-- "rubro": clasificá eligiendo EXACTAMENTE una de: ${RUBROS_BOLETA.join(', ')}. Reglas clave: compra de animales (vacas, novillos, terneros, toros, vaquillonas, hacienda) → "Hacienda"; comisión consignatario o gastos de venta de hacienda → "Gastos de Comercialización"; maquinaria, equipos, herramientas → "Inversiones Mobiliarias"; NO uses "Inversiones Mobiliarias" para animales.
+- "rubro": clasificá eligiendo EXACTAMENTE una de: ${RUBROS_BOLETA.join(', ')}. Reglas clave: compra de animales (vacas, novillos, terneros, toros, vaquillonas, hacienda) → "Hacienda"; maquinaria, equipos, herramientas → "Inversiones Mobiliarias"; NO uses "Inversiones Mobiliarias" para animales.
+- IMPORTANTE: si la factura incluye comisión de consignatario u otros gastos de la operación de hacienda (flete de hacienda, guías, etc.), NO los crees como ítem separado. Sumalos al subtotal/total del ítem de hacienda correspondiente y ajustá el costo_unitario para que refleje el costo total por cabeza.
 - "descripcion_a": el detalle del producto identificándolo por producto y concentración (ej: "Glifosato 75%", "Doracur x500ml").
 - "cantidad" y "unidad" (kg, lts, tt, unidad).
 - "costo_unitario" y "moneda_costo" (ARS o USD; los agroquímicos suelen estar en USD).
