@@ -281,7 +281,27 @@ function renderContenidoFichaMaq(tab) {
           <td><button class="btn btn-sm" style="color:#c0392b;padding:2px 6px" onclick="eliminarTrabajoMaq('${t.id}')">🗑</button></td>
         </tr>`;
       };
-    } else if (cat === 'Forraje' || cat === 'Cosecha' || cat === 'Siembra') {
+    } else if (cat === 'Cosecha' || cat === 'Siembra') {
+      thead = `<tr>
+        <th>Fecha</th><th>Propietario</th><th>Establecimiento</th><th>Lote</th>
+        <th>Has</th><th>Cultivo</th>
+        <th>Tarifa ($/ha)</th><th>Subtotal</th><th>IVA %</th><th>IVA $</th>
+        <th>Total $</th><th>TC</th><th>Total U$D</th><th></th>
+      </tr>`;
+      rowFn = t => {
+        const e = t.extras || {};
+        return `<tr>
+          <td>${fmtFecha(t.fecha)}</td><td>${t.propietario||'—'}</td><td>${t.establecimiento||'—'}</td><td>${t.lote||'—'}</td>
+          <td>${$n(t.hectareas)}</td><td>${t.cultivo||'—'}</td>
+          <td>${t.tarifa_cobrada != null ? '$'+fmtNum(t.tarifa_cobrada) : '—'}</td>
+          <td>${$p(e.subtotal)}</td>
+          <td>${e.iva_pct != null ? e.iva_pct+'%' : '—'}</td>
+          <td>${$p(e.iva_monto)}</td>
+          <td>${$p(t.total_pesos)}</td><td>${$n(t.tipo_cambio)}</td><td>${$u(t.total_usd)}</td>
+          <td><button class="btn btn-sm" style="color:#c0392b;padding:2px 6px" onclick="eliminarTrabajoMaq('${t.id}')">🗑</button></td>
+        </tr>`;
+      };
+    } else if (cat === 'Forraje') {
       thead = `<tr>
         <th>Fecha</th><th>Propietario</th><th>Establecimiento</th><th>Lote</th>
         <th>Has</th><th>Cultivo</th>
