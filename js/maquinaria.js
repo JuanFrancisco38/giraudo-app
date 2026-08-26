@@ -418,6 +418,12 @@ function renderContenidoFichaMaq(tab) {
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Cultivos</div>
           ${cultHtml}
         </div>
+        ${cat === 'Cosecha' || cat === 'Siembra' ? (() => {
+            const totSubtotal = filtrados.reduce((s, t) => s + ((t.extras||{}).subtotal || 0), 0);
+            const totUsd      = filtrados.reduce((s, t) => s + (t.total_usd || 0), 0);
+            const promHa      = unidadTot > 0 ? totSubtotal / unidadTot : null;
+            return kard('Facturado $', '$' + fmtNum(totSubtotal), totUsd > 0 ? 'U$D ' + fmtNum(totUsd) : null, promHa != null ? '$' + fmtNum(promHa) + '/ha' : null);
+          })() : `
         ${costoTotPesos > 0 ? kard('Costo total',
             '$' + fmtNum(costoTotPesos),
             costoTotUsd > 0 ? 'U$D ' + fmtNum(costoTotUsd) : null,
@@ -432,7 +438,7 @@ function renderContenidoFichaMaq(tab) {
             '$' + fmtNum(ganTotPesos),
             ganTotUsd !== 0 ? 'U$D ' + fmtNum(ganTotUsd) : null,
             ganPromPesos != null ? '$' + fmtNum(ganPromPesos) + '/' + unidadLabel : null,
-            ganPromPesos != null && precioLtProm ? fmtNum(ganPromPesos / precioLtProm) + ' lts/' + unidadLabel : null)}
+            ganPromPesos != null && precioLtProm ? fmtNum(ganPromPesos / precioLtProm) + ' lts/' + unidadLabel : null)}`}
         ${gasoilTot > 0 ? kard('Gasoil total', fmtNum(gasoilTot) + ' lts', null, consProm != null ? fmtNum(consProm) + ' lts/' + unidadLabel : null) : ''}
       </div>`;
 
