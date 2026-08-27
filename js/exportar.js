@@ -10,7 +10,6 @@ function exportarXlsx(hojas, nombreArchivo) {
   const wb = XLSX.utils.book_new();
   hojas.forEach(({ nombre, filas }) => {
     const ws = XLSX.utils.aoa_to_sheet(filas);
-    // Ancho automático por columna
     const anchos = filas[0]?.map((_, ci) =>
       ({ wch: Math.min(50, Math.max(10, ...filas.map(f => String(f[ci] ?? '').length))) })
     ) || [];
@@ -42,17 +41,38 @@ function exportarBoletas() {
     if (fRubro  && r.categoria   !== fRubro)  return false;
     if (fProv   && r.proveedor   !== fProv)   return false;
     if (fPago   && !!r.fecha_pago !== (fPago === 'Paga')) return false;
-    if (fNum    && !(r.numero || '').toLowerCase().includes(fNum))   return false;
+    if (fNum    && !(e.numero_comprobante || '').toLowerCase().includes(fNum)) return false;
     if (fFecha  && !(r.fecha || '').includes(fFecha))  return false;
-    if (fBusca  && !`${r.proveedor||''} ${r.numero||''} ${r.categoria||''}`.toLowerCase().includes(fBusca)) return false;
+    if (fBusca  && !`${r.proveedor||''} ${e.numero_comprobante||''} ${r.categoria||''}`.toLowerCase().includes(fBusca)) return false;
     if (bolRubroFiltro && r.categoria !== bolRubroFiltro) return false;
     return true;
   });
 
-  const cabecera = ['Fecha','N° Factura','Proveedor','Categoría','Campaña','Firma','Total $','Fecha Pago'];
+  const cabecera = ['Fecha','N° Comprobante','Firma','Proveedor','Rubro','Descripción','Cant.','Unidad','C. Unit.','Moneda C.U.','Destino','Vto.','T.C.','Subtotal','%IVA','IVA $','Total $','Campaña','Estado pago'];
   const filas = rows.map(r => {
     let e = {}; try { e = JSON.parse(r.observaciones || '{}'); } catch(_) {}
-    return [r.fecha, r.numero, r.proveedor, r.categoria, e.campania, r.firma, r.monto_total, r.fecha_pago || ''];
+    const pctIva = (e.pct_iva === 0 || e.pct_iva === '0') ? 'Exento' : (e.pct_iva ? e.pct_iva + '%' : '');
+    return [
+      r.fecha,
+      e.numero_comprobante || '',
+      e.firma || r.firma || '',
+      r.proveedor || '',
+      r.categoria || '',
+      r.concepto || '',
+      e.cantidad || '',
+      e.unidad || '',
+      e.costo_unitario || '',
+      e.moneda_costo || 'ARS',
+      e.destino || '',
+      e.vencimiento || '',
+      e.tipo_cambio || '',
+      e.subtotal || '',
+      pctIva,
+      e.iva || '',
+      r.monto || '',
+      e.campania || '',
+      e.pago || ''
+    ];
   });
 
   const nombre = slugFiltro('facturas_recibidas', fProv, fRubro, fCamp, fFirma) || 'facturas_recibidas';
@@ -67,19 +87,40 @@ function exportarFacturasEmitidas() {
 
   const rows = femitTodas.filter(r => {
     let e = {}; try { e = JSON.parse(r.observaciones || '{}'); } catch(_) {}
-    if (fFirma && r.firma !== fFirma) return false;
+    if (fFirma && e.firma !== fFirma) return false;
     if (fCamp  && e.campania !== fCamp) return false;
     if (fBusca) {
-      const texto = `${r.proveedor||''} ${r.numero||''} ${e.campania||''} ${r.firma||''} ${e.cliente||''}`.toLowerCase();
+      const texto = `${r.proveedor||''} ${e.numero_comprobante||''} ${e.campania||''} ${e.firma||''} ${r.concepto||''}`.toLowerCase();
       if (!texto.includes(fBusca)) return false;
     }
     return true;
   });
 
-  const cabecera = ['Fecha','N° Factura','Cliente','Firma','Campaña','Total $'];
+  const cabecera = ['Fecha','N° Comprobante','Firma','Cliente','Rubro','Descripción','Cant.','Unidad','C. Unit.','Moneda C.U.','Destino','Vto.','T.C.','Subtotal','%IVA','IVA $','Total $','Campaña','Estado cobro'];
   const filas = rows.map(r => {
     let e = {}; try { e = JSON.parse(r.observaciones || '{}'); } catch(_) {}
-    return [r.fecha, r.numero, e.cliente || r.proveedor, r.firma, e.campania, r.monto_total];
+    const pctIva = (e.pct_iva === 0 || e.pct_iva === '0') ? 'Exento' : (e.pct_iva ? e.pct_iva + '%' : '');
+    return [
+      r.fecha,
+      e.numero_comprobante || '',
+      e.firma || r.firma || '',
+      r.proveedor || '',
+      r.categoria || '',
+      r.concepto || '',
+      e.cantidad || '',
+      e.unidad || '',
+      e.costo_unitario || '',
+      e.moneda_costo || 'ARS',
+      e.destino || '',
+      e.vencimiento || '',
+      e.tipo_cambio || '',
+      e.subtotal || '',
+      pctIva,
+      e.iva || '',
+      r.monto || '',
+      e.campania || '',
+      e.cobro || ''
+    ];
   });
 
   const nombre = slugFiltro('facturas_emitidas', fCamp, fFirma) || 'facturas_emitidas';
@@ -101,10 +142,16 @@ function exportarLiqGranos() {
     return true;
   });
 
-  const cabecera = ['Fecha','N° Liquidación','Razón Social','Grano','Toneladas','Precio','Total $','Campaña','Firma'];
-  const filas = rows.map(l => [l.fecha, l.numero, l.razon_social, l.grano, l.toneladas, l.precio, l.total_pesos, l.campania, l.firma]);
+  const cabecera = ['Firma','Razón Social','Fecha','Grano','N° Liquidación','Campaña','Kg','Precio TT','Subtotal','IVA','Op. c/IVA','Comisión c/IVA','Derecho Registro','Sellados Cba.','Flete Puerto c/IVA','Ganancias','IVA 5,8%','Total Ret. AFIP','Total Deducciones','IVA RG2300','Neto a Cobrar'];
+  const filas = rows.map(l => [
+    l.firma, l.razon_social, l.fecha, l.grano, l.numero, l.campania,
+    l.kg, l.precio_tt, l.subtotal, l.importe_iva, l.operacion_civa,
+    l.comision_civa, l.derecho_registro, l.sellados_cordoba, l.flete_puerto_civa,
+    l.ganancias, l.iva_5_8, l.total_retencion_afip, l.total_deducciones,
+    l.iva_rg2300, l.neto_cobrar
+  ]);
 
-  const nombre = slugFiltro('liq_granos', fRazon, fGrano, fCamp, fFirma) || 'liquidaciones_granos';
+  const nombre = slugFiltro('liq_granos', fRazon, fCamp, fFirma) || 'liquidaciones_granos';
   exportarXlsx([{ nombre: 'Liquidaciones Granos', filas: [cabecera, ...filas] }], nombre);
 }
 
@@ -115,10 +162,10 @@ function exportarCertificaciones() {
     ? certTodas.filter(row => { const c = parseCert(row); return `${c.depositario||''} ${c.coe||''} ${c.grano||''}`.toLowerCase().includes(fBusca); })
     : certTodas;
 
-  const cabecera = ['Fecha','COE','Depositario','Grano','Cantidad','Calidad','Estado'];
-  const filas = rows.map(r => {
-    const c = parseCert(r);
-    return [r.fecha, c.coe, c.depositario, c.grano, c.cantidad, c.calidad, r.estado || ''];
+  const cabecera = ['Fecha','COE','CTGS','Grano','Kg Bruto','Merma','Kg Neto','Depositario','Estado'];
+  const filas = rows.map(row => {
+    const c = parseCert(row);
+    return [c.fecha || row.fecha, c.coe || '', c.ctgs || '', c.grano || '', c.kg_bruto || '', c.merma || '', c.kg_neto || '', c.depositario || '', row.estado || ''];
   });
 
   const nombre = slugFiltro('certificaciones', fBusca) || 'certificaciones_granos';
@@ -132,8 +179,15 @@ function exportarLiqHacienda() {
   const rows = (fAnio ? liqhacTodas.filter(l => (l.fecha||'').startsWith(fAnio)) : liqhacTodas)
     .filter(l => !fBusca || `${l.consignatario||''} ${l.numero||''}`.toLowerCase().includes(fBusca));
 
-  const cabecera = ['Fecha','N° Liquidación','Consignatario','Cabezas','Kilos','Precio/kg','Total $'];
-  const filas = rows.map(l => [l.fecha, l.numero, l.consignatario, l.cabezas, l.kilos, l.precio_kg, l.total_pesos]);
+  const cabecera = ['Fecha','N° Liquidación','Consignatario','Cabezas','Categoría','Kg Totales','Kg/Animal','Precio $','Subtotal','Comisión','IVA','Ret. Ganancias','Total Neto'];
+  const filas = rows.map(l => {
+    const kgAnimal = l.cabezas && l.kg_totales ? l.kg_totales / l.cabezas : '';
+    return [
+      l.fecha, l.numero, l.consignatario, l.cabezas, l.categoria,
+      l.kg_totales, kgAnimal ? Math.round(kgAnimal) : '', l.precio,
+      l.subtotal, l.comision, l.iva, l.ret_ganancias, l.total_neto
+    ];
+  });
 
   const nombre = slugFiltro('liq_hacienda', fAnio) || 'liquidaciones_hacienda';
   exportarXlsx([{ nombre: 'Liq. Hacienda', filas: [cabecera, ...filas] }], nombre);
@@ -201,7 +255,6 @@ function exportarTrabajos() {
     ];
   });
 
-  // Hoja 2: insumos de trabajos siembra/pulverizacion/fertilizacion
   const tiposConInsumos = new Set(['siembra','pulverizacion','fertilizacion']);
   const cabIns = ['Trabajo ID','Fecha','Establecimiento','Lote','Tipo Labor','Insumo','Cantidad','Costo Total'];
   const filasIns = rows
