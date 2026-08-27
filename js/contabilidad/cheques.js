@@ -179,13 +179,12 @@ function renderCheques(tipo) {
   });
 
   // Tarjetas resumen (sobre TODOS, no solo filtrados, para tener panorama real)
-  const acc = { cartera: { tot: 0, cant: 0 }, efectivizado: { tot: 0, cant: 0 }, rechazado: { tot: 0, cant: 0 } };
+  const acc = { cartera: { tot: 0, cant: 0 }, efectivizado: { tot: 0, cant: 0 }, rechazado: { tot: 0, cant: 0 }, endosado: { tot: 0, cant: 0 } };
   st.todas.forEach(c => {
-    const e = acc[c.estado] || acc.cartera;
-    e.tot += c.monto || 0;
-    e.cant++;
+    const e = acc[c.estado];
+    if (e) { e.tot += c.monto || 0; e.cant++; }
   });
-  ['cartera','efectivizado','rechazado'].forEach(e => {
+  ['cartera','efectivizado','rechazado','endosado'].forEach(e => {
     const elTot = document.getElementById(`${cfg.pref}-tot-${e}`);
     const elCant = document.getElementById(`${cfg.pref}-cant-${e}`);
     if (elTot) elTot.textContent = fmtMonto(acc[e].tot, 'ARS');

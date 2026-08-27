@@ -2005,6 +2005,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
                 <option value="cartera">En cartera</option>
                 <option value="efectivizado">Cobrado</option>
                 <option value="rechazado">Rechazado</option>
+                <option value="endosado">Endosado</option>
               </select>
               <button class="btn btn-primary" onclick="toggleForm('form-chr')">+ Cargar cheque</button>
               <button class="btn btn-secondary" onclick="activarSuma('recibido')" id="btn-suma-chr">➕ Sumar</button>
@@ -2058,7 +2059,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             <div class="form-actions"><button class="btn btn-primary" onclick="guardarCheque('recibido')">Guardar cheque</button><button class="btn btn-secondary" onclick="toggleForm('form-chr')">Cancelar</button></div>
           </div>
 
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px;border-bottom:1px solid var(--gris-borde)">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px;border-bottom:1px solid var(--gris-borde)">
             <div style="background:var(--bordo-claro);border-radius:8px;padding:12px;border:1px solid var(--bordo-suave)">
               <div style="font-size:12px;color:var(--bordo);font-weight:600">📥 En cartera</div>
               <div style="font-size:18px;font-weight:700;color:var(--bordo);margin-top:6px" id="chr-tot-cartera">$0</div>
@@ -2073,6 +2074,11 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
               <div style="font-size:12px;color:var(--rojo);font-weight:600">❌ Rechazados</div>
               <div style="font-size:18px;font-weight:700;color:var(--rojo);margin-top:6px" id="chr-tot-rechazado">$0</div>
               <div style="font-size:11px;color:var(--texto-suave)" id="chr-cant-rechazado">0 cheques</div>
+            </div>
+            <div style="background:#f0f4ff;border-radius:8px;padding:12px;border:1px solid #b0c0e8">
+              <div style="font-size:12px;color:#3a5bc7;font-weight:600">🔄 Endosados</div>
+              <div style="font-size:18px;font-weight:700;color:#3a5bc7;margin-top:6px" id="chr-tot-endosado">$0</div>
+              <div style="font-size:11px;color:var(--texto-suave)" id="chr-cant-endosado">0 cheques</div>
             </div>
           </div>
 
