@@ -117,6 +117,8 @@ let maquinariaModalCache = [];
 let _mtrTipo = null;
 let _mtrLotes = [];
 let _mtrLoteSeleccionado = null;
+let _mtrCamposPropiasActivos = []; // nombres únicos de campos propios activos
+let _mtrTodosCampos = [];          // nombres únicos de todos los campos
 
 async function cargarMaquinariaModal() {
   if (typeof maquinas !== 'undefined' && maquinas.length) {
@@ -325,14 +327,66 @@ function mtrLoteChange() {
   mtrCalcCobro();
 }
 
-function mtrCampoChange() {
-  const campo = document.getElementById('mtr-campo-sel')?.value;
-  const sel   = document.getElementById('mtr-lote-id');
+function mtrCampoChange(campo) {
+  const sel = document.getElementById('mtr-lote-id');
   if (!sel) return;
-  const filtrados = campo ? _mtrLotes.filter(l => l.campo === campo) : _mtrLotes;
+  const filtrados = campo ? _mtrLotes.filter(l => l.campo === campo) : [];
   sel.innerHTML = '<option value="">— Elegir lote —</option>' +
     filtrados.map(l => `<option value="${l.id}">${l.lote}${l.hectareas ? ' — '+l.hectareas+' ha' : ''}</option>`).join('');
   _mtrLoteSeleccionado = null;
+  mtrMostrarCobro();
+}
+
+function mtrEstabInput(input) {
+  const q = input.value.trim().toLowerCase();
+  const base = q ? _mtrTodosCampos : _mtrCamposPropiasActivos;
+  const matches = q ? base.filter(c => c.toLowerCase().includes(q)) : base;
+
+  cerrarSugerencias();
+  const rect = input.getBoundingClientRect();
+  const div = document.createElement('div');
+  div.id = 'ac-dropdown';
+  div.style.cssText = `position:fixed;top:${rect.bottom+2}px;left:${rect.left}px;width:${rect.width}px;background:#fff;border:1px solid #ccc;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:99999;max-height:220px;overflow-y:auto`;
+
+  matches.slice(0, 10).forEach(v => {
+    const esPropio = _mtrCamposPropiasActivos.includes(v);
+    const item = document.createElement('div');
+    item.style.cssText = 'padding:7px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid #f0f0f0';
+    item.innerHTML = `${v}${esPropio ? ' <span style="font-size:10px;color:#aaa">· propio</span>' : ''}`;
+    item.onmousedown = e => { e.preventDefault(); input.value = v; cerrarSugerencias(); mtrCampoChange(v); };
+    item.onmouseover = () => item.style.background = '#f5f5f5';
+    item.onmouseout  = () => item.style.background = '';
+    div.appendChild(item);
+  });
+
+  // "+ Agregar" si no hay coincidencia exacta y hay texto
+  const exact = base.some(c => c.toLowerCase() === q);
+  if (q && !exact) {
+    const addItem = document.createElement('div');
+    addItem.textContent = `+ Agregar "${input.value.trim()}" como nuevo cliente`;
+    addItem.style.cssText = 'padding:7px 12px;font-size:13px;cursor:pointer;color:#8B1A2F;font-weight:600;border-top:1px solid #eee';
+    addItem.onmousedown = e => { e.preventDefault(); mtrAgregarNuevoCliente(input.value.trim()); cerrarSugerencias(); };
+    addItem.onmouseover = () => addItem.style.background = '#fff5f5';
+    addItem.onmouseout  = () => addItem.style.background = '';
+    div.appendChild(addItem);
+  }
+
+  if (div.children.length) document.body.appendChild(div);
+}
+
+async function mtrAgregarNuevoCliente(nombre) {
+  // Crear la parte en la base de datos y luego un lote "General" con esa parte
+  const parte = await sb('POST', 'partes', { nombre }, '?select=id');
+  if (!parte?.[0]?.id) { toast('Error al crear el cliente', 'var(--rojo)'); return; }
+  const parteId = parte[0].id;
+  await sb('POST', 'lotes', { campo: nombre, lote: 'General', propietario_id: parteId, activo: true });
+  // Recargar lotes y actualizar caché
+  const lotes = await sb('GET', 'lotes', '', '?select=id,campo,lote,propietario_id,hectareas,partes(nombre)&order=campo,lote');
+  _mtrLotes = lotes || [];
+  _mtrTodosCampos = [...new Set(_mtrLotes.map(l => l.campo))].sort();
+  document.getElementById('mtr-campo-txt').value = nombre;
+  mtrCampoChange(nombre);
+  toast(`"${nombre}" agregado como nuevo cliente`);
 }
 
 function mtrActualizarCampania() {
@@ -392,28 +446,17 @@ async function abrirModalTrabajo() {
   _mtrLoteSeleccionado = null;
 
   const [lotes, empleados, partes] = await Promise.all([
-    sb('GET', 'lotes', '', '?select=id,campo,lote,propietario_id,hectareas,partes(nombre)&order=campo,lote'),
+    sb('GET', 'lotes', '', '?select=id,campo,lote,propietario_id,activo,hectareas,partes(nombre)&order=campo,lote'),
     sb('GET', 'empleados', '', '?order=nombre'),
     sb('GET', 'partes', '', '?order=nombre'),
     cargarMaquinariaModal(),
   ]);
   _mtrLotes = lotes || [];
+  _mtrCamposPropiasActivos = [...new Set(_mtrLotes.filter(l => !l.propietario_id && l.activo !== false).map(l => l.campo))].sort();
+  _mtrTodosCampos = [...new Set(_mtrLotes.map(l => l.campo))].sort();
 
   cargarPanelPreciosInsumos();
   cargarCacheAutocomplete();
-
-  // Opciones lotes agrupadas por campo
-  const porCampo = {};
-  for (const l of _mtrLotes) {
-    const c = l.campo || '—';
-    if (!porCampo[c]) porCampo[c] = [];
-    porCampo[c].push(l);
-  }
-  const lotesOpts = Object.entries(porCampo).map(([campo, ls]) =>
-    `<optgroup label="${campo}">${ls.map(l =>
-      `<option value="${l.id}">${l.lote}${l.hectareas ? ` — ${l.hectareas} ha` : ''}${l.propietario_id ? ' 👤' : ''}</option>`
-    ).join('')}</optgroup>`
-  ).join('');
 
   // Opciones maquinaria agrupadas por categoría
   const porCat = {};
@@ -465,10 +508,9 @@ async function abrirModalTrabajo() {
           <div class="form-group" style="margin:0"><label>Fecha</label>
             <input type="date" id="mtr-fecha" value="${hoy}" oninput="mtrActualizarCampania()"></div>
           <div class="form-group" style="margin:0"><label>Establecimiento</label>
-            <select id="mtr-campo-sel" onchange="mtrCampoChange()" style="width:100%">
-              <option value="">— Elegir campo —</option>
-              ${[...new Set(_mtrLotes.map(l=>l.campo))].sort().map(c=>`<option value="${c}">${c}</option>`).join('')}
-            </select></div>
+            <input type="text" id="mtr-campo-txt" placeholder="Buscar campo..." autocomplete="off"
+              oninput="mtrEstabInput(this)" onfocus="mtrEstabInput(this)" onblur="setTimeout(cerrarSugerencias,150)"
+              style="width:100%"></div>
           <div class="form-group" style="margin:0"><label>Hectáreas trabajadas</label>
             <input type="number" id="mtr-has" placeholder="Ej: 78" oninput="mtrRecalcInsumos()"></div>
           <div class="form-group" style="margin:0"><label>Lote</label>
