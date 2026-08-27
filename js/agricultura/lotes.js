@@ -60,8 +60,7 @@ async function cargarDatosCostosInsumos() {
 let todosLotesGestion = [];
 
 async function cargarLotes() {
-  // Para gestión: todos los lotes propios (activos e inactivos)
-  todosLotesGestion = await sb('GET', 'lotes', '', '?propietario_id=is.null&order=activo.desc,campo,lote') || [];
+  todosLotesGestion = await sb('GET', 'lotes', '', '?propietario_id=is.null&activo=eq.true&order=campo,lote') || [];
   renderGestionLotes();
 
   const [lotes, trabajos, boletas, liqs, precios] = await Promise.all([
