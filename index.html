@@ -1081,6 +1081,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <input type="text" id="liqhac-filtro-busca" placeholder="🔎 Buscar consignatario o N° liquidación..." oninput="filtrarLiqHacReset()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;width:240px">
             <button class="btn btn-primary" onclick="abrirFormLiqHac()">+ Registrar</button>
+            <button class="btn btn-secondary" onclick="exportarLiqHacienda()">⬇ Excel</button>
           </div>
         </div>
         <div id="form-liqhac" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
@@ -1148,6 +1149,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             <input type="text" id="liqgr-f-num" oninput="filtrarLiqGrReset()" placeholder="N° For./COE..." style="font-size:12px;padding:4px 6px;border:1px solid var(--gris-borde);border-radius:6px;width:110px">
             <input type="text" id="liqgr-filtro-busca" placeholder="🔎 Buscar..." oninput="filtrarLiqGrReset()" style="padding:4px 8px;border:1px solid var(--gris-borde);border-radius:6px;font-size:12px;width:160px">
             <button class="btn btn-primary" onclick="toggleForm('form-liqgr')">+ Registrar</button>
+            <button class="btn btn-secondary" onclick="exportarLiqGranos()">⬇ Excel</button>
           </div>
         </div>
         <div id="form-liqgr" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
@@ -1197,6 +1199,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <input type="text" id="cert-filtro-busca" placeholder="🔎 Buscar depositario, C.O.E. o grano..." oninput="filtrarCertReset()" style="padding:6px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;width:220px">
             <button class="btn btn-primary" onclick="toggleForm('form-cert')">+ Registrar</button>
+            <button class="btn btn-secondary" onclick="exportarCertificaciones()">⬇ Excel</button>
           </div>
         </div>
         <div id="form-cert" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
@@ -1285,6 +1288,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
               <option value="siembra">Siembra</option><option value="pulverizacion">Pulverización</option><option value="fertilizacion">Fertilización</option><option value="cosecha">Cosecha</option><option value="enrollado">Enrollado</option><option value="corte">Corte</option><option value="rastrillado">Rastrillado</option><option value="movimiento_suelos">Labranza</option><option value="otro">Otro</option>
             </select>
             <button class="btn btn-primary" onclick="abrirModalTrabajo()">✚ Cargar trabajo</button>
+            <button class="btn btn-secondary" onclick="exportarTrabajos()">⬇ Excel</button>
           </div>
         </div>
 
@@ -1639,6 +1643,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
           <div style="display:flex;gap:8px;align-items:center">
             <button class="btn btn-secondary" style="font-size:12px" onclick="activarCalcBoleta()">🧮 Calculadora</button>
             <button class="btn btn-primary" onclick="abrirFormBoleta()">+ Cargar boleta</button>
+            <button class="btn btn-secondary" onclick="exportarBoletas()">⬇ Excel</button>
           </div>
         </div>
 
@@ -1786,6 +1791,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
               <option value="">Todas las campañas</option>
             </select>
             <button class="btn btn-primary" onclick="abrirFormFemit()">+ Cargar factura</button>
+            <button class="btn btn-secondary" onclick="exportarFacturasEmitidas()">⬇ Excel</button>
           </div>
         </div>
 
@@ -2009,6 +2015,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
               </select>
               <button class="btn btn-primary" onclick="toggleForm('form-chr')">+ Cargar cheque</button>
               <button class="btn btn-secondary" onclick="activarSuma('recibido')" id="btn-suma-chr">➕ Sumar</button>
+              <button class="btn btn-secondary" onclick="exportarCheques('recibido')">⬇ Excel</button>
             </div>
           </div>
           <div id="form-chr" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
@@ -2118,6 +2125,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
               </select>
               <button class="btn btn-primary" onclick="toggleForm('form-che')">+ Cargar cheque</button>
               <button class="btn btn-secondary" onclick="activarSuma('emitido')" id="btn-suma-che">➕ Sumar</button>
+              <button class="btn btn-secondary" onclick="exportarCheques('emitido')">⬇ Excel</button>
             </div>
           </div>
           <div id="form-che" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
@@ -2492,6 +2500,8 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="js/exportar.js"></script>
 <script src="js/core.js"></script>
 <script src="js/ganaderia/animales.js"></script>
 <script src="js/ganaderia/manga.js"></script>
