@@ -854,8 +854,9 @@ function renderTabAnimales(rodeoId, animales) {
           const crias = _ref ? animalesRodeo.filter(x => x.caravana_madre === _ref).length : 0;
           const esHembraCard = a.sexo === 'Hembra';
 
-          // Estado reproductivo
-          const resUlt = ultimoSrv?.resultado || (a.categoria === 'Vaca Preñada' ? (crias > 0 ? 'Vacía' : 'Preñada') : '');
+          // Estado reproductivo — si ya parió (tiene crías), pasa a Vacía sin importar el resultado del último servicio
+          const resUltSrv = ultimoSrv?.resultado || (a.categoria === 'Vaca Preñada' ? 'Preñada' : '');
+          const resUlt = crias > 0 ? 'Vacía' : resUltSrv;
           const estadoReprod = resUlt || (esHembraCard ? 'Sin datos' : '');
           const colReprod = resUlt === 'Preñada' ? '#1a7a3a' : resUlt === 'Vacía' ? '#b32b2b' : resUlt === 'Pendiente' ? '#7a5a00' : resUlt === 'Abortó' ? '#7a2020' : '#666';
           const bgReprod  = resUlt === 'Preñada' ? '#d4edda' : resUlt === 'Vacía' ? '#fce8e8' : resUlt === 'Pendiente' ? '#fff3cd' : resUlt === 'Abortó' ? '#fce8e8' : '#f0f0f0';
