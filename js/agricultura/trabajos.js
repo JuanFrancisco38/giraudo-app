@@ -447,7 +447,7 @@ async function abrirModalTrabajo() {
 
   const [lotes, empleados, partes] = await Promise.all([
     sb('GET', 'lotes', '', '?select=id,campo,lote,propietario_id,activo,hectareas,partes(nombre)&order=campo,lote'),
-    sb('GET', 'empleados', '', '?order=nombre'),
+    sb('GET', 'empleados', '', '?activo=eq.true&order=nombre'),
     sb('GET', 'partes', '', '?order=nombre'),
     cargarMaquinariaModal(),
   ]);

@@ -16,7 +16,7 @@ async function sueldosInit() {
 }
 
 async function cargarEmpleadosSueldos() {
-  sueldosEmpleados = await sb('GET', 'empleados', '', '?order=nombre') || [];
+  sueldosEmpleados = await sb('GET', 'empleados', '', '?activo=eq.true&order=nombre') || [];
   renderListaEmpleadosSueldos();
   if (sueldosEmpSel) {
     sueldosEmpSel = sueldosEmpleados.find(e => e.id === sueldosEmpSel.id) || null;
