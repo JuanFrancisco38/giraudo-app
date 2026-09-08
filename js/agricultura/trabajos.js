@@ -99,19 +99,7 @@ function calcTotalInsumo(input) {
   row.querySelector('.ins-total').value = precio && cantidad ? Math.round(precio * cantidad) : '';
 }
 
-// Filtro por tipo_labor → IDs de máquina que aparecen en el desplegable
-// (implementa tipo_labor_asociado de la spec sin requerir columna en DB)
-const TIPO_LABOR_MAQUINAS = {
-  corte:              ['12ad762c-6a3d-4158-b8a4-417606732785'], // Segadora NH 313
-  rastrillado:        ['b77334c2-18e8-445d-89cb-77cc4553ca6b'], // Rastrillo Gimetal 16 Estrellas
-  enrollado:          ['879f7b85-0b7f-4573-ad1d-1d13411b6b8f'], // New Holland RB460C
-  recoleccion_rollos: ['ae011f70-6b2a-4958-b8b7-9b8cdda3de4d'], // Sacarrollos
-  cosecha:            ['bd759fb7-1ae2-4bef-a88a-8df3a7a85937'], // Case IH 2388
-  siembra:            ['e45170d7-8851-4a70-9c1b-3c02d048bfa4'], // Super Walter 630 WG
-  picado:             ['90d4acf6-98ea-4754-967b-a3090a42a960'], // Picadora Mainero 4751
-  pulverizacion:      ['c0f57a24-d499-4502-8155-965acaa934b7'], // Fumigador Praba
-  // fertilizacion / movimiento_suelos → sin máquina específica, se filtra por categoría
-};
+// Filtro por tipo_labor → usa columna tipo_labor_asociado de la tabla maquinaria
 
 let maquinariaModalCache = [];
 let _mtrTipo = null;
@@ -141,13 +129,10 @@ function actualizarSelectMaquinaria(tipo) {
   if (!sel) return;
   let filtradas = maquinariaModalCache;
   if (tipo) {
-    const ids = TIPO_LABOR_MAQUINAS[tipo];
-    if (ids) {
-      // Filtro preciso por ID de máquina según spec
-      filtradas = maquinariaModalCache.filter(m => ids.includes(m.id));
-      if (!filtradas.length) filtradas = maquinariaModalCache; // fallback si no hay match
-    }
-    // Para tipos sin mapa de IDs (fertilizacion, movimiento_suelos, etc.) → todas las máquinas
+    // Filtrar por tipo_labor_asociado de la columna DB
+    const porTipo = maquinariaModalCache.filter(m => m.tipo_labor_asociado === tipo);
+    if (porTipo.length) filtradas = porTipo;
+    // Si no hay máquinas con ese tipo_labor_asociado → muestra todas (fertilizacion, movimiento_suelos, etc.)
   }
 
   sel.innerHTML = '<option value="">— Sin especificar —</option>';

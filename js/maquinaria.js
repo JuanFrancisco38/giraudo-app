@@ -129,6 +129,7 @@ function renderContenidoFichaMaq(tab) {
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;padding:16px">
           <div class="ficha-dato"><span class="ficha-label">Nombre</span><span class="ficha-val">${m.nombre}</span></div>
           <div class="ficha-dato"><span class="ficha-label">Categoría</span><span class="ficha-val">${m.categoria || '—'}</span></div>
+          <div class="ficha-dato"><span class="ficha-label">Tipo de labor</span><span class="ficha-val">${m.tipo_labor_asociado || '—'}</span></div>
           <div class="ficha-dato"><span class="ficha-label">Año</span><span class="ficha-val">${m.anio || '—'}</span></div>
           <div class="ficha-dato"><span class="ficha-label">Valor de compra</span><span class="ficha-val">${valor}</span></div>
           <div class="ficha-dato"><span class="ficha-label">${labelUso(m.unidad_uso)} actuales</span><span class="ficha-val">${uso}</span></div>
@@ -144,6 +145,11 @@ function renderContenidoFichaMaq(tab) {
           <div class="form-group"><label>Categoría</label>
             <select id="medit-cat">
               ${['Tractor','Cosecha','Siembra','Acondicionamiento de suelo','Movimiento de granos','Movimiento de suelos','Fumigacion','Forraje','Movilidad','Otro'].map(c => `<option${m.categoria===c?' selected':''}>${c}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group"><label>Tipo de labor asociado</label>
+            <select id="medit-tla">
+              ${['','corte','rastrillado','enrollado','recoleccion_rollos','cosecha','siembra','picado','pulverizacion','fertilizacion','movimiento_suelos'].map(v => `<option value="${v}"${m.tipo_labor_asociado===v?' selected':''}>${v || '— Sin asociar —'}</option>`).join('')}
             </select>
           </div>
           <div class="form-group"><label>Año</label><input type="number" id="medit-anio" value="${m.anio || ''}"></div>
@@ -495,6 +501,7 @@ async function guardarEdicionMaquina() {
   const data = {
     nombre: document.getElementById('medit-nombre').value,
     categoria: document.getElementById('medit-cat').value,
+    tipo_labor_asociado: document.getElementById('medit-tla').value || null,
     anio: parseInt(document.getElementById('medit-anio').value) || null,
     valor_compra: parseFloat(document.getElementById('medit-valor').value) || null,
     moneda_compra: document.getElementById('medit-moneda').value,
@@ -684,6 +691,7 @@ async function guardarMaquina() {
   const data = {
     nombre: document.getElementById('maq-nombre').value,
     categoria: document.getElementById('maq-cat').value,
+    tipo_labor_asociado: document.getElementById('maq-tla').value || null,
     anio: parseInt(document.getElementById('maq-anio').value) || null,
     valor_compra: parseFloat(document.getElementById('maq-valor').value) || null,
     moneda_compra: document.getElementById('maq-moneda').value || 'USD',
