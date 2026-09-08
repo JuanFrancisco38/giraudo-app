@@ -101,7 +101,7 @@ async function cargarFichaMensual() {
 
   const [items, entregas, prestamos, trabajosRaw, comisiones] = await Promise.all([
     sb('GET', 'empleado_ficha_item', '', `?empleado_id=eq.${empId}&anio=eq.${anio}&mes=eq.${mes}&order=created_at`),
-    sb('GET', 'empleado_entrega',    '', `?empleado_id=eq.${empId}&fecha=gte.${anio}-${mesStr}-01&fecha=lt.${anioSig}-${mesSig}-01&order=fecha`),
+    sb('GET', 'empleado_entrega',    '', `?empleado_id=eq.${empId}&mes_correspondiente=gte.${anio}-${mesStr}-01&mes_correspondiente=lt.${anioSig}-${mesSig}-01&order=fecha`),
     sb('GET', 'empleado_prestamo',   '', `?empleado_id=eq.${empId}&order=fecha.desc`),
     sb('GET', 'trabajos',            '', `?select=id,tipo_labor,fecha,trabajo_maquinaria(costo,operario_id)&fecha=gte.${anio}-${mesStr}-01&fecha=lt.${anioSig}-${mesSig}-01`),
     sb('GET', 'comision_tipo_labor', '', ''),
@@ -216,22 +216,35 @@ function renderFichaMensual() {
             <span style="font-size:12px;font-weight:600;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Entregas del mes</span>
             <span style="font-size:13px;font-weight:600">${fmtMonto(totEntregas,'ARS')}</span>
           </div>
-          ${sueldosEntregas.length ? sueldosEntregas.map(e => `
+          ${sueldosEntregas.length ? sueldosEntregas.map(e => {
+            const mesDifiere = e.mes_correspondiente && e.fecha && e.mes_correspondiente.slice(0,7) !== e.fecha.slice(0,7);
+            return `
             <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--gris-borde)">
-              <span style="font-size:11px;color:var(--texto-suave);min-width:72px">${fmtFecha(e.fecha)}</span>
+              <div style="min-width:72px">
+                <div style="font-size:11px;color:var(--texto-suave)">${fmtFecha(e.fecha)}</div>
+                ${mesDifiere ? `<div style="font-size:10px;color:var(--bordo);white-space:nowrap">↳ imputado ${e.mes_correspondiente.slice(0,7)}</div>` : ''}
+              </div>
               <span style="flex:1;font-size:13px">${e.descripcion || '—'}</span>
               <span style="font-size:13px;font-weight:600">${fmtMonto(e.monto,'ARS')}</span>
               ${e.prestamo_id ? '<span style="font-size:10px;color:#888;margin-left:4px">cuota</span>' : `<button onclick="borrarEntrega('${e.id}')" style="background:none;border:none;cursor:pointer;color:var(--rojo);font-size:16px;line-height:1;padding:0 4px">×</button>`}
-            </div>`).join('') : '<div style="font-size:12px;color:var(--texto-suave);padding:4px 0">Sin entregas este mes</div>'}
+            </div>`;
+          }).join('') : '<div style="font-size:12px;color:var(--texto-suave);padding:4px 0">Sin entregas este mes</div>'}
 
           <!-- Agregar entrega -->
           <div id="form-sd-entrega" style="display:none;margin-top:8px;background:var(--gris-fondo);border-radius:8px;padding:12px">
-            <div style="display:flex;gap:8px;margin-bottom:8px">
-              <input type="date" id="sd-entrega-fecha" style="flex:1;padding:7px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+              <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:120px">
+                <label style="font-size:11px;color:var(--texto-suave)">Fecha real</label>
+                <input type="date" id="sd-entrega-fecha" style="padding:7px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:120px">
+                <label style="font-size:11px;color:var(--texto-suave)">Mes que corresponde</label>
+                <input type="month" id="sd-entrega-mes" style="padding:7px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px">
+              </div>
               <input type="text" id="sd-entrega-desc" placeholder="Descripción"
-                style="flex:2;padding:7px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px">
+                style="flex:2;min-width:140px;padding:7px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px">
               <input type="number" id="sd-entrega-monto" placeholder="Monto"
-                style="flex:1;padding:7px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px">
+                style="flex:1;min-width:100px;padding:7px 10px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px">
             </div>
             <div style="display:flex;gap:8px">
               <button class="btn btn-primary" style="font-size:12px" onclick="agregarEntrega()">Guardar</button>
@@ -362,8 +375,13 @@ async function borrarItemLibre(id) {
 
 function abrirFormEntrega() {
   const hoy = new Date().toISOString().slice(0,10);
-  const el = document.getElementById('sd-entrega-fecha');
-  if (el && !el.value) el.value = hoy;
+  const elFecha = document.getElementById('sd-entrega-fecha');
+  if (elFecha && !elFecha.value) elFecha.value = hoy;
+  const elMes = document.getElementById('sd-entrega-mes');
+  if (elMes) {
+    const { anio, mes } = sueldosMes;
+    elMes.value = `${anio}-${String(mes).padStart(2,'0')}`;
+  }
   document.getElementById('form-sd-entrega').style.display = 'block';
 }
 
@@ -371,9 +389,11 @@ async function agregarEntrega() {
   const fecha = document.getElementById('sd-entrega-fecha').value;
   const desc  = document.getElementById('sd-entrega-desc').value.trim();
   const monto = parseFloat(document.getElementById('sd-entrega-monto').value) || 0;
+  const mesVal = document.getElementById('sd-entrega-mes').value; // YYYY-MM
   if (!fecha) { toast('Ingresá la fecha', 'var(--rojo)'); return; }
   if (!monto) { toast('Ingresá el monto', 'var(--rojo)'); return; }
-  const r = await sb('POST', 'empleado_entrega', { empleado_id: sueldosEmpSel.id, fecha, descripcion: desc, monto });
+  const mes_correspondiente = mesVal ? `${mesVal}-01` : fecha;
+  const r = await sb('POST', 'empleado_entrega', { empleado_id: sueldosEmpSel.id, fecha, descripcion: desc, monto, mes_correspondiente });
   if (r) {
     document.getElementById('form-sd-entrega').style.display = 'none';
     document.getElementById('sd-entrega-fecha').value = '';
@@ -418,6 +438,7 @@ async function guardarPrestamo() {
     entregas.push({
       empleado_id: sueldosEmpSel.id,
       fecha: fechaCuota,
+      mes_correspondiente: fechaCuota,
       descripcion: `Cuota ${i+1}/${cuotas} — ${desc || 'Préstamo'}`,
       monto: montoCuota,
       prestamo_id: prest.id
