@@ -193,6 +193,7 @@ tr:hover td{background:var(--gris)}
     <div class="nav-item" onclick="showSection('trabajos_agri',this)">🌾 Trabajos</div>
     <div class="nav-item" onclick="showSection('lotes',this)">🗺️ Historial lotes</div>
     <div class="nav-item" onclick="showSection('maquinaria',this)">🚜 Maquinaria</div>
+    <div class="nav-item" onclick="showSection('sueldos',this)">💵 Sueldos</div>
   </div>
 
   <div class="sidebar-section" onclick="toggleNav(this)">Ganadería <span class="nav-chevron">▾</span></div>
@@ -1498,6 +1499,56 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
     <div id="section-mantenimiento" class="section">
     </div>
 
+    <!-- SUELDOS -->
+    <div id="section-sueldos" class="section">
+
+      <div style="display:flex;gap:16px;align-items:flex-start">
+
+        <!-- Lista izquierda -->
+        <div class="card" style="width:260px;min-width:220px;flex-shrink:0">
+          <div class="card-header" style="padding:14px 16px">
+            <h3 style="font-size:14px">👷 Empleados</h3>
+            <button class="btn btn-primary" style="font-size:12px;padding:5px 10px" onclick="toggleForm('form-sd-emp-nuevo')">+ Agregar</button>
+          </div>
+          <div id="form-sd-emp-nuevo" style="display:none;padding:14px;border-bottom:1px solid var(--gris-borde)">
+            <div class="form-group"><label>Nombre</label>
+              <input type="text" id="sd-emp-nombre" class="form-control" placeholder="Ej: Carlos Pérez">
+            </div>
+            <div class="form-group"><label>Rol</label>
+              <input type="text" id="sd-emp-rol" class="form-control" placeholder="Ej: Tractorista">
+            </div>
+            <div class="form-actions" style="margin-top:8px">
+              <button class="btn btn-primary" style="font-size:12px" onclick="guardarEmpleadoSueldo()">Guardar</button>
+              <button class="btn btn-secondary" style="font-size:12px" onclick="toggleForm('form-sd-emp-nuevo')">Cancelar</button>
+            </div>
+          </div>
+          <div id="sueldos-lista" style="overflow-y:auto;max-height:calc(100vh - 200px)"></div>
+        </div>
+
+        <!-- Ficha derecha -->
+        <div style="flex:1;min-width:0">
+          <div id="sueldos-empty" class="card" style="padding:48px;text-align:center;color:var(--texto-suave)">
+            <div style="font-size:40px;margin-bottom:12px">💵</div>
+            <div style="font-size:14px">Seleccioná un empleado para ver su ficha mensual</div>
+          </div>
+          <div id="sueldos-ficha" style="display:none">
+            <div class="card" style="margin-bottom:16px;padding:16px 20px">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <h3 id="sueldos-ficha-nombre" style="font-size:18px;font-weight:700"></h3>
+                <div style="display:flex;align-items:center;gap:12px">
+                  <button onclick="sueldosCambiarMes(-1)" style="background:none;border:1px solid var(--gris-borde);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:14px">‹</button>
+                  <span id="sueldos-mes-label" style="font-size:14px;font-weight:600;min-width:140px;text-align:center"></span>
+                  <button onclick="sueldosCambiarMes(1)"  style="background:none;border:1px solid var(--gris-borde);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:14px">›</button>
+                </div>
+              </div>
+            </div>
+            <div id="sueldos-ficha-body"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
     <!-- PRECIOS RELATIVOS -->
     <div id="section-precios" class="section">
 
@@ -2502,6 +2553,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="js/exportar.js"></script>
+<script src="js/sueldos.js"></script>
 <script src="js/core.js"></script>
 <script src="js/ganaderia/animales.js"></script>
 <script src="js/ganaderia/manga.js"></script>

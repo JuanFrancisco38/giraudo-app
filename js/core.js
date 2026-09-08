@@ -130,8 +130,9 @@ function showSection(id, el) {
     mantenimiento:'Mantenimiento', precios:'Precios relativos',
     boletas:'Facturas recibidas', facturas_emitidas:'Facturas emitidas',
     notas_credito:'Notas de crédito', notas_debito:'Notas de débito', movimientos:'Movimientos',
-    retenciones:'Retenciones', balance:'Balance mensual', cheques:'Cheques'
+    retenciones:'Retenciones', balance:'Balance mensual', cheques:'Cheques', sueldos:'Sueldos'
   };
+  if (id === 'sueldos') sueldosInit();
   if (id === 'boletas') cargarBoletas();
   if (id === 'precios') cargarHistorialPrecios();
   if (id === 'trabajos_agri') { cargarTrabajos(); cargarTarifas(); }
