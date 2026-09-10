@@ -105,6 +105,7 @@ let maquinariaModalCache = [];
 let _mtrTipo = null;
 let _mtrLotes = [];
 let _mtrLoteSeleccionado = null;
+let _mtrEsTercero = false;
 let _mtrCamposPropiasActivos = []; // nombres únicos de campos propios activos
 let _mtrTodosCampos = [];          // nombres únicos de todos los campos
 
@@ -254,6 +255,14 @@ const _MTR_TIPO_MAQ = {
   corte:'Henificación', rastrillado:'Labranza', movimiento_suelos:'Labranza', picado:'Labranza'
 };
 
+// Mapa tipo_labor → label en tarifas_trabajos
+const MTR_TIPO_A_TARIFA_LABEL = {
+  siembra:'Siembra', pulverizacion:'Pulverización', fertilizacion:'Fertilización',
+  cosecha:'Cosecha', corte:'Corte', rastrillado:'Rastrillo',
+  enrollado:'Enrollado', movimiento_suelos:'Labranza', picado:'Picado',
+  recoleccion_rollos:'Enrollado'
+};
+
 function mtrSeleccionarTipo(tipo) {
   _mtrTipo = tipo;
   document.querySelectorAll('.mtr-tipo-btn').forEach(b => {
@@ -272,21 +281,105 @@ function mtrSeleccionarTipo(tipo) {
   if (esInsumos && !document.querySelector('#mtr-insumos-list .insumo-row')) agregarFilaInsumoModal();
   const labelEl = document.getElementById('mtr-tarifa-unidad');
   if (labelEl) labelEl.textContent = esRollos ? 'rollo' : 'ha';
-  const tarifaEl = document.getElementById('mtr-tarifa-lts');
-  if (tarifaEl && !tarifaEl.value) {
-    if (esRollos) tarifaEl.value = 10;
-    else if (tipo === 'corte') tarifaEl.value = 23;
+
+  // Precargar tarifa unificada desde tarifas_trabajos
+  const tarifaHaEl = document.getElementById('mtr-tarifa-ha');
+  if (tarifaHaEl && !tarifaHaEl.value) {
+    const label = MTR_TIPO_A_TARIFA_LABEL[tipo] || '';
+    const fila  = (tarifasTrabajos || []).find(t => t.tipo === label);
+    if (fila?.tarifa_ha) tarifaHaEl.value = fila.tarifa_ha;
+    mtrOnTarifaChange();
   }
-  // Filtrar maquinaria por tipo_labor
+
+  // Mantener compatibilidad con mtr-tarifa-lts para cálculo de gasoil (lts/ha fijo)
+  const tarifaLtsEl = document.getElementById('mtr-tarifa-lts');
+  if (tarifaLtsEl && !tarifaLtsEl.value) {
+    if (esRollos)          tarifaLtsEl.value = 10;
+    else if (tipo === 'corte') tarifaLtsEl.value = 23;
+  }
+
   actualizarSelectMaquinaria(tipo);
   mtrMostrarCobro();
   mtrCalcCobro();
 }
 
+const MTR_TIPO_GASOIL   = new Set(['corte','enrollado','recoleccion_rollos','rastrillado','movimiento_suelos','picado']);
+const MTR_TIPO_FACTURA  = new Set(['cosecha','siembra','pulverizacion','fertilizacion']);
+
+function mtrSetTercero(esTercero) {
+  _mtrEsTercero = esTercero;
+
+  // Toggle botones
+  document.getElementById('mtr-btn-propio').style.cssText   = esTercero
+    ? 'padding:9px 22px;border:2px solid #ddd;border-radius:8px;background:#fff;color:#333;cursor:pointer;font-size:13px;font-weight:600'
+    : 'padding:9px 22px;border:2px solid #8B1A2F;border-radius:8px;background:#8B1A2F;color:#fff;cursor:pointer;font-size:13px;font-weight:600';
+  document.getElementById('mtr-btn-tercero').style.cssText  = esTercero
+    ? 'padding:9px 22px;border:2px solid #8B1A2F;border-radius:8px;background:#8B1A2F;color:#fff;cursor:pointer;font-size:13px;font-weight:600'
+    : 'padding:9px 22px;border:2px solid #ddd;border-radius:8px;background:#fff;color:#333;cursor:pointer;font-size:13px;font-weight:600';
+
+  // Panel ejecutor: solo visible en campo propio
+  const wrapEj = document.getElementById('mtr-wrap-ejecutor');
+  if (wrapEj) wrapEj.style.display = esTercero ? 'none' : '';
+
+  // Limpiar campo/lote al cambiar modo
+  const campoEl = document.getElementById('mtr-campo-txt');
+  if (campoEl) campoEl.value = '';
+  const loteEl = document.getElementById('mtr-lote-id');
+  if (loteEl) loteEl.innerHTML = '<option value="">— Elegir lote —</option>';
+  _mtrLoteSeleccionado = null;
+
+  // Actualizar nota de tarifa
+  mtrActualizarNotaTarifa();
+  mtrMostrarCobro();
+}
+
+function mtrActualizarNotaTarifa() {
+  const nota = document.getElementById('mtr-tarifa-nota');
+  const label = document.getElementById('mtr-tarifa-ref-label');
+  if (!nota) return;
+  const ejecutor = document.querySelector('input[name="mtr-ejecutor"]:checked')?.value || 'propio';
+  if (_mtrEsTercero) {
+    nota.textContent = MTR_TIPO_FACTURA.has(_mtrTipo)
+      ? 'Alimenta la factura formal ($/ha × has = subtotal).'
+      : 'Referencia de cobro en pesos. El cobro real va en gasoil (paso 7).';
+    if (label) label.textContent = '';
+  } else if (ejecutor === 'contratista') {
+    nota.textContent = 'Se vuelca al costo del contratista (editable).';
+    if (label) label.textContent = '← costo contratista';
+  } else {
+    nota.textContent = 'Solo referencia — no genera cobro ni pago.';
+    if (label) label.textContent = '(referencia)';
+  }
+}
+
+function mtrOnTarifaChange() {
+  const tarifa = parseFloat(document.getElementById('mtr-tarifa-ha')?.value) || 0;
+  const has    = parseFloat(document.getElementById('mtr-has')?.value)       || 0;
+  const total  = tarifa && has ? Math.round(tarifa * has) : null;
+  const totalEl = document.getElementById('mtr-tarifa-total');
+  if (totalEl) totalEl.value = total ?? '';
+
+  // Precarga costo contratista
+  const ejecutor = document.querySelector('input[name="mtr-ejecutor"]:checked')?.value;
+  if (!_mtrEsTercero && ejecutor === 'contratista' && total) {
+    const costoEl = document.getElementById('mtr-contratista-costo');
+    if (costoEl) costoEl.value = total;
+  }
+
+  // Recalcula factura si aplica (usa mtr-tarifa-ha directamente)
+  if (_mtrEsTercero && MTR_TIPO_FACTURA.has(_mtrTipo)) mtrCalcFactura();
+}
+
 function mtrMostrarCobro() {
-  const esTercero = !!_mtrLoteSeleccionado?.propietario_id;
-  const el = document.getElementById('mtr-panel-cobro');
-  if (el) el.style.display = esTercero && _mtrTipo ? '' : 'none';
+  const usaGasoil  = _mtrEsTercero && _mtrTipo && MTR_TIPO_GASOIL.has(_mtrTipo);
+  const usaFactura = _mtrEsTercero && _mtrTipo && MTR_TIPO_FACTURA.has(_mtrTipo);
+
+  const panelGas  = document.getElementById('mtr-panel-cobro');
+  const panelFact = document.getElementById('mtr-panel-factura');
+  if (panelGas)  panelGas.style.display  = usaGasoil  ? '' : 'none';
+  if (panelFact) panelFact.style.display = usaFactura ? '' : 'none';
+
+  mtrActualizarNotaTarifa();
 }
 
 function mtrLoteChange() {
@@ -297,16 +390,6 @@ function mtrLoteChange() {
   if (hasEl && !hasEl.value && _mtrLoteSeleccionado?.hectareas) {
     hasEl.value = _mtrLoteSeleccionado.hectareas;
     mtrRecalcInsumos();
-  }
-  // Aviso tercero
-  const esTercero = !!_mtrLoteSeleccionado?.propietario_id;
-  const avisoEl = document.getElementById('mtr-aviso-tercero');
-  if (avisoEl) {
-    avisoEl.style.display = esTercero ? '' : 'none';
-    if (esTercero) {
-      const n = document.getElementById('mtr-tercero-nombre');
-      if (n) n.textContent = _mtrLoteSeleccionado?.partes?.nombre || '(propietario)';
-    }
   }
   mtrMostrarCobro();
   mtrCalcCobro();
@@ -324,7 +407,10 @@ function mtrCampoChange(campo) {
 
 function mtrEstabInput(input) {
   const q = input.value.trim().toLowerCase();
-  const base = q ? _mtrTodosCampos : _mtrCamposPropiasActivos;
+  // Modo tercero: busca entre campos con propietario; modo propio: solo propios activos
+  const camposTerceros = [...new Set(_mtrLotes.filter(l => l.propietario_id).map(l => l.campo))].sort();
+  const baseDefault = _mtrEsTercero ? camposTerceros : _mtrCamposPropiasActivos;
+  const base = q ? (_mtrEsTercero ? camposTerceros : _mtrTodosCampos) : baseDefault;
   const matches = q ? base.filter(c => c.toLowerCase().includes(q)) : base;
 
   cerrarSugerencias();
@@ -402,6 +488,25 @@ function mtrCalcCobroPesos() {
   if (el) el.value = lts && precio ? Math.round(lts * precio) : '';
 }
 
+function mtrCalcFactura() {
+  const tarifa   = parseFloat(document.getElementById('mtr-tarifa-ha')?.value)    || 0;
+  const has      = parseFloat(document.getElementById('mtr-has')?.value)           || 0;
+  const ivaPct   = parseFloat(document.getElementById('mtr-fact-iva-pct')?.value) || 0;
+  const tc       = parseFloat(document.getElementById('mtr-fact-tc')?.value)      || 0;
+
+  const subtotal  = tarifa * has;
+  const ivaMonto  = subtotal * ivaPct / 100;
+  const total     = subtotal + ivaMonto;
+  const totalUsd  = tc > 0 ? total / tc : 0;
+
+  const set = (id, val) => { const e = document.getElementById(id); if (e) e.value = val ? Math.round(val) : ''; };
+  set('mtr-fact-subtotal',   subtotal);
+  set('mtr-fact-iva-monto',  ivaMonto);
+  set('mtr-fact-total',      total);
+  const usdEl = document.getElementById('mtr-fact-total-usd');
+  if (usdEl) usdEl.value = totalUsd ? totalUsd.toFixed(2) : '';
+}
+
 function mtrCalcRindeHa() {
   const total = parseFloat(document.getElementById('mtr-rendimiento')?.value) || 0;
   const has   = parseFloat(document.getElementById('mtr-has')?.value) || 0;
@@ -416,6 +521,8 @@ function mtrEjecutorChange() {
   if (pp) pp.style.display = val === 'propio'      ? '' : 'none';
   if (pc) pc.style.display = val === 'contratista' ? '' : 'none';
   if (val === 'propio' && _mtrTipo) actualizarSelectMaquinaria(_mtrTipo);
+  mtrActualizarNotaTarifa();
+  mtrOnTarifaChange(); // recalcula costo contratista si corresponde
 }
 
 function mtrRecalcInsumos() {
@@ -424,11 +531,14 @@ function mtrRecalcInsumos() {
     if (d?.value) calcConsumoInsumo(d);
   });
   mtrCalcCobro();
+  mtrCalcFactura();
+  mtrOnTarifaChange();
 }
 
 async function abrirModalTrabajo() {
   _mtrTipo = null;
   _mtrLoteSeleccionado = null;
+  _mtrEsTercero = false;
 
   const [lotes, empleados, partes] = await Promise.all([
     sb('GET', 'lotes', '', '?select=id,campo,lote,propietario_id,activo,hectareas,partes(nombre)&order=campo,lote'),
@@ -488,7 +598,21 @@ async function abrirModalTrabajo() {
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:22px">${tipoBtns}</div>
 
       <div id="mtr-resto" style="display:none">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#8B1A2F;letter-spacing:.5px;margin-bottom:10px">2. Datos generales</div>
+        <div style="margin-bottom:18px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#8B1A2F;letter-spacing:.5px;margin-bottom:10px">2. ¿Es un trabajo que se salió a hacer afuera?</div>
+          <div style="display:flex;gap:10px">
+            <button id="mtr-btn-propio" onclick="mtrSetTercero(false)"
+              style="padding:9px 22px;border:2px solid #8B1A2F;border-radius:8px;background:#8B1A2F;color:#fff;cursor:pointer;font-size:13px;font-weight:600">
+              No — campo propio
+            </button>
+            <button id="mtr-btn-tercero" onclick="mtrSetTercero(true)"
+              style="padding:9px 22px;border:2px solid #ddd;border-radius:8px;background:#fff;color:#333;cursor:pointer;font-size:13px;font-weight:600">
+              Sí — servicio a tercero
+            </button>
+          </div>
+        </div>
+
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#8B1A2F;letter-spacing:.5px;margin-bottom:10px">3. Datos generales</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
           <div class="form-group" style="margin:0"><label>Fecha</label>
             <input type="date" id="mtr-fecha" value="${hoy}" oninput="mtrActualizarCampania()"></div>
@@ -508,18 +632,14 @@ async function abrirModalTrabajo() {
             <input type="text" id="mtr-campania" placeholder="Auto" oninput="this.dataset.editado='1'"></div>
         </div>
 
-        <div id="mtr-aviso-tercero" style="display:none;background:#fff8e1;border:1px solid #f0c040;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px">
-          👤 Campo de tercero: <strong id="mtr-tercero-nombre"></strong>. Se calculará lo que se le cobra en gasoil.
-        </div>
-
         <div id="mtr-wrap-rollos" style="display:none;margin-bottom:16px">
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#8B1A2F;letter-spacing:.5px;margin-bottom:8px">3. Producción</div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#8B1A2F;letter-spacing:.5px;margin-bottom:8px">4. Producción</div>
           <div class="form-group" style="margin:0;max-width:220px"><label>Cantidad de rollos</label>
             <input type="number" id="mtr-rollos" placeholder="Ej: 120" oninput="mtrCalcCobro()"></div>
         </div>
 
         <div id="mtr-wrap-rendimiento" style="display:none;margin-bottom:16px">
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#8B1A2F;letter-spacing:.5px;margin-bottom:8px">3. Producción cosechada</div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#8B1A2F;letter-spacing:.5px;margin-bottom:8px">4. Producción cosechada</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:420px">
             <div class="form-group" style="margin:0"><label>Total cosechado (kg)</label>
               <input type="number" id="mtr-rendimiento" placeholder="Ej: 195000" oninput="mtrCalcRindeHa()"></div>
@@ -529,14 +649,26 @@ async function abrirModalTrabajo() {
         </div>
 
         <div id="mtr-wrap-insumos" style="display:none;margin-bottom:16px">
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#8B1A2F;letter-spacing:.5px;margin-bottom:8px">3. Insumos / Productos</div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#8B1A2F;letter-spacing:.5px;margin-bottom:8px">4. Insumos / Productos</div>
           <p style="font-size:12px;color:#888;margin:0 0 8px">Un insumo por fila. El consumo total se calcula solo si cargás la dosis y las hectáreas.</p>
           <div id="mtr-insumos-list"></div>
           <button type="button" onclick="agregarFilaInsumoModal()" style="margin-top:6px;padding:6px 12px;font-size:12px;border:1px dashed #8B1A2F;background:none;color:#8B1A2F;border-radius:6px;cursor:pointer">+ Agregar insumo</button>
         </div>
 
-        <div style="margin-bottom:14px">
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#8B1A2F;letter-spacing:.5px;margin-bottom:10px">4. ¿Quién lo ejecuta?</div>
+        <div style="margin-bottom:16px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#8B1A2F;letter-spacing:.5px;margin-bottom:10px">5. Tarifa</div>
+          <div style="display:flex;align-items:center;gap:12px;max-width:360px">
+            <div class="form-group" style="margin:0;flex:1"><label>Tarifa ($/ha)</label>
+              <input type="number" id="mtr-tarifa-ha" placeholder="0" step="1"
+                oninput="mtrOnTarifaChange()" style="width:100%"></div>
+            <div class="form-group" style="margin:0;flex:1"><label>Total ($) <span id="mtr-tarifa-ref-label" style="font-size:10px;color:#888;font-weight:400"></span></label>
+              <input type="number" id="mtr-tarifa-total" readonly style="background:#f5f5f5;width:100%"></div>
+          </div>
+          <div id="mtr-tarifa-nota" style="font-size:11px;color:#888;margin-top:5px"></div>
+        </div>
+
+        <div id="mtr-wrap-ejecutor" style="margin-bottom:14px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#8B1A2F;letter-spacing:.5px;margin-bottom:10px">6. ¿Quién lo ejecuta?</div>
           <div style="display:flex;gap:20px;margin-bottom:12px">
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500">
               <input type="radio" name="mtr-ejecutor" value="propio" checked onchange="mtrEjecutorChange()"> Maquinaria propia
@@ -561,7 +693,7 @@ async function abrirModalTrabajo() {
         </div>
 
         <div id="mtr-panel-cobro" style="display:none;background:#eef5ff;border:1px solid #6699cc;border-radius:8px;padding:12px;margin-bottom:14px">
-          <div style="font-size:11px;font-weight:700;color:#1a4a80;margin-bottom:8px">5. 💰 Cobro al tercero (en litros de gasoil)</div>
+          <div style="font-size:11px;font-weight:700;color:#1a4a80;margin-bottom:8px">7. 💰 Cobro al tercero (en litros de gasoil)</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">
             <div class="form-group" style="margin:0"><label>Tarifa (lts/<span id="mtr-tarifa-unidad">ha</span>)</label>
               <input type="number" id="mtr-tarifa-lts" placeholder="0" step="0.1" oninput="mtrCalcCobro()" style="width:100%"></div>
@@ -573,6 +705,29 @@ async function abrirModalTrabajo() {
               <input type="number" id="mtr-cobro-pesos" readonly style="background:#f5f5f5;width:100%"></div>
           </div>
           <div style="font-size:11px;color:#555;margin-top:8px">Tarifas estándar: enrollado 10 lts/rollo · corte 23 lts/ha</div>
+        </div>
+
+        <div id="mtr-panel-factura" style="display:none;background:#f0fff4;border:1px solid #52c41a;border-radius:8px;padding:12px;margin-bottom:14px">
+          <div style="font-size:11px;font-weight:700;color:#237804;margin-bottom:8px">7. 🧾 Factura al tercero</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <div class="form-group" style="margin:0"><label>Subtotal ($) <span style="font-size:10px;color:#888">(tarifa × has del paso 5)</span></label>
+              <input type="number" id="mtr-fact-subtotal" readonly style="background:#f5f5f5;width:100%"></div>
+            <div class="form-group" style="margin:0"><label>IVA %</label>
+              <input type="number" id="mtr-fact-iva-pct" value="10.5" step="0.5" oninput="mtrCalcFactura()" style="width:100%"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div class="form-group" style="margin:0"><label>IVA ($)</label>
+              <input type="number" id="mtr-fact-iva-monto" readonly style="background:#f5f5f5;width:100%"></div>
+            <div class="form-group" style="margin:0"><label>Total ($)</label>
+              <input type="number" id="mtr-fact-total" readonly style="background:#f5f5f5;width:100%"></div>
+            <div class="form-group" style="margin:0"><label>Tipo de cambio ($/USD)</label>
+              <input type="number" id="mtr-fact-tc" placeholder="0" step="1" oninput="mtrCalcFactura()" style="width:100%"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-top:10px">
+            <div class="form-group" style="margin:0"><label>Total (USD)</label>
+              <input type="number" id="mtr-fact-total-usd" readonly style="background:#f5f5f5;width:100%"></div>
+            <div style="font-size:11px;color:#555;align-self:end;padding-bottom:6px">IVA agro: 10,5% · 21% según cliente</div>
+          </div>
         </div>
       </div>
     </div>
@@ -606,7 +761,7 @@ async function guardarTrabajoModal() {
   if (!loteId) { toast('Elegí un lote', 'var(--tierra)'); return; }
 
   const lote      = _mtrLotes.find(l => l.id === loteId);
-  const esTercero = !!lote?.propietario_id;
+  const esTercero = _mtrEsTercero;
 
   const cantRollos  = parseFloat(document.getElementById('mtr-rollos')?.value)     || null;
   const rendimiento = parseFloat(document.getElementById('mtr-rendimiento')?.value) || null;
@@ -616,10 +771,20 @@ async function guardarTrabajoModal() {
   const operarioId         = document.getElementById('mtr-operario-id')?.value || null;
   const contratistaNombre  = document.getElementById('mtr-contratista-nombre')?.value?.trim() || null;
   const contratistaCosto   = parseFloat(document.getElementById('mtr-contratista-costo')?.value) || null;
+  const tarifaHa           = parseFloat(document.getElementById('mtr-tarifa-ha')?.value)          || null;
   const tarifaLts          = parseFloat(document.getElementById('mtr-tarifa-lts')?.value)        || null;
   const cobroLts           = parseFloat(document.getElementById('mtr-cobro-lts')?.value)         || null;
   const precioGasoil       = parseFloat(document.getElementById('mtr-precio-gasoil')?.value)     || null;
   const cobroPesos         = parseFloat(document.getElementById('mtr-cobro-pesos')?.value)       || null;
+
+  // Datos de factura (cosecha/siembra a terceros)
+  const factTarifa    = tarifaHa;
+  const factSubtotal  = parseFloat(document.getElementById('mtr-fact-subtotal')?.value)  || null;
+  const factIvaPct    = parseFloat(document.getElementById('mtr-fact-iva-pct')?.value)   || null;
+  const factIvaMonto  = parseFloat(document.getElementById('mtr-fact-iva-monto')?.value) || null;
+  const factTotal     = parseFloat(document.getElementById('mtr-fact-total')?.value)     || null;
+  const factTc        = parseFloat(document.getElementById('mtr-fact-tc')?.value)        || null;
+  const factTotalUsd  = parseFloat(document.getElementById('mtr-fact-total-usd')?.value) || null;
 
   const insFilas = [...document.querySelectorAll('#mtr-insumos-list .insumo-row')];
   const insumos = insFilas.map(f => ({
@@ -656,7 +821,17 @@ async function guardarTrabajoModal() {
     });
   }
 
-  // 3. Insumos
+  // 3. Factura a tercero (cosecha/siembra)
+  if (esTercero && MTR_TIPO_FACTURA.has(_mtrTipo) && factTarifa) {
+    await sb('POST', 'trabajo_factura', {
+      trabajo_id: tid,
+      tarifa_ha: factTarifa, subtotal: factSubtotal,
+      iva_pct: factIvaPct, iva_monto: factIvaMonto,
+      total: factTotal, tipo_cambio: factTc, total_usd: factTotalUsd,
+    });
+  }
+
+  // 4. Insumos
   for (const ins of insumos) {
     await sb('POST', 'trabajo_insumos', {
       trabajo_id: tid, insumo: ins.insumo,
@@ -664,7 +839,7 @@ async function guardarTrabajoModal() {
     });
   }
 
-  // 4. Dual-write a trabajos_agricolas (legacy)
+  // 5. Dual-write a trabajos_agricolas (legacy)
   const TIPO_INV = {
     siembra:'Siembra', pulverizacion:'Pulverización', fertilizacion:'Fertilización',
     cosecha:'Cosecha', enrollado:'Henificación', corte:'Segadora',
