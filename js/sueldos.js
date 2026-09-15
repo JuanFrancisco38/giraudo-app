@@ -2,10 +2,12 @@
 let sueldosEmpleados = [];
 let sueldosEmpSel    = null;
 let sueldosMes       = null; // { anio, mes }
-let sueldosFichaItems = [];
-let sueldosEntregas   = [];
-let sueldosComision   = 0;
-let sueldosPrestamos  = [];
+let sueldosFichaItems  = [];
+let sueldosEntregas    = [];
+let sueldosComision    = 0;
+let sueldosPrestamos   = [];
+let sueldosMesData     = null; // fila de empleado_mes actual
+let sueldosMesCerrado  = false;
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 
@@ -99,17 +101,20 @@ async function cargarFichaMensual() {
   document.getElementById('sueldos-ficha-nombre').textContent = sueldosEmpSel.nombre;
   document.getElementById('sueldos-mes-label').textContent = sueldosMesLabel();
 
-  const [items, entregas, prestamos, trabajosRaw, comisiones] = await Promise.all([
+  const [items, entregas, prestamos, trabajosRaw, comisiones, mesRows] = await Promise.all([
     sb('GET', 'empleado_ficha_item', '', `?empleado_id=eq.${empId}&anio=eq.${anio}&mes=eq.${mes}&order=created_at`),
     sb('GET', 'empleado_entrega',    '', `?empleado_id=eq.${empId}&mes_correspondiente=gte.${anio}-${mesStr}-01&mes_correspondiente=lt.${anioSig}-${mesSig}-01&order=fecha`),
     sb('GET', 'empleado_prestamo',   '', `?empleado_id=eq.${empId}&order=fecha.desc`),
     sb('GET', 'trabajos',            '', `?select=id,tipo_labor,fecha,trabajo_maquinaria(costo,operario_id)&fecha=gte.${anio}-${mesStr}-01&fecha=lt.${anioSig}-${mesSig}-01`),
     sb('GET', 'comision_tipo_labor', '', ''),
+    sb('GET', 'empleado_mes',        '', `?empleado_id=eq.${empId}&anio=eq.${anio}&mes=eq.${mes}&limit=1`),
   ]);
 
   sueldosFichaItems = items || [];
   sueldosEntregas   = entregas || [];
   sueldosPrestamos  = prestamos || [];
+  sueldosMesData    = (mesRows || [])[0] || null;
+  sueldosMesCerrado = sueldosMesData?.cerrado === true;
 
   // Calcular comisión automática
   const pctMap = {};
@@ -145,8 +150,20 @@ function renderFichaMensual() {
   const totRecibido = totEntregas + libresrec.reduce((s,i) => s + (i.monto||0), 0);
   const aEntregar   = totDev - totRecibido;
 
+  const cerrado = sueldosMesCerrado;
+  const rdonly  = cerrado ? 'disabled style="width:140px;text-align:right;padding:5px 8px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px;background:var(--gris-fondo);color:var(--texto-suave)"'
+                           : 'style="width:140px;text-align:right;padding:5px 8px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px"';
+
   const el = document.getElementById('sueldos-ficha-body');
   el.innerHTML = `
+    ${cerrado ? `<div style="background:#fff8e1;border:1px solid #f0c040;border-radius:8px;padding:10px 16px;margin-bottom:14px;font-size:13px;display:flex;justify-content:space-between;align-items:center">
+      <span>🔒 <strong>Mes cerrado.</strong> Reabrir para editar.</span>
+      <div style="display:flex;gap:8px">
+        <button onclick="reabrirMes()" class="btn btn-secondary" style="font-size:12px">Reabrir este mes</button>
+        <button onclick="reabrirTodos()" class="btn btn-secondary" style="font-size:12px;color:var(--bordo)">Reabrir todos</button>
+      </div>
+    </div>` : ''}
+
     <!-- DEVENGADO -->
     <div class="card" style="margin-bottom:16px">
       <div class="card-header" style="padding:14px 20px">
@@ -160,7 +177,7 @@ function renderFichaMensual() {
           <span style="flex:1;font-size:13px;font-weight:600">Sueldo</span>
           <input type="number" value="${sueldo?.monto || ''}" placeholder="0"
             onchange="guardarItemFijo('__sueldo__','devengado',this.value,'${sueldo?.id||''}')"
-            style="width:140px;text-align:right;padding:5px 8px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px">
+            ${rdonly}>
         </div>
 
         <!-- Medio Aguinaldo -->
@@ -168,7 +185,7 @@ function renderFichaMensual() {
           <span style="flex:1;font-size:13px;font-weight:600">Medio Aguinaldo</span>
           <input type="number" value="${aguinaldo?.monto || ''}" placeholder="0"
             onchange="guardarItemFijo('__aguinaldo__','devengado',this.value,'${aguinaldo?.id||''}')"
-            style="width:140px;text-align:right;padding:5px 8px;border:1px solid var(--gris-borde);border-radius:6px;font-size:13px">
+            ${rdonly}>
         </div>
 
         <!-- Comisión automática -->
@@ -196,8 +213,8 @@ function renderFichaMensual() {
             <button class="btn btn-secondary" style="font-size:12px" onclick="document.getElementById('form-sd-item-dev').style.display='none'">Cancelar</button>
           </div>
         </div>
-        <button class="btn btn-secondary" style="font-size:12px;margin-top:10px"
-          onclick="document.getElementById('form-sd-item-dev').style.display='flex'">+ Agregar ítem</button>
+        ${cerrado ? '' : `<button class="btn btn-secondary" style="font-size:12px;margin-top:10px"
+          onclick="document.getElementById('form-sd-item-dev').style.display='flex'">+ Agregar ítem</button>`}
 
       </div>
     </div>
@@ -251,8 +268,8 @@ function renderFichaMensual() {
               <button class="btn btn-secondary" style="font-size:12px" onclick="document.getElementById('form-sd-entrega').style.display='none'">Cancelar</button>
             </div>
           </div>
-          <button class="btn btn-secondary" style="font-size:12px;margin-top:8px"
-            onclick="abrirFormEntrega()">+ Agregar entrega</button>
+          ${cerrado ? '' : `<button class="btn btn-secondary" style="font-size:12px;margin-top:8px"
+            onclick="abrirFormEntrega()">+ Agregar entrega</button>`}
         </div>
 
         <!-- Ítems libres recibido -->
@@ -271,8 +288,8 @@ function renderFichaMensual() {
             <button class="btn btn-secondary" style="font-size:12px" onclick="document.getElementById('form-sd-item-rec').style.display='none'">Cancelar</button>
           </div>
         </div>
-        <button class="btn btn-secondary" style="font-size:12px;margin-top:10px"
-          onclick="document.getElementById('form-sd-item-rec').style.display='flex'">+ Agregar ítem</button>
+        ${cerrado ? '' : `<button class="btn btn-secondary" style="font-size:12px;margin-top:10px"
+          onclick="document.getElementById('form-sd-item-rec').style.display='flex'">+ Agregar ítem</button>`}
 
       </div>
     </div>
@@ -284,7 +301,12 @@ function renderFichaMensual() {
           <div style="font-size:14px;font-weight:700;color:var(--texto)">A entregar este mes</div>
           <div style="font-size:12px;color:var(--texto-suave);margin-top:2px">Devengado − Recibido</div>
         </div>
-        <div style="font-size:24px;font-weight:700;color:${aEntregar > 0 ? '#92400e' : aEntregar < 0 ? 'var(--rojo)' : 'var(--verde)'}">${fmtMonto(aEntregar,'ARS')}</div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="font-size:24px;font-weight:700;color:${aEntregar > 0 ? '#92400e' : aEntregar < 0 ? 'var(--rojo)' : 'var(--verde)'}">${fmtMonto(aEntregar,'ARS')}</div>
+          ${cerrado
+            ? `<button onclick="reabrirMes()" class="btn btn-secondary" style="font-size:12px;white-space:nowrap">🔓 Reabrir mes</button>`
+            : `<button onclick="cerrarMes()" class="btn btn-primary" style="font-size:12px;white-space:nowrap;background:var(--bordo)">🔒 Cerrar mes</button>`}
+        </div>
       </div>
     </div>
 
@@ -292,7 +314,7 @@ function renderFichaMensual() {
     <div class="card" style="margin-top:16px">
       <div class="card-header" style="padding:14px 20px">
         <h3 style="font-size:14px">🏦 Préstamos</h3>
-        <button class="btn btn-secondary" style="font-size:12px" onclick="toggleForm('form-sd-prestamo')">+ Nuevo préstamo</button>
+        ${cerrado ? '' : `<button class="btn btn-secondary" style="font-size:12px" onclick="toggleForm('form-sd-prestamo')">+ Nuevo préstamo</button>`}
       </div>
       <div id="form-sd-prestamo" style="display:none;padding:14px 20px;border-bottom:1px solid var(--gris-borde)">
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
@@ -323,6 +345,98 @@ function renderFichaMensual() {
     </div>
   `;
 }
+
+// ── Cerrar / Reabrir mes ──────────────────────────────────────────────────────
+
+function _mesLabel() {
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const { anio, mes } = sueldosMes;
+  return `${MESES[mes - 1]} ${anio}`;
+}
+
+async function cerrarMes() {
+  if (!sueldosEmpSel) return;
+  const { anio, mes } = sueldosMes;
+  const empId  = sueldosEmpSel.id;
+  const mesStr = String(mes).padStart(2, '0');
+
+  // calcular saldo
+  const itemsDev = sueldosFichaItems.filter(i => i.bloque === 'devengado');
+  const itemsRec = sueldosFichaItems.filter(i => i.bloque === 'recibido');
+  const sueldo   = itemsDev.find(i => i.concepto === '__sueldo__');
+  const aguinaldo= itemsDev.find(i => i.concepto === '__aguinaldo__');
+  const libresdev= itemsDev.filter(i => !['__sueldo__','__aguinaldo__'].includes(i.concepto));
+  const totDev   = (sueldo?.monto||0)+(aguinaldo?.monto||0)+sueldosComision+libresdev.reduce((s,i)=>s+(i.monto||0),0);
+  const totEntregas = sueldosEntregas.reduce((s,e)=>s+(e.monto||0),0);
+  const libresrec   = itemsRec.filter(()=>true);
+  const totRec  = totEntregas + libresrec.reduce((s,i)=>s+(i.monto||0),0);
+  const aEntregar = totDev - totRec;
+
+  // 1. crear fila de liquidación en empleado_entrega
+  const hoy = new Date().toISOString().slice(0,10);
+  const desc = `Liquidación ${_mesLabel()}`;
+  await sb('POST', 'empleado_entrega', {
+    empleado_id: empId,
+    fecha: hoy,
+    mes_correspondiente: `${anio}-${mesStr}-01`,
+    descripcion: desc,
+    monto: aEntregar,
+  });
+
+  // 2. upsert empleado_mes cerrado=true
+  if (sueldosMesData?.id) {
+    await sb('PATCH', 'empleado_mes', { cerrado: true }, `?id=eq.${sueldosMesData.id}`);
+  } else {
+    await sb('POST', 'empleado_mes', { empleado_id: empId, anio, mes, cerrado: true });
+  }
+
+  await cargarFichaMensual();
+}
+
+async function reabrirMes() {
+  if (!sueldosEmpSel) return;
+  const { anio, mes } = sueldosMes;
+  const empId  = sueldosEmpSel.id;
+  const mesStr = String(mes).padStart(2, '0');
+  const desc   = `Liquidación ${_mesLabel()}`;
+
+  // 1. borrar fila de liquidación si existe
+  await sb('DELETE', 'empleado_entrega', '',
+    `?empleado_id=eq.${empId}&mes_correspondiente=eq.${anio}-${mesStr}-01&descripcion=eq.${encodeURIComponent(desc)}`);
+
+  // 2. marcar mes como abierto
+  if (sueldosMesData?.id) {
+    await sb('PATCH', 'empleado_mes', { cerrado: false }, `?id=eq.${sueldosMesData.id}`);
+  }
+
+  await cargarFichaMensual();
+}
+
+async function reabrirTodos() {
+  if (!sueldosEmpSel) return;
+  const ok = confirm(`¿Reabrir TODOS los meses cerrados de ${sueldosEmpSel.nombre}?\nSe borrarán todas las filas de Liquidación generadas al cerrar.`);
+  if (!ok) return;
+
+  const empId = sueldosEmpSel.id;
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  // obtener todos los meses cerrados del empleado
+  const cerrados = await sb('GET', 'empleado_mes', '', `?empleado_id=eq.${empId}&cerrado=eq.true`);
+  if (!cerrados?.length) { toast('No hay meses cerrados'); return; }
+
+  for (const row of cerrados) {
+    const mesStr  = String(row.mes).padStart(2, '0');
+    const label   = `${MESES[row.mes - 1]} ${row.anio}`;
+    const desc    = `Liquidación ${label}`;
+    await sb('DELETE', 'empleado_entrega', '',
+      `?empleado_id=eq.${empId}&mes_correspondiente=eq.${row.anio}-${mesStr}-01&descripcion=eq.${encodeURIComponent(desc)}`);
+    await sb('PATCH', 'empleado_mes', { cerrado: false }, `?id=eq.${row.id}`);
+  }
+
+  await cargarFichaMensual();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function renderItemLibre(item, bloque) {
   return `
