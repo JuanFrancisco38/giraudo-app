@@ -76,7 +76,7 @@ async function sb(method, table, data=null, query='') {
   if (data) opts.body = JSON.stringify(data);
   const r = await fetch(url, opts);
   if (!r.ok) { console.error(await r.text()); return null; }
-  if (method === 'DELETE') return null;
+  if (method === 'DELETE') return true;
   const text = await r.text();
   return text ? JSON.parse(text) : [];
 }
