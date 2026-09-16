@@ -157,6 +157,15 @@ const CSS_BASE = `
   .pie { display:flex; justify-content:space-between; font-size:6.5pt; color:#555; margin-top:3px; }
   .page { width:100%; height:277mm; display:flex; flex-direction:column; gap:6px; page-break-after:always; overflow:hidden; }
   .page:last-child { page-break-after:auto; }
+  @media print {
+    tbody td { border-right:1px solid #555; border-bottom:1px solid #555; }
+    tbody td.sep { border-left:2.5px solid #1A1A18 !important; }
+    tbody tr:nth-child(even) { background:#D0D0D0 !important; }
+    td.num { color:#333; }
+    .pie { color:#222; }
+    .tabla-wrap { border-color:#1A1A18; }
+    .bloque { border-color:#1A1A18; }
+  }
   </style>`;
 
 // ─── TACTO ─────────────────────────────────────────────────────────
