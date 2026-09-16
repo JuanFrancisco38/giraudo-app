@@ -144,7 +144,9 @@ function renderFichaMensual() {
   const libresdev = itemsDev.filter(i => !['__sueldo__','__aguinaldo__'].includes(i.concepto));
   const libresrec = itemsRec.filter(i => true);
 
-  const totDev = (sueldo?.monto || 0) + (aguinaldo?.monto || 0) + sueldosComision
+  const esOperario = sueldosEmpSel?.rol === 'operario';
+  const totDev = (sueldo?.monto || 0) + (aguinaldo?.monto || 0)
+    + (esOperario ? sueldosComision : 0)
     + libresdev.reduce((s,i) => s + (i.monto||0), 0);
   const totEntregas = sueldosEntregas.reduce((s,e) => s + (e.monto||0), 0);
   const totRecibido = totEntregas + libresrec.reduce((s,i) => s + (i.monto||0), 0);
@@ -188,14 +190,15 @@ function renderFichaMensual() {
             ${rdonly}>
         </div>
 
-        <!-- Comisión automática -->
+        <!-- Comisión automática — solo para operarios de maquinaria -->
+        ${sueldosEmpSel?.rol === 'operario' ? `
         <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gris-borde);${sueldosComision===0?'opacity:.5':''}">
           <div style="flex:1">
             <div style="font-size:13px;font-weight:600">Comisión Enrollado/Segado</div>
             <div style="font-size:11px;color:var(--texto-suave)">8% sobre trabajos del mes — calculado automáticamente</div>
           </div>
           <span style="font-size:13px;font-weight:600;color:var(--verde)">${fmtMonto(sueldosComision,'ARS')}</span>
-        </div>
+        </div>` : ''}
 
         <!-- Ítems libres devengado -->
         ${libresdev.map(i => renderItemLibre(i, 'devengado')).join('')}
@@ -304,7 +307,10 @@ function renderFichaMensual() {
         <div style="display:flex;align-items:center;gap:16px">
           <div style="font-size:24px;font-weight:700;color:${aEntregar > 0 ? '#92400e' : aEntregar < 0 ? 'var(--rojo)' : 'var(--verde)'}">${fmtMonto(aEntregar,'ARS')}</div>
           ${cerrado
-            ? `<button onclick="reabrirMes()" class="btn btn-secondary" style="font-size:12px;white-space:nowrap">🔓 Reabrir mes</button>`
+            ? `<div style="display:flex;gap:8px">
+                <button onclick="generarPdfMes()" class="btn btn-primary" style="font-size:12px;white-space:nowrap;background:#1a5276">📄 Generar PDF</button>
+                <button onclick="reabrirMes()" class="btn btn-secondary" style="font-size:12px;white-space:nowrap">🔓 Reabrir mes</button>
+               </div>`
             : `<button onclick="cerrarMes()" class="btn btn-primary" style="font-size:12px;white-space:nowrap;background:var(--bordo)">🔒 Cerrar mes</button>`}
         </div>
       </div>
@@ -346,6 +352,105 @@ function renderFichaMensual() {
   `;
 }
 
+// ── PDF del mes cerrado ───────────────────────────────────────────────────────
+
+function generarPdfMes() {
+  if (!sueldosEmpSel || !sueldosMesCerrado) return;
+
+  const itemsDev  = sueldosFichaItems.filter(i => i.bloque === 'devengado');
+  const itemsRec  = sueldosFichaItems.filter(i => i.bloque === 'recibido');
+  const sueldo    = itemsDev.find(i => i.concepto === '__sueldo__');
+  const aguinaldo = itemsDev.find(i => i.concepto === '__aguinaldo__');
+  const libresdev = itemsDev.filter(i => !['__sueldo__','__aguinaldo__'].includes(i.concepto));
+  const libresrec = itemsRec.filter(() => true);
+
+  const esOperario  = sueldosEmpSel?.rol === 'operario';
+  const totDev      = (sueldo?.monto||0) + (aguinaldo?.monto||0)
+    + (esOperario ? sueldosComision : 0)
+    + libresdev.reduce((s,i) => s+(i.monto||0), 0);
+  const totEntregas = sueldosEntregas.reduce((s,e) => s+(e.monto||0), 0);
+  const totRec      = totEntregas + libresrec.reduce((s,i) => s+(i.monto||0), 0);
+  const aEntregar   = totDev - totRec;
+
+  const nombreMes = _mesLabel();
+  const hoy       = new Date().toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric' });
+
+  const fila = (concepto, monto, suave = false) =>
+    `<tr><td style="padding:6px 10px;font-size:13px;color:${suave?'#888':'#222'}">${concepto}</td>
+         <td style="padding:6px 10px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;color:${suave?'#888':'#222'}">${fmtMonto(monto,'ARS')}</td></tr>`;
+
+  const filaTotal = (label, monto, color = '#1a1a1a') =>
+    `<tr style="background:#f5f5f5;font-weight:700">
+       <td style="padding:8px 10px;font-size:13px;color:${color}">${label}</td>
+       <td style="padding:8px 10px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums;color:${color}">${fmtMonto(monto,'ARS')}</td>
+     </tr>`;
+
+  const lineasDev = [
+    sueldo?.monto    ? fila('Sueldo', sueldo.monto)       : '',
+    aguinaldo?.monto ? fila('Medio Aguinaldo', aguinaldo.monto) : '',
+    ...(esOperario && sueldosComision ? [fila('Comisión Enrollado/Segado', sueldosComision)] : []),
+    ...libresdev.map(i => fila(i.concepto, i.monto)),
+    filaTotal('Total Devengado', totDev),
+  ].join('');
+
+  const lineasRec = [
+    ...sueldosEntregas.map(e => {
+      const mesOrig = e.mes_correspondiente ? e.mes_correspondiente.slice(0,7) : '';
+      const label   = (e.descripcion || 'Entrega') + (mesOrig ? ` <span style="color:#888;font-size:11px">(${mesOrig})</span>` : '');
+      return fila(label, e.monto);
+    }),
+    ...libresrec.map(i => fila(i.concepto, i.monto)),
+    filaTotal('Total Recibido', totRec),
+  ].join('');
+
+  const colorAE   = aEntregar > 0 ? '#7b3f00' : aEntregar < 0 ? '#c0392b' : '#27ae60';
+  const bgAE      = aEntregar > 0 ? '#fff8e1' : aEntregar < 0 ? '#fce8e8' : '#f0faf0';
+
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
+  <title>Liquidación ${nombreMes} — ${sueldosEmpSel.nombre}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 32px; color: #222; }
+    h1   { font-size: 18px; margin: 0 0 4px; }
+    .sub { font-size: 13px; color: #555; margin-bottom: 24px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    th   { background: #3d0b0b; color: #fff; padding: 8px 10px; font-size: 13px; text-align: left; }
+    th:last-child { text-align: right; }
+    tr:nth-child(even):not(:last-child) { background: #fafafa; }
+    .ae  { background: ${bgAE}; border: 2px solid ${colorAE}; border-radius: 8px;
+           padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
+    .ae-label { font-size: 15px; font-weight: 700; color: ${colorAE}; }
+    .ae-monto { font-size: 24px; font-weight: 700; color: ${colorAE}; font-variant-numeric: tabular-nums; }
+    .footer { margin-top: 40px; font-size: 11px; color: #aaa; border-top: 1px solid #eee; padding-top: 12px; }
+    @media print { body { padding: 16px; } }
+  </style></head><body>
+  <h1>Liquidación de Haberes — ${sueldosEmpSel.nombre}</h1>
+  <div class="sub">${nombreMes} &nbsp;·&nbsp; ${sueldosEmpSel.rol || 'Empleado'} &nbsp;·&nbsp; Emitido: ${hoy}</div>
+
+  <table>
+    <thead><tr><th>📥 Devengado</th><th style="text-align:right">Monto</th></tr></thead>
+    <tbody>${lineasDev}</tbody>
+  </table>
+
+  <table>
+    <thead><tr><th>📤 Recibido</th><th style="text-align:right">Monto</th></tr></thead>
+    <tbody>${lineasRec}</tbody>
+  </table>
+
+  <div class="ae">
+    <div class="ae-label">💳 A entregar este mes<br><span style="font-size:12px;font-weight:400;color:#555">Devengado − Recibido</span></div>
+    <div class="ae-monto">${fmtMonto(aEntregar,'ARS')}</div>
+  </div>
+
+  <div class="footer">Giraudo Agropecuaria &nbsp;·&nbsp; Documento generado el ${hoy}</div>
+  <script>window.onload = () => window.print();</script>
+  </body></html>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
 // ── Cerrar / Reabrir mes ──────────────────────────────────────────────────────
 
 function _mesLabel() {
@@ -366,7 +471,9 @@ async function cerrarMes() {
   const sueldo   = itemsDev.find(i => i.concepto === '__sueldo__');
   const aguinaldo= itemsDev.find(i => i.concepto === '__aguinaldo__');
   const libresdev= itemsDev.filter(i => !['__sueldo__','__aguinaldo__'].includes(i.concepto));
-  const totDev   = (sueldo?.monto||0)+(aguinaldo?.monto||0)+sueldosComision+libresdev.reduce((s,i)=>s+(i.monto||0),0);
+  const totDev   = (sueldo?.monto||0)+(aguinaldo?.monto||0)
+    + (sueldosEmpSel?.rol==='operario' ? sueldosComision : 0)
+    + libresdev.reduce((s,i)=>s+(i.monto||0),0);
   const totEntregas = sueldosEntregas.reduce((s,e)=>s+(e.monto||0),0);
   const libresrec   = itemsRec.filter(()=>true);
   const totRec  = totEntregas + libresrec.reduce((s,i)=>s+(i.monto||0),0);
