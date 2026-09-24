@@ -1290,10 +1290,20 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             </select>
             <button class="btn btn-primary" onclick="abrirModalTrabajo()">✚ Cargar trabajo</button>
             <button class="btn btn-secondary" onclick="exportarTrabajos()">⬇ Excel</button>
+            <div style="position:relative">
+              <button class="btn btn-secondary" onclick="toggleColPicker()" id="btn-col-picker">⚙ Columnas</button>
+              <div id="col-picker-panel" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--gris-borde);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);z-index:999;min-width:200px;padding:8px 0">
+                <div style="padding:8px 14px;font-size:11px;font-weight:700;color:#888;text-transform:uppercase;border-bottom:1px solid #f0f0f0">Columnas visibles</div>
+                <div id="col-picker-list" style="padding:6px 0;max-height:320px;overflow-y:auto"></div>
+                <div style="padding:8px 14px;border-top:1px solid #f0f0f0">
+                  <button onclick="resetColConfig()" style="font-size:11px;color:#888;background:none;border:none;cursor:pointer;padding:0">Restablecer</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Campo</th><th>Lote</th><th>Has</th><th>Cultivo</th><th>Contratista</th><th>Insumos</th><th>$ Total</th><th>Campaña</th><th></th></tr></thead>
+        <div class="table-wrap" style="overflow-x:auto"><table id="tabla-trabajos-wrap"><thead id="thead-trabajos"><tr></tr></thead>
         <tbody id="tabla-trabajos"><tr><td colspan="11"><div class="empty-state"><div class="icon">🌾</div><h3>Sin trabajos registrados</h3></div></td></tr></tbody></table></div>
         <div id="trab-paginador"></div>
       </div>

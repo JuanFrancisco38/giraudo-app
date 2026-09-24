@@ -913,6 +913,112 @@ async function guardarTrabajo() {
 let trabajosTodos = [];
 let trabajosPagina = 1;
 
+// ── COLUMNAS PERSONALIZABLES ──────────────────────────────────────────────────
+const TRAB_COLS_ALL = [
+  { key: 'fecha',           label: 'Fecha',        editType: 'date'     },
+  { key: 'tipo_labor',      label: 'Tipo',         editType: 'select'   },
+  { key: 'campo',           label: 'Campo',        editType: 'readonly' },
+  { key: 'lote',            label: 'Lote',         editType: 'readonly' },
+  { key: 'hectareas',       label: 'Has',          editType: 'number'   },
+  { key: 'cultivo',         label: 'Cultivo',      editType: 'text'     },
+  { key: 'campania',        label: 'Campaña',      editType: 'text'     },
+  { key: 'contratista',     label: 'Contratista',  editType: 'readonly' },
+  { key: 'insumos',         label: 'Insumos',      editType: 'readonly' },
+  { key: 'cantidad_rollos', label: 'Rollos',       editType: 'number'   },
+  { key: 'rendimiento',     label: 'Rendimiento',  editType: 'number'   },
+  { key: 'total',           label: '$ Total',      editType: 'readonly' },
+];
+const TRAB_COLS_DEFAULT = ['fecha','tipo_labor','campo','lote','hectareas','cultivo','campania','contratista','insumos','total'];
+
+function _loadColConfig() {
+  try {
+    const raw = localStorage.getItem('trabColConfig');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Solo mantener keys que aún existen en TRAB_COLS_ALL
+      const validKeys = TRAB_COLS_ALL.map(c => c.key);
+      return parsed.filter(k => validKeys.includes(k));
+    }
+  } catch(e) {}
+  return [...TRAB_COLS_DEFAULT];
+}
+
+function _saveColConfig(cols) {
+  try { localStorage.setItem('trabColConfig', JSON.stringify(cols)); } catch(e) {}
+}
+
+let _trabColsActivas = _loadColConfig();
+
+function toggleColPicker() {
+  const panel = document.getElementById('col-picker-panel');
+  if (!panel) return;
+  const open = panel.style.display !== 'none';
+  panel.style.display = open ? 'none' : 'block';
+  if (!open) renderColPickerList();
+}
+
+function renderColPickerList() {
+  const list = document.getElementById('col-picker-list');
+  if (!list) return;
+  list.innerHTML = _trabColsActivas.map((key, idx) => {
+    const col = TRAB_COLS_ALL.find(c => c.key === key);
+    if (!col) return '';
+    return `<div style="display:flex;align-items:center;gap:6px;padding:5px 14px;font-size:13px" data-key="${key}">
+      <span style="cursor:grab;color:#ccc;font-size:14px">⣿</span>
+      <input type="checkbox" checked onchange="toggleColVisible('${key}', this.checked)" style="cursor:pointer">
+      <span style="flex:1">${col.label}</span>
+      <button onclick="moverCol('${key}',-1)" style="border:none;background:none;cursor:pointer;color:#aaa;padding:0 3px;font-size:12px" ${idx===0?'disabled':''}>▲</button>
+      <button onclick="moverCol('${key}',1)" style="border:none;background:none;cursor:pointer;color:#aaa;padding:0 3px;font-size:12px" ${idx===_trabColsActivas.length-1?'disabled':''}>▼</button>
+    </div>`;
+  }).join('') +
+  // Columnas inactivas al final
+  TRAB_COLS_ALL.filter(c => !_trabColsActivas.includes(c.key)).map(col =>
+    `<div style="display:flex;align-items:center;gap:6px;padding:5px 14px;font-size:13px;color:#aaa" data-key="${col.key}">
+      <span style="cursor:grab;color:#eee;font-size:14px">⣿</span>
+      <input type="checkbox" onchange="toggleColVisible('${col.key}', this.checked)" style="cursor:pointer">
+      <span style="flex:1">${col.label}</span>
+    </div>`
+  ).join('');
+}
+
+function toggleColVisible(key, visible) {
+  if (visible) {
+    if (!_trabColsActivas.includes(key)) _trabColsActivas.push(key);
+  } else {
+    _trabColsActivas = _trabColsActivas.filter(k => k !== key);
+  }
+  _saveColConfig(_trabColsActivas);
+  renderColPickerList();
+  renderTrabajos();
+}
+
+function moverCol(key, dir) {
+  const idx = _trabColsActivas.indexOf(key);
+  if (idx < 0) return;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= _trabColsActivas.length) return;
+  [_trabColsActivas[idx], _trabColsActivas[newIdx]] = [_trabColsActivas[newIdx], _trabColsActivas[idx]];
+  _saveColConfig(_trabColsActivas);
+  renderColPickerList();
+  renderTrabajos();
+}
+
+function resetColConfig() {
+  _trabColsActivas = [...TRAB_COLS_DEFAULT];
+  _saveColConfig(_trabColsActivas);
+  renderColPickerList();
+  renderTrabajos();
+}
+
+// Cerrar picker al click fuera
+document.addEventListener('click', e => {
+  if (!e.target.closest('#col-picker-panel') && !e.target.closest('#btn-col-picker')) {
+    const panel = document.getElementById('col-picker-panel');
+    if (panel) panel.style.display = 'none';
+  }
+});
+// ── FIN COLUMNAS ──────────────────────────────────────────────────────────────
+
 function filtrarTrabajosReset() { trabajosPagina = 1; renderTrabajos(); }
 function irPaginaTrabajos(p) { trabajosPagina = p; renderTrabajos(); window.scrollTo({ top: document.getElementById('section-trabajos_agri').offsetTop, behavior: 'smooth' }); }
 
@@ -959,9 +1065,67 @@ function normTipoTrab(s) {
     .replace(/á/g,'a').replace(/é/g,'e').replace(/í/g,'i').replace(/ó/g,'o').replace(/ú/g,'u').replace(/ñ/g,'n').trim();
 }
 
+function _celda(t, key) {
+  const tl = t.tipo_labor || '';
+  switch(key) {
+    case 'fecha':
+      return `<input type="date" value="${t.fecha || ''}" style="border:1px solid var(--gris-borde);border-radius:4px;padding:2px 4px;font-size:12px;width:115px" onchange="editarCampoTrabajo('${t.id}','fecha',this.value)">`;
+    case 'tipo_labor':
+      return `<select style="border:1px solid var(--gris-borde);border-radius:4px;padding:2px 4px;font-size:12px" onchange="editarCampoTrabajo('${t.id}','tipo_labor',this.value)">
+        ${Object.entries(TIPO_LABEL_TRAB).map(([v,l]) =>
+          `<option value="${v}" ${tl===v?'selected':''}>${l}</option>`
+        ).join('')}
+      </select>`;
+    case 'campo':
+      return `<span style="font-size:13px">${t.lotes?.campo || '—'}</span>`;
+    case 'lote':
+      return `<span style="font-size:13px">${t.lotes?.lote || '—'}</span>`;
+    case 'hectareas':
+      return `<input type="number" value="${t.hectareas ?? ''}" placeholder="ha" style="width:64px;border:1px solid var(--gris-borde);border-radius:4px;padding:2px 4px;font-size:12px" onchange="editarCampoTrabajo('${t.id}','hectareas',this.value?parseFloat(this.value):null)">`;
+    case 'cultivo':
+      return `<input type="text" value="${t.cultivo || ''}" style="width:80px;border:1px solid var(--gris-borde);border-radius:4px;padding:2px 4px;font-size:12px" onchange="editarCampoTrabajo('${t.id}','cultivo',this.value)">`;
+    case 'campania':
+      return `<input type="text" value="${t.campania || ''}" placeholder="25/26" style="width:64px;border:1px solid var(--gris-borde);border-radius:4px;padding:2px 4px;font-size:12px" onchange="editarCampoTrabajo('${t.id}','campania',this.value)">`;
+    case 'contratista':
+      return `<span style="font-size:13px">${t.trabajo_contratista?.[0]?.partes?.nombre || 'Propio'}</span>`;
+    case 'insumos': {
+      const insList = t.trabajo_insumos || [];
+      return insList.length
+        ? `<span style="font-size:12px;line-height:1.5">${insList.map(i => `${i.insumo || ''}${i.cantidad ? ` (${i.cantidad})` : ''}`).join('<br>')}</span>`
+        : '<span style="color:#aaa;font-size:12px">—</span>';
+    }
+    case 'cantidad_rollos':
+      return `<input type="number" value="${t.cantidad_rollos ?? ''}" placeholder="rollos" style="width:64px;border:1px solid var(--gris-borde);border-radius:4px;padding:2px 4px;font-size:12px" onchange="editarCampoTrabajo('${t.id}','cantidad_rollos',this.value?parseFloat(this.value):null)">`;
+    case 'rendimiento':
+      return `<input type="number" value="${t.rendimiento ?? ''}" placeholder="tn" style="width:64px;border:1px solid var(--gris-borde);border-radius:4px;padding:2px 4px;font-size:12px" onchange="editarCampoTrabajo('${t.id}','rendimiento',this.value?parseFloat(this.value):null)">`;
+    case 'total': {
+      const insList = t.trabajo_insumos || [];
+      const costoIns = insList.reduce((s, i) => s + (i.costo_total || 0), 0);
+      const tarifaRow = (tarifasTrabajos || []).find(r => normTipoTrab(r.tipo) === normTipoTrab(tl));
+      const costoTrab = tarifaRow?.tarifa_ha && t.hectareas ? tarifaRow.tarifa_ha * t.hectareas : null;
+      const total = costoIns || costoTrab;
+      return total ? `<span style="font-size:13px">${fmtMonto(total,'ARS')}</span>` : '<span style="color:#aaa">—</span>';
+    }
+    default: return '—';
+  }
+}
+
 function renderTrabajos() {
   const tbody = document.getElementById('tabla-trabajos');
+  const thead = document.getElementById('thead-trabajos');
   if (!tbody) return;
+
+  // Renderizar cabecera según columnas activas
+  const cols = _trabColsActivas;
+  if (thead) {
+    thead.innerHTML = '<tr>' +
+      cols.map(k => {
+        const col = TRAB_COLS_ALL.find(c => c.key === k);
+        return `<th>${col?.label || k}</th>`;
+      }).join('') +
+      '<th></th></tr>';
+  }
+
   const fBusca = (document.getElementById('trab-filtro-busca')?.value || '').trim().toLowerCase();
   const fTipo  = normTipoTrab(document.getElementById('trab-filtro-tipo')?.value || '');
 
@@ -969,15 +1133,16 @@ function renderTrabajos() {
     const tl = normTipoTrab(t.tipo_labor);
     if (fTipo && tl !== fTipo) return false;
     const lote = t.lotes?.lote || '';
+    const campo = t.lotes?.campo || '';
     const cultivo = t.cultivo || '';
     const cont = t.trabajo_contratista?.[0]?.partes?.nombre || 'Propio';
-    if (fBusca && !`${lote} ${cultivo} ${cont}`.toLowerCase().includes(fBusca)) return false;
+    if (fBusca && !`${campo} ${lote} ${cultivo} ${cont}`.toLowerCase().includes(fBusca)) return false;
     return true;
   });
 
   const pag = document.getElementById('trab-paginador');
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="icon">🌾</div><h3>${fBusca || fTipo ? 'Sin resultados para el filtro' : 'Sin trabajos'}</h3></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${cols.length + 1}"><div class="empty-state"><div class="icon">🌾</div><h3>${fBusca || fTipo ? 'Sin resultados para el filtro' : 'Sin trabajos'}</h3></div></td></tr>`;
     if (pag) pag.innerHTML = '';
     return;
   }
@@ -987,46 +1152,11 @@ function renderTrabajos() {
   const pagina = rows.slice((trabajosPagina - 1) * FILAS_POR_PAGINA, trabajosPagina * FILAS_POR_PAGINA);
   if (pag) pag.innerHTML = htmlPaginador(trabajosPagina, rows.length, 'irPaginaTrabajos');
 
-  tbody.innerHTML = pagina.map(t => {
-    const tl = t.tipo_labor || '';
-    const tipoLabel = TIPO_LABEL_TRAB[tl] || tl;
-    const campo = t.lotes?.campo || '—';
-    const lote  = t.lotes?.lote  || '—';
-    const cont  = t.trabajo_contratista?.[0]?.partes?.nombre || 'Propio';
-    const insList = t.trabajo_insumos || [];
-    const insDisplay = insList.length
-      ? insList.map(i => `${i.insumo || ''}${i.cantidad ? ` (${i.cantidad})` : ''}`).join('<br>')
-      : '—';
-    const costoIns = insList.reduce((s, i) => s + (i.costo_total || 0), 0);
-    const tarifaRow = (tarifasTrabajos || []).find(r => normTipoTrab(r.tipo) === normTipoTrab(tl));
-    const costoTrab = tarifaRow?.tarifa_ha && t.hectareas ? tarifaRow.tarifa_ha * t.hectareas : null;
-    const total = costoIns || costoTrab;
-    const totalMostrar = total ? fmtMonto(total, 'ARS') : '—';
-    const tarifaLabel = tarifaRow ? `<small style="color:#888;display:block">${fmtMonto(tarifaRow.tarifa_ha,'ARS')}/ha</small>` : '';
-    return `<tr>
-      <td>${fmtFecha(t.fecha)}</td>
-      <td><span class="badge badge-${TIPO_COLORS_TRAB[tl] || 'gris'}">${tipoLabel}</span>${tarifaLabel}</td>
-      <td>${campo}</td>
-      <td>${lote}</td>
-      <td>${t.hectareas ? t.hectareas + ' has' : '—'}</td>
-      <td>${inputEditableTrabajo(t.id, 'cultivo', t.cultivo, 70)}</td>
-      <td>${cont}</td>
-      <td style="max-width:200px">${insDisplay}</td>
-      <td>${totalMostrar}</td>
-      <td>${inputEditableTrabajo(t.id, 'campania', t.campania, 70, 'Ej: 25/26')}</td>
-      <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarTrabajo('${t.id}')">🗑️</button></td>
-    </tr>`;
-  }).join('');
+  tbody.innerHTML = pagina.map(t =>
+    `<tr>${cols.map(k => `<td>${_celda(t, k)}</td>`).join('')}<td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarTrabajo('${t.id}')">🗑️</button></td></tr>`
+  ).join('');
 }
 
-function inputEditableTrabajo(id, campo, valor, ancho, placeholder) {
-  return `<input type="text" value="${valor || ''}" placeholder="${placeholder || ''}" style="width:${ancho}px;border:1px solid var(--gris-borde);border-radius:4px;padding:3px 5px;font-size:12px" onchange="editarCampoTrabajo('${id}', '${campo}', this.value)">`;
-}
-
-function inputEditableTrabajoNum(id, campo, valor, ancho) {
-  const v = valor != null ? Math.round(valor * 100) / 100 : '';
-  return `<span style="display:inline-flex;align-items:center;gap:3px"><span style="font-size:12px;color:var(--texto-suave)">$</span><input type="number" value="${v}" style="width:${ancho}px;border:1px solid var(--gris-borde);border-radius:4px;padding:3px 5px;font-size:12px" onchange="editarCampoTrabajo('${id}', '${campo}', parseFloat(this.value)||null)"></span>`;
-}
 
 async function editarCampoTrabajo(id, campo, valor) {
   const t = trabajosTodos.find(x => x.id === id);
