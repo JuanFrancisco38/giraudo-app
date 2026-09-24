@@ -1084,32 +1084,32 @@ const TRAB_COL_GROUPS = {
 
 const TRAB_COLS_ALL = [
   // DATOS GENERALES
-  { key: 'campania',     label: 'Campaña',        group: 'DATOS GENERALES',   editType: 'text'     },
-  { key: 'fecha',        label: 'Fecha',           group: 'DATOS GENERALES',   editType: 'date'     },
-  { key: 'propietario',  label: 'Propietario',     group: 'DATOS GENERALES',   editType: 'readonly' },
-  { key: 'campo',        label: 'Establecimiento', group: 'DATOS GENERALES',   editType: 'readonly' },
-  { key: 'cultivo',      label: 'Cultivo',         group: 'DATOS GENERALES',   editType: 'text'     },
-  { key: 'lote',         label: 'Lote',            group: 'DATOS GENERALES',   editType: 'readonly' },
-  { key: 'hectareas',    label: 'Has',             group: 'DATOS GENERALES',   editType: 'number'   },
+  { key: 'campania',     label: 'Campaña',        group: 'DATOS GENERALES',   editType: 'text',     filterType: 'select' },
+  { key: 'fecha',        label: 'Fecha',           group: 'DATOS GENERALES',   editType: 'date',     filterType: 'text'   },
+  { key: 'propietario',  label: 'Propietario',     group: 'DATOS GENERALES',   editType: 'readonly', filterType: 'select' },
+  { key: 'campo',        label: 'Establecimiento', group: 'DATOS GENERALES',   editType: 'readonly', filterType: 'select' },
+  { key: 'cultivo',      label: 'Cultivo',         group: 'DATOS GENERALES',   editType: 'text',     filterType: 'select' },
+  { key: 'lote',         label: 'Lote',            group: 'DATOS GENERALES',   editType: 'readonly', filterType: 'select' },
+  { key: 'hectareas',    label: 'Has',             group: 'DATOS GENERALES',   editType: 'number',   filterType: 'text'   },
   // TRABAJO
-  { key: 'tipo_labor',   label: 'Tipo',            group: 'TRABAJO',           editType: 'select'   },
-  { key: 'contratista',  label: 'Contratista',     group: 'TRABAJO',           editType: 'readonly' },
-  { key: 'tarifa_ha',    label: 'Tarifa/ha',       group: 'TRABAJO',           editType: 'readonly', money: true },
-  { key: 'tarifa_total', label: 'Tarifa total',    group: 'TRABAJO',           editType: 'readonly', money: true },
+  { key: 'tipo_labor',   label: 'Tipo',            group: 'TRABAJO',           editType: 'select',   filterType: 'select' },
+  { key: 'contratista',  label: 'Contratista',     group: 'TRABAJO',           editType: 'readonly', filterType: 'select' },
+  { key: 'tarifa_ha',    label: 'Tarifa/ha',       group: 'TRABAJO',           editType: 'readonly', filterType: 'text',   money: true },
+  { key: 'tarifa_total', label: 'Tarifa total',    group: 'TRABAJO',           editType: 'readonly', filterType: 'text',   money: true },
   // INSUMO/PRODUCTO
-  { key: 'insumos',      label: 'Insumo/Producto', group: 'INSUMO/PRODUCTO',   editType: 'readonly' },
-  { key: 'dosis_ha',     label: 'Dosis/ha',        group: 'INSUMO/PRODUCTO',   editType: 'readonly' },
-  { key: 'dosis_total',  label: 'Dosis total',     group: 'INSUMO/PRODUCTO',   editType: 'readonly' },
+  { key: 'insumos',      label: 'Insumo/Producto', group: 'INSUMO/PRODUCTO',   editType: 'readonly', filterType: 'select' },
+  { key: 'dosis_ha',     label: 'Dosis/ha',        group: 'INSUMO/PRODUCTO',   editType: 'readonly', filterType: 'text'   },
+  { key: 'dosis_total',  label: 'Dosis total',     group: 'INSUMO/PRODUCTO',   editType: 'readonly', filterType: 'text'   },
   // COSTOS
-  { key: 'costo_ha',     label: 'Costo/ha',        group: 'COSTOS',            editType: 'readonly', money: true },
-  { key: 'total',        label: 'Costo lote',      group: 'COSTOS',            editType: 'readonly', money: true },
+  { key: 'costo_ha',     label: 'Costo/ha',        group: 'COSTOS',            editType: 'readonly', filterType: 'text',   money: true },
+  { key: 'total',        label: 'Costo lote',      group: 'COSTOS',            editType: 'readonly', filterType: 'text',   money: true },
   // COSECHA/ENROLLADO
-  { key: 'rendimiento_ha',    label: 'Rinde/ha',        group: 'COSECHA/ENROLLADO', editType: 'readonly' },
-  { key: 'cantidad_rollos',   label: 'Rollos',           group: 'COSECHA/ENROLLADO', editType: 'number'   },
-  { key: 'rendimiento',       label: 'Total cosechado',  group: 'COSECHA/ENROLLADO', editType: 'number'   },
+  { key: 'rendimiento_ha',    label: 'Rinde/ha',        group: 'COSECHA/ENROLLADO', editType: 'readonly', filterType: 'text' },
+  { key: 'cantidad_rollos',   label: 'Rollos',           group: 'COSECHA/ENROLLADO', editType: 'number',   filterType: 'text' },
+  { key: 'rendimiento',       label: 'Total cosechado',  group: 'COSECHA/ENROLLADO', editType: 'number',   filterType: 'text' },
   // OPERARIO
-  { key: 'operario',     label: 'Operario',        group: 'OPERARIO',          editType: 'readonly' },
-  { key: 'porcentaje',   label: 'Porcentaje',      group: 'OPERARIO',          editType: 'number'   },
+  { key: 'operario',     label: 'Operario',        group: 'OPERARIO',          editType: 'readonly', filterType: 'select' },
+  { key: 'porcentaje',   label: 'Porcentaje',      group: 'OPERARIO',          editType: 'number',   filterType: 'text'   },
 ];
 const TRAB_COLS_DEFAULT = ['fecha','tipo_labor','campo','lote','hectareas','cultivo','campania','contratista','insumos','total'];
 
@@ -1341,7 +1341,7 @@ function _celda(t, key) {
   }
 }
 
-function _buildTrabHead(cols) {
+function _buildTrabHead(cols, filterOptions) {
   // Fila 1: grupos con colspan y colores
   const grupos = [];
   cols.forEach(k => {
@@ -1353,19 +1353,26 @@ function _buildTrabHead(cols) {
       grupos.push({ name: g, count: 1 });
     }
   });
-  // +1 para columna de acciones
   const row1 = grupos.map(g => {
     const cfg = TRAB_COL_GROUPS[g.name] || { color: '#555', text: '#fff' };
     return `<th colspan="${g.count}" style="background:${cfg.color};color:${cfg.text};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:5px 8px;text-align:center;border-right:2px solid rgba(255,255,255,.3)">${g.name || ''}</th>`;
   }).join('') + `<th style="background:#222;padding:5px 4px"></th>`;
 
-  // Fila 2: labels + filtro input en cada columna
+  // Fila 2: labels + filtro (select o text) en cada columna
   const row2 = cols.map(k => {
     const col = TRAB_COLS_ALL.find(c => c.key === k);
     const lbl = col?.label || k;
+    let filtro;
+    if (col?.filterType === 'select') {
+      const opts = (filterOptions?.[k] || []);
+      const optHtml = `<option value="">Todos</option>` + opts.map(v => `<option value="${v}">${v}</option>`).join('');
+      filtro = `<select data-col-filter="${k}" onchange="filtrarTrabajosReset()" style="width:90px;max-width:100%;border:1px solid var(--gris-borde);border-radius:4px;padding:2px 4px;font-size:10px">${optHtml}</select>`;
+    } else {
+      filtro = `<input type="text" data-col-filter="${k}" placeholder="Filtrar…" oninput="filtrarTrabajosReset()" style="width:80px;max-width:100%;border:1px solid var(--gris-borde);border-radius:4px;padding:2px 4px;font-size:10px;font-weight:400">`;
+    }
     return `<th style="white-space:nowrap;padding:4px 6px;vertical-align:bottom">
       <div style="font-size:11px;font-weight:700;color:var(--texto-principal);margin-bottom:3px">${lbl}</div>
-      <input type="text" data-col-filter="${k}" placeholder="Filtrar…" oninput="filtrarTrabajosReset()" style="width:80px;max-width:100%;border:1px solid var(--gris-borde);border-radius:4px;padding:2px 4px;font-size:10px;font-weight:400">
+      ${filtro}
     </th>`;
   }).join('') + `<th style="padding:4px 6px"></th>`;
 
@@ -1385,9 +1392,23 @@ function renderTrabajos() {
     if (inp.value) _savedFilters[inp.dataset.colFilter] = inp.value;
   });
 
+  // Calcular opciones únicas para columnas select (sobre todos los datos, no filtrados)
+  const uniq = arr => [...new Set(arr.filter(v => v != null && v !== ''))].sort();
+  const filterOptions = {
+    campania:    uniq(trabajosTodos.map(t => t.campania)),
+    propietario: uniq(trabajosTodos.map(t => t.lotes?.partes?.nombre)),
+    campo:       uniq(trabajosTodos.map(t => t.lotes?.campo)),
+    cultivo:     uniq(trabajosTodos.map(t => t.cultivo)),
+    lote:        uniq(trabajosTodos.map(t => t.lotes?.lote)),
+    tipo_labor:  uniq(trabajosTodos.map(t => TIPO_LABEL_TRAB[t.tipo_labor] || t.tipo_labor)),
+    contratista: uniq(trabajosTodos.map(t => t.trabajo_contratista?.[0]?.partes?.nombre || 'Propio')),
+    insumos:     uniq(trabajosTodos.flatMap(t => (t.trabajo_insumos || []).map(i => i.insumo).filter(Boolean))),
+    operario:    uniq(trabajosTodos.map(t => t.trabajo_maquinaria?.[0]?.empleados?.nombre)),
+  };
+
   if (thead) {
-    thead.innerHTML = _buildTrabHead(cols);
-    // Restaurar valores de filtros
+    thead.innerHTML = _buildTrabHead(cols, filterOptions);
+    // Restaurar valores de filtros seleccionados
     Object.entries(_savedFilters).forEach(([k, v]) => {
       const el = thead.querySelector(`[data-col-filter="${k}"]`);
       if (el) el.value = v;
@@ -1428,7 +1449,13 @@ function renderTrabajos() {
         case 'insumos':      v = (t.trabajo_insumos || []).map(i => i.insumo || '').join(' '); break;
         default: v = String(t[k] ?? '');
       }
-      if (!v.toLowerCase().includes(q)) return false;
+      // Para selects: comparación exacta; para texto: includes
+      const col = TRAB_COLS_ALL.find(c => c.key === k);
+      if (col?.filterType === 'select') {
+        if (v !== q) return false;
+      } else {
+        if (!v.toLowerCase().includes(q)) return false;
+      }
     }
     return true;
   });
