@@ -914,20 +914,59 @@ async function guardarTrabajo() {
 let trabajosTodos = [];
 let trabajosPagina = 1;
 
+// ── TC REFERENCIA ─────────────────────────────────────────────────────────────
+function _getTCRef() {
+  // tipoCambioHoy viene de tabla-precios.js; fallback a localStorage
+  if (typeof tipoCambioHoy !== 'undefined' && tipoCambioHoy > 0) return tipoCambioHoy;
+  try { return parseFloat(localStorage.getItem('tc_dolar') || '0') || 0; } catch(e) { return 0; }
+}
+
+function fmtDualMoneda(ars) {
+  if (!ars && ars !== 0) return '<span style="color:#aaa">—</span>';
+  const tc = _getTCRef();
+  const usd = tc > 0 ? Math.round(ars / tc) : null;
+  return `<span style="font-size:13px;font-weight:600">${fmtMonto(ars,'ARS')}</span>`
+    + (usd !== null ? `<br><small style="color:#aaa;font-size:10px">U$S ${fmtNum(usd)}</small>` : '');
+}
+
 // ── COLUMNAS PERSONALIZABLES ──────────────────────────────────────────────────
+const TRAB_COL_GROUPS = {
+  'DATOS GENERALES':   { color: '#2E5496', text: '#fff' },
+  'TRABAJO':           { color: '#7B3F00', text: '#fff' },
+  'INSUMO/PRODUCTO':   { color: '#166534', text: '#fff' },
+  'COSTOS':            { color: '#7B0000', text: '#fff' },
+  'COSECHA/ENROLLADO': { color: '#5C4A00', text: '#fff' },
+  'OPERARIO':          { color: '#374151', text: '#fff' },
+};
+
 const TRAB_COLS_ALL = [
-  { key: 'fecha',           label: 'Fecha',        editType: 'date'     },
-  { key: 'tipo_labor',      label: 'Tipo',         editType: 'select'   },
-  { key: 'campo',           label: 'Campo',        editType: 'readonly' },
-  { key: 'lote',            label: 'Lote',         editType: 'readonly' },
-  { key: 'hectareas',       label: 'Has',          editType: 'number'   },
-  { key: 'cultivo',         label: 'Cultivo',      editType: 'text'     },
-  { key: 'campania',        label: 'Campaña',      editType: 'text'     },
-  { key: 'contratista',     label: 'Contratista',  editType: 'readonly' },
-  { key: 'insumos',         label: 'Insumos',      editType: 'readonly' },
-  { key: 'cantidad_rollos', label: 'Rollos',       editType: 'number'   },
-  { key: 'rendimiento',     label: 'Rendimiento',  editType: 'number'   },
-  { key: 'total',           label: '$ Total',      editType: 'readonly' },
+  // DATOS GENERALES
+  { key: 'campania',     label: 'Campaña',        group: 'DATOS GENERALES',   editType: 'text'     },
+  { key: 'fecha',        label: 'Fecha',           group: 'DATOS GENERALES',   editType: 'date'     },
+  { key: 'propietario',  label: 'Propietario',     group: 'DATOS GENERALES',   editType: 'readonly' },
+  { key: 'campo',        label: 'Establecimiento', group: 'DATOS GENERALES',   editType: 'readonly' },
+  { key: 'cultivo',      label: 'Cultivo',         group: 'DATOS GENERALES',   editType: 'text'     },
+  { key: 'lote',         label: 'Lote',            group: 'DATOS GENERALES',   editType: 'readonly' },
+  { key: 'hectareas',    label: 'Has',             group: 'DATOS GENERALES',   editType: 'number'   },
+  // TRABAJO
+  { key: 'tipo_labor',   label: 'Tipo',            group: 'TRABAJO',           editType: 'select'   },
+  { key: 'contratista',  label: 'Contratista',     group: 'TRABAJO',           editType: 'readonly' },
+  { key: 'tarifa_ha',    label: 'Tarifa/ha',       group: 'TRABAJO',           editType: 'readonly', money: true },
+  { key: 'tarifa_total', label: 'Tarifa total',    group: 'TRABAJO',           editType: 'readonly', money: true },
+  // INSUMO/PRODUCTO
+  { key: 'insumos',      label: 'Insumo/Producto', group: 'INSUMO/PRODUCTO',   editType: 'readonly' },
+  { key: 'dosis_ha',     label: 'Dosis/ha',        group: 'INSUMO/PRODUCTO',   editType: 'readonly' },
+  { key: 'dosis_total',  label: 'Dosis total',     group: 'INSUMO/PRODUCTO',   editType: 'readonly' },
+  // COSTOS
+  { key: 'costo_ha',     label: 'Costo/ha',        group: 'COSTOS',            editType: 'readonly', money: true },
+  { key: 'total',        label: 'Costo lote',      group: 'COSTOS',            editType: 'readonly', money: true },
+  // COSECHA/ENROLLADO
+  { key: 'rendimiento_ha',    label: 'Rinde/ha',        group: 'COSECHA/ENROLLADO', editType: 'readonly' },
+  { key: 'cantidad_rollos',   label: 'Rollos',           group: 'COSECHA/ENROLLADO', editType: 'number'   },
+  { key: 'rendimiento',       label: 'Total cosechado',  group: 'COSECHA/ENROLLADO', editType: 'number'   },
+  // OPERARIO
+  { key: 'operario',     label: 'Operario',        group: 'OPERARIO',          editType: 'readonly' },
+  { key: 'porcentaje',   label: 'Porcentaje',      group: 'OPERARIO',          editType: 'number'   },
 ];
 const TRAB_COLS_DEFAULT = ['fecha','tipo_labor','campo','lote','hectareas','cultivo','campania','contratista','insumos','total'];
 
@@ -964,22 +1003,25 @@ function renderColPickerList() {
   list.innerHTML = _trabColsActivas.map((key, idx) => {
     const col = TRAB_COLS_ALL.find(c => c.key === key);
     if (!col) return '';
+    const gc = TRAB_COL_GROUPS[col.group] || {};
+    const dot = gc.color ? `<span style="width:8px;height:8px;border-radius:50%;background:${gc.color};display:inline-block;flex-shrink:0"></span>` : '';
     return `<div style="display:flex;align-items:center;gap:6px;padding:5px 14px;font-size:13px" data-key="${key}">
       <span style="cursor:grab;color:#ccc;font-size:14px">⣿</span>
       <input type="checkbox" checked onchange="toggleColVisible('${key}', this.checked)" style="cursor:pointer">
-      <span style="flex:1">${col.label}</span>
+      ${dot}<span style="flex:1">${col.label}</span>
       <button onclick="moverCol('${key}',-1)" style="border:none;background:none;cursor:pointer;color:#aaa;padding:0 3px;font-size:12px" ${idx===0?'disabled':''}>▲</button>
       <button onclick="moverCol('${key}',1)" style="border:none;background:none;cursor:pointer;color:#aaa;padding:0 3px;font-size:12px" ${idx===_trabColsActivas.length-1?'disabled':''}>▼</button>
     </div>`;
   }).join('') +
-  // Columnas inactivas al final
-  TRAB_COLS_ALL.filter(c => !_trabColsActivas.includes(c.key)).map(col =>
-    `<div style="display:flex;align-items:center;gap:6px;padding:5px 14px;font-size:13px;color:#aaa" data-key="${col.key}">
+  TRAB_COLS_ALL.filter(c => !_trabColsActivas.includes(c.key)).map(col => {
+    const gc = TRAB_COL_GROUPS[col.group] || {};
+    const dot = gc.color ? `<span style="width:8px;height:8px;border-radius:50%;background:${gc.color};display:inline-block;flex-shrink:0;opacity:.4"></span>` : '';
+    return `<div style="display:flex;align-items:center;gap:6px;padding:5px 14px;font-size:13px;color:#aaa" data-key="${col.key}">
       <span style="cursor:grab;color:#eee;font-size:14px">⣿</span>
       <input type="checkbox" onchange="toggleColVisible('${col.key}', this.checked)" style="cursor:pointer">
-      <span style="flex:1">${col.label}</span>
-    </div>`
-  ).join('');
+      ${dot}<span style="flex:1">${col.label}</span>
+    </div>`;
+  }).join('');
 }
 
 function toggleColVisible(key, visible) {
@@ -1043,7 +1085,7 @@ async function resolverParteId(nombre) {
 
 async function cargarTrabajos() {
   const [rows] = await Promise.all([
-    sb('GET', 'trabajos', '', '?select=id,fecha,tipo_labor,hectareas,cultivo,campania,origen_id,lotes(campo,lote),trabajo_insumos(*),trabajo_contratista(partes(nombre))&order=fecha.desc'),
+    sb('GET', 'trabajos', '', '?select=id,fecha,tipo_labor,hectareas,cultivo,campania,cantidad_rollos,rendimiento,origen_id,lotes(campo,lote,partes(nombre)),trabajo_insumos(*),trabajo_contratista(costo,partes(nombre)),trabajo_maquinaria(tarifa_gasoil,cobro_total_pesos,maquinaria(nombre),empleados(nombre))&order=fecha.desc'),
     cargarDatosCostosInsumos()
   ]);
   trabajosTodos = rows || [];
@@ -1077,6 +1119,8 @@ function _celda(t, key) {
           `<option value="${v}" ${tl===v?'selected':''}>${l}</option>`
         ).join('')}
       </select>`;
+    case 'propietario':
+      return `<span style="font-size:13px">${t.lotes?.partes?.nombre || '—'}</span>`;
     case 'campo':
       return `<span style="font-size:13px">${t.lotes?.campo || '—'}</span>`;
     case 'lote':
@@ -1089,33 +1133,104 @@ function _celda(t, key) {
       return `<input type="text" value="${t.campania || ''}" placeholder="25/26" style="width:64px;border:1px solid var(--gris-borde);border-radius:4px;padding:2px 4px;font-size:12px" onchange="editarCampoTrabajo('${t.id}','campania',this.value)">`;
     case 'contratista':
       return `<span style="font-size:13px">${t.trabajo_contratista?.[0]?.partes?.nombre || 'Propio'}</span>`;
+    case 'tarifa_ha': {
+      const tarifaRow = (tarifasTrabajos || []).find(r => normTipoTrab(r.tipo) === normTipoTrab(tl));
+      const val = tarifaRow?.tarifa_ha || null;
+      return val ? fmtDualMoneda(val) : '<span style="color:#aaa">—</span>';
+    }
+    case 'tarifa_total': {
+      const tarifaRow = (tarifasTrabajos || []).find(r => normTipoTrab(r.tipo) === normTipoTrab(tl));
+      const val = tarifaRow?.tarifa_ha && t.hectareas ? tarifaRow.tarifa_ha * t.hectareas : null;
+      return val ? fmtDualMoneda(val) : '<span style="color:#aaa">—</span>';
+    }
     case 'insumos': {
       const insList = t.trabajo_insumos || [];
       return insList.length
-        ? `<span style="font-size:12px;line-height:1.6">${insList.map(i => {
-            const precio = i.costo_total ? ` <span style="color:#666">$${fmtNum(i.costo_total)}</span>` : i.cantidad ? ` <span style="color:#aaa">(${i.cantidad})</span>` : '';
+        ? `<span style="font-size:12px;line-height:1.8">${insList.map(i => {
+            const precio = i.costo_total ? ` <span style="color:#666;font-size:11px">$${fmtNum(i.costo_total)}</span>` : i.cantidad ? ` <span style="color:#aaa;font-size:11px">(${i.cantidad})</span>` : '';
             return `${i.insumo || ''}${precio}`;
           }).join('<br>')}</span>`
         : '<span style="color:#aaa;font-size:12px">—</span>';
     }
-    case 'cantidad_rollos':
-      return `<input type="number" value="${t.cantidad_rollos ?? ''}" placeholder="rollos" style="width:64px;border:1px solid var(--gris-borde);border-radius:4px;padding:2px 4px;font-size:12px" onchange="editarCampoTrabajo('${t.id}','cantidad_rollos',this.value?parseFloat(this.value):null)">`;
-    case 'rendimiento':
-      return `<input type="number" value="${t.rendimiento ?? ''}" placeholder="tn" style="width:64px;border:1px solid var(--gris-borde);border-radius:4px;padding:2px 4px;font-size:12px" onchange="editarCampoTrabajo('${t.id}','rendimiento',this.value?parseFloat(this.value):null)">`;
+    case 'dosis_ha': {
+      const insList = t.trabajo_insumos || [];
+      if (!insList.length) return '<span style="color:#aaa">—</span>';
+      return `<span style="font-size:11px;line-height:1.8;color:#555">${insList.map(i => i.dosis_ha || i.dosis || '—').join('<br>')}</span>`;
+    }
+    case 'dosis_total': {
+      const insList = t.trabajo_insumos || [];
+      if (!insList.length) return '<span style="color:#aaa">—</span>';
+      return `<span style="font-size:11px;line-height:1.8;color:#555">${insList.map(i => i.cantidad || '—').join('<br>')}</span>`;
+    }
+    case 'costo_ha': {
+      const insList = t.trabajo_insumos || [];
+      const costoIns = insList.reduce((s, i) => s + (i.costo_total || 0), 0);
+      const has = t.hectareas || 0;
+      const val = costoIns && has ? costoIns / has : null;
+      return val ? fmtDualMoneda(Math.round(val)) : '<span style="color:#aaa">—</span>';
+    }
     case 'total': {
       const insList = t.trabajo_insumos || [];
       if (insList.length) {
-        // Si hay insumos, mostrar solo su suma — nunca mezclar con la tarifa de referencia
         const costoIns = insList.reduce((s, i) => s + (i.costo_total || 0), 0);
-        return costoIns ? `<span style="font-size:13px">${fmtMonto(costoIns,'ARS')}</span>` : '<span style="color:#aaa">—</span>';
+        return costoIns ? fmtDualMoneda(costoIns) : '<span style="color:#aaa">—</span>';
       }
-      // Sin insumos: mostrar estimación por tarifa de referencia
+      const contCosto = t.trabajo_contratista?.[0]?.costo || null;
+      if (contCosto) return fmtDualMoneda(contCosto);
       const tarifaRow = (tarifasTrabajos || []).find(r => normTipoTrab(r.tipo) === normTipoTrab(tl));
       const costoTrab = tarifaRow?.tarifa_ha && t.hectareas ? tarifaRow.tarifa_ha * t.hectareas : null;
-      return costoTrab ? `<span style="font-size:13px;color:#aaa">${fmtMonto(costoTrab,'ARS')}</span>` : '<span style="color:#aaa">—</span>';
+      return costoTrab
+        ? `<span style="color:#aaa">${fmtDualMoneda(costoTrab)}</span>`
+        : '<span style="color:#aaa">—</span>';
     }
+    case 'rendimiento_ha': {
+      const val = t.rendimiento && t.hectareas ? Math.round(t.rendimiento / t.hectareas) : null;
+      return val ? `<span style="font-size:13px">${fmtNum(val)} kg/ha</span>` : '<span style="color:#aaa">—</span>';
+    }
+    case 'cantidad_rollos':
+      return `<input type="number" value="${t.cantidad_rollos ?? ''}" placeholder="rollos" style="width:64px;border:1px solid var(--gris-borde);border-radius:4px;padding:2px 4px;font-size:12px" onchange="editarCampoTrabajo('${t.id}','cantidad_rollos',this.value?parseFloat(this.value):null)">`;
+    case 'rendimiento':
+      return `<input type="number" value="${t.rendimiento ?? ''}" placeholder="kg" style="width:80px;border:1px solid var(--gris-borde);border-radius:4px;padding:2px 4px;font-size:12px" onchange="editarCampoTrabajo('${t.id}','rendimiento',this.value?parseFloat(this.value):null)">`;
+    case 'operario': {
+      const maqRows = t.trabajo_maquinaria || [];
+      const nombre = maqRows[0]?.empleados?.nombre || null;
+      return nombre ? `<span style="font-size:13px">${nombre}</span>` : '<span style="color:#aaa">—</span>';
+    }
+    case 'porcentaje':
+      return `<input type="number" value="${t.porcentaje ?? ''}" placeholder="%" style="width:56px;border:1px solid var(--gris-borde);border-radius:4px;padding:2px 4px;font-size:12px" onchange="editarCampoTrabajo('${t.id}','porcentaje',this.value?parseFloat(this.value):null)">`;
     default: return '—';
   }
+}
+
+function _buildTrabHead(cols) {
+  // Fila 1: grupos con colspan y colores
+  const grupos = [];
+  cols.forEach(k => {
+    const col = TRAB_COLS_ALL.find(c => c.key === k);
+    const g = col?.group || '';
+    if (grupos.length && grupos[grupos.length - 1].name === g) {
+      grupos[grupos.length - 1].count++;
+    } else {
+      grupos.push({ name: g, count: 1 });
+    }
+  });
+  // +1 para columna de acciones
+  const row1 = grupos.map(g => {
+    const cfg = TRAB_COL_GROUPS[g.name] || { color: '#555', text: '#fff' };
+    return `<th colspan="${g.count}" style="background:${cfg.color};color:${cfg.text};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:5px 8px;text-align:center;border-right:2px solid rgba(255,255,255,.3)">${g.name || ''}</th>`;
+  }).join('') + `<th style="background:#222;padding:5px 4px"></th>`;
+
+  // Fila 2: labels + filtro input en cada columna
+  const row2 = cols.map(k => {
+    const col = TRAB_COLS_ALL.find(c => c.key === k);
+    const lbl = col?.label || k;
+    return `<th style="white-space:nowrap;padding:4px 6px;vertical-align:bottom">
+      <div style="font-size:11px;font-weight:700;color:var(--texto-principal);margin-bottom:3px">${lbl}</div>
+      <input type="text" data-col-filter="${k}" placeholder="Filtrar…" oninput="filtrarTrabajosReset()" style="width:80px;max-width:100%;border:1px solid var(--gris-borde);border-radius:4px;padding:2px 4px;font-size:10px;font-weight:400">
+    </th>`;
+  }).join('') + `<th style="padding:4px 6px"></th>`;
+
+  return `<tr>${row1}</tr><tr>${row2}</tr>`;
 }
 
 function renderTrabajos() {
@@ -1123,19 +1238,31 @@ function renderTrabajos() {
   const thead = document.getElementById('thead-trabajos');
   if (!tbody) return;
 
-  // Renderizar cabecera según columnas activas
   const cols = _trabColsActivas;
+
+  // Capturar valores de filtros por columna antes de reconstruir thead
+  const _savedFilters = {};
+  document.querySelectorAll('[data-col-filter]').forEach(inp => {
+    if (inp.value) _savedFilters[inp.dataset.colFilter] = inp.value;
+  });
+
   if (thead) {
-    thead.innerHTML = '<tr>' +
-      cols.map(k => {
-        const col = TRAB_COLS_ALL.find(c => c.key === k);
-        return `<th>${col?.label || k}</th>`;
-      }).join('') +
-      '<th></th></tr>';
+    thead.innerHTML = _buildTrabHead(cols);
+    // Restaurar valores de filtros
+    Object.entries(_savedFilters).forEach(([k, v]) => {
+      const el = thead.querySelector(`[data-col-filter="${k}"]`);
+      if (el) el.value = v;
+    });
   }
 
   const fBusca = (document.getElementById('trab-filtro-busca')?.value || '').trim().toLowerCase();
   const fTipo  = normTipoTrab(document.getElementById('trab-filtro-tipo')?.value || '');
+
+  // Leer filtros por columna (con valores ya restaurados)
+  const colFilters = {};
+  Object.entries(_savedFilters).forEach(([k, v]) => {
+    if (v.trim()) colFilters[k] = v.trim().toLowerCase();
+  });
 
   const rows = trabajosTodos.filter(t => {
     const tl = normTipoTrab(t.tipo_labor);
@@ -1144,7 +1271,26 @@ function renderTrabajos() {
     const campo = t.lotes?.campo || '';
     const cultivo = t.cultivo || '';
     const cont = t.trabajo_contratista?.[0]?.partes?.nombre || 'Propio';
-    if (fBusca && !`${campo} ${lote} ${cultivo} ${cont}`.toLowerCase().includes(fBusca)) return false;
+    if (fBusca && !`${campo} ${lote} ${cultivo} ${cont} ${t.campania || ''} ${t.cultivo || ''}`.toLowerCase().includes(fBusca)) return false;
+
+    // Filtros por columna
+    for (const [k, q] of Object.entries(colFilters)) {
+      let v = '';
+      switch(k) {
+        case 'fecha':        v = t.fecha || ''; break;
+        case 'tipo_labor':   v = TIPO_LABEL_TRAB[t.tipo_labor] || t.tipo_labor || ''; break;
+        case 'campania':     v = t.campania || ''; break;
+        case 'campo':        v = campo; break;
+        case 'lote':         v = lote; break;
+        case 'cultivo':      v = cultivo; break;
+        case 'contratista':  v = cont; break;
+        case 'propietario':  v = t.lotes?.partes?.nombre || ''; break;
+        case 'operario':     v = t.trabajo_maquinaria?.[0]?.empleados?.nombre || ''; break;
+        case 'insumos':      v = (t.trabajo_insumos || []).map(i => i.insumo || '').join(' '); break;
+        default: v = String(t[k] ?? '');
+      }
+      if (!v.toLowerCase().includes(q)) return false;
+    }
     return true;
   });
 
