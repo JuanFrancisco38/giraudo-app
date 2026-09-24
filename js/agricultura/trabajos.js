@@ -1092,7 +1092,10 @@ function _celda(t, key) {
     case 'insumos': {
       const insList = t.trabajo_insumos || [];
       return insList.length
-        ? `<span style="font-size:12px;line-height:1.5">${insList.map(i => `${i.insumo || ''}${i.cantidad ? ` (${i.cantidad})` : ''}`).join('<br>')}</span>`
+        ? `<span style="font-size:12px;line-height:1.6">${insList.map(i => {
+            const precio = i.costo_total ? ` <span style="color:#666">$${fmtNum(i.costo_total)}</span>` : i.cantidad ? ` <span style="color:#aaa">(${i.cantidad})</span>` : '';
+            return `${i.insumo || ''}${precio}`;
+          }).join('<br>')}</span>`
         : '<span style="color:#aaa;font-size:12px">—</span>';
     }
     case 'cantidad_rollos':
@@ -1101,11 +1104,15 @@ function _celda(t, key) {
       return `<input type="number" value="${t.rendimiento ?? ''}" placeholder="tn" style="width:64px;border:1px solid var(--gris-borde);border-radius:4px;padding:2px 4px;font-size:12px" onchange="editarCampoTrabajo('${t.id}','rendimiento',this.value?parseFloat(this.value):null)">`;
     case 'total': {
       const insList = t.trabajo_insumos || [];
-      const costoIns = insList.reduce((s, i) => s + (i.costo_total || 0), 0);
+      if (insList.length) {
+        // Si hay insumos, mostrar solo su suma — nunca mezclar con la tarifa de referencia
+        const costoIns = insList.reduce((s, i) => s + (i.costo_total || 0), 0);
+        return costoIns ? `<span style="font-size:13px">${fmtMonto(costoIns,'ARS')}</span>` : '<span style="color:#aaa">—</span>';
+      }
+      // Sin insumos: mostrar estimación por tarifa de referencia
       const tarifaRow = (tarifasTrabajos || []).find(r => normTipoTrab(r.tipo) === normTipoTrab(tl));
       const costoTrab = tarifaRow?.tarifa_ha && t.hectareas ? tarifaRow.tarifa_ha * t.hectareas : null;
-      const total = costoIns || costoTrab;
-      return total ? `<span style="font-size:13px">${fmtMonto(total,'ARS')}</span>` : '<span style="color:#aaa">—</span>';
+      return costoTrab ? `<span style="font-size:13px;color:#aaa">${fmtMonto(costoTrab,'ARS')}</span>` : '<span style="color:#aaa">—</span>';
     }
     default: return '—';
   }
