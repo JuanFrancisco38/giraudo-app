@@ -71,7 +71,8 @@ function agregarFilaInsumoModal() {
 
 function getTotalHectareas() {
   const filas = [...document.querySelectorAll('#mtr-lotes-list .lote-row')];
-  return filas.reduce((s, f) => s + (parseFloat(f.querySelector('.lot-has').value) || 0), 0);
+  const fromList = filas.reduce((s, f) => s + (parseFloat(f.querySelector('.lot-has').value) || 0), 0);
+  return fromList || parseFloat(document.getElementById('mtr-has')?.value) || 0;
 }
 
 function recalcularTodosInsumos() {
