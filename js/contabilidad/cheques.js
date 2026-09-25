@@ -1,3 +1,6 @@
+let _chequeEditandoId = null;
+let _chequeEditandoTipo = null;
+
 const CHEQUE_CFG = {
   recibido: { pref: 'chr', tabId: 'tab-chr', label: 'cheque recibido', contraLabel: 'librador' },
   emitido:  { pref: 'che', tabId: 'tab-che', label: 'cheque emitido', contraLabel: 'beneficiario' }
@@ -58,7 +61,7 @@ async function guardarCheque(tipo) {
   if (!fecha || !monto) { toast('Completá al menos fecha y monto', 'var(--tierra)'); return; }
 
   const numero = g('num').value;
-  if (numero) {
+  if (numero && !_chequeEditandoId) {
     const todos = await sb('GET', 'cheques', '', `?tipo=eq.${tipo}&numero=eq.${encodeURIComponent(numero)}`);
     if (todos && todos.length && !confirm(`⚠️ Ya existe un ${cfg.label} con el N° "${numero}". ¿Querés guardarlo igual?`)) {
       toast('Guardado cancelado — posible duplicado', 'var(--tierra)');
@@ -89,19 +92,86 @@ async function guardarCheque(tipo) {
     data.rubro_destino = g('rubro').value;
   }
 
+  if (_chequeEditandoId) {
+    const tid = _chequeEditandoId;
+    const r = await sb('PATCH', 'cheques', data, `?id=eq.${tid}`);
+    if (r !== null) {
+      toast('✅ Cheque actualizado');
+      _chequeEditandoId = null;
+      _chequeEditandoTipo = null;
+      _resetFormCheque(tipo, cfg, g);
+      cargarCheques(tipo);
+    } else toast('❌ Error al guardar', 'var(--rojo)');
+    return;
+  }
+
   const r = await sb('POST', 'cheques', data);
   if (r) {
     toast(`✅ ${cfg.label.charAt(0).toUpperCase() + cfg.label.slice(1)} registrado`);
-    toggleForm(`form-${cfg.pref}`);
-    ['num','banco','libr','cuit','detalle','fcobro','monto','obs'].forEach(id => g(id).value = '');
-    if (tipo === 'recibido') { ['cuenta','fac-origen','destino','fac-destino','rubro'].forEach(id => g(id).value = ''); }
-    g('estado').value = 'cartera';
-    g('registro').value = 'blanco';
-    g('archivo').value = '';
-    document.getElementById(`${cfg.pref}-doc-status`).textContent = '';
-    chequeState[tipo].archivo = null;
+    _resetFormCheque(tipo, cfg, g);
     cargarCheques(tipo);
   } else toast('❌ Error al guardar', 'var(--rojo)');
+}
+
+function _resetFormCheque(tipo, cfg, g) {
+  toggleForm(`form-${cfg.pref}`);
+  ['num','banco','libr','cuit','detalle','fcobro','monto','obs'].forEach(id => g(id).value = '');
+  if (tipo === 'recibido') { ['cuenta','fac-origen','destino','fac-destino','rubro'].forEach(id => g(id).value = ''); }
+  g('estado').value = 'cartera';
+  g('registro').value = 'blanco';
+  g('archivo').value = '';
+  document.getElementById(`${cfg.pref}-doc-status`).textContent = '';
+  chequeState[tipo].archivo = null;
+  // Reset title/button
+  const form = document.getElementById(`form-${cfg.pref}`);
+  const h3 = form?.querySelector('h3');
+  if (h3 && h3.textContent.startsWith('✏️')) h3.textContent = h3.textContent.replace('✏️ Editar', 'Nuevo');
+  const btnGuardar = form?.querySelector(`button[onclick="guardarCheque('${tipo}')"]`);
+  if (btnGuardar && btnGuardar.textContent === '💾 Guardar cambios') btnGuardar.textContent = '💾 Guardar';
+}
+
+function editarCheque(id, tipo) {
+  const st = chequeState[tipo];
+  const c = st.todas.find(x => x.id === id);
+  if (!c) return;
+
+  _chequeEditandoId = id;
+  _chequeEditandoTipo = tipo;
+
+  const cfg = CHEQUE_CFG[tipo];
+  const g = fieldId => document.getElementById(`${cfg.pref}-${fieldId}`);
+
+  const form = document.getElementById(`form-${cfg.pref}`);
+  if (form && form.style.display === 'none') toggleForm(`form-${cfg.pref}`);
+
+  const setVal = (fieldId, v) => { const el = g(fieldId); if (el && v != null) el.value = v; };
+  setVal('fecha', c.fecha_emision);
+  setVal('monto', c.monto);
+  setVal('num', c.numero);
+  setVal('banco', c.banco);
+  setVal('libr', c.contraparte);
+  setVal('cuit', c.cuit_contraparte);
+  setVal('detalle', c.detalle);
+  setVal('firma', c.firma);
+  setVal('fcobro', c.fecha_cobro);
+  if (g('estado')) g('estado').value = c.estado || 'cartera';
+  if (g('registro')) g('registro').value = c.registro || 'blanco';
+  setVal('obs', c.observaciones);
+
+  if (tipo === 'recibido') {
+    setVal('cuenta', c.cuenta);
+    setVal('fac-origen', c.factura_origen);
+    setVal('destino', c.destino);
+    setVal('fac-destino', c.factura_destino);
+    setVal('rubro', c.rubro_destino);
+  }
+
+  const h3 = form?.querySelector('h3');
+  if (h3) h3.textContent = `✏️ Editar ${cfg.label}`;
+  const btnGuardar = form?.querySelector(`button[onclick="guardarCheque('${tipo}')"]`);
+  if (btnGuardar) btnGuardar.textContent = '💾 Guardar cambios';
+
+  form?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function filtrarChequeReset(tipo) { chequeState[tipo].pagina = 1; renderCheques(tipo); }
@@ -310,7 +380,7 @@ function renderCheques(tipo) {
     const checkTd = sumaState.active && sumaState.tipo === tipo
       ? `<td><input type="checkbox" ${sumaState.seleccionados[c.id] !== undefined ? 'checked' : ''} onchange="toggleSumaCheck('${c.id}',${c.monto||0},this)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--bordo)"></td>`
       : '';
-    return `<tr style="${trStyle}">${checkTd}${filas}<td><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarCheque('${c.id}','${tipo}')">🗑️</button></td></tr>`;
+    return `<tr style="${trStyle}">${checkTd}${filas}<td style="white-space:nowrap"><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px;margin-right:4px" onclick="editarCheque('${c.id}','${tipo}')">✏️</button><button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarCheque('${c.id}','${tipo}')">🗑️</button></td></tr>`;
   }).join('');
 }
 
