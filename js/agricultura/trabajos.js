@@ -1304,23 +1304,22 @@ function _celda(t, key) {
     case 'costo_ha': {
       const insList = t.trabajo_insumos || [];
       const costoIns = insList.reduce((s, i) => s + (i.costo_total || 0), 0);
+      const tarifaRow2 = (tarifasTrabajos || []).find(r => normTipoTrab(r.tipo) === normTipoTrab(tl));
+      const contCosto2 = t.trabajo_contratista?.[0]?.costo || 0;
+      const tarifa2 = contCosto2 || (tarifaRow2?.tarifa_ha && t.hectareas ? tarifaRow2.tarifa_ha * t.hectareas : 0);
+      const costoTotal2 = costoIns + tarifa2;
       const has = t.hectareas || 0;
-      const val = costoIns && has ? costoIns / has : null;
+      const val = costoTotal2 && has ? costoTotal2 / has : null;
       return val ? fmtDualMoneda(Math.round(val)) : '<span style="color:#aaa">—</span>';
     }
     case 'total': {
       const insList = t.trabajo_insumos || [];
-      if (insList.length) {
-        const costoIns = insList.reduce((s, i) => s + (i.costo_total || 0), 0);
-        return costoIns ? fmtDualMoneda(costoIns) : '<span style="color:#aaa">—</span>';
-      }
-      const contCosto = t.trabajo_contratista?.[0]?.costo || null;
-      if (contCosto) return fmtDualMoneda(contCosto);
+      const costoIns = insList.reduce((s, i) => s + (i.costo_total || 0), 0);
+      const contCosto = t.trabajo_contratista?.[0]?.costo || 0;
       const tarifaRow = (tarifasTrabajos || []).find(r => normTipoTrab(r.tipo) === normTipoTrab(tl));
-      const costoTrab = tarifaRow?.tarifa_ha && t.hectareas ? tarifaRow.tarifa_ha * t.hectareas : null;
-      return costoTrab
-        ? `<span style="color:#aaa">${fmtDualMoneda(costoTrab)}</span>`
-        : '<span style="color:#aaa">—</span>';
+      const tarifa = contCosto || (tarifaRow?.tarifa_ha && t.hectareas ? tarifaRow.tarifa_ha * t.hectareas : 0);
+      const costoTotal = costoIns + tarifa;
+      return costoTotal ? fmtDualMoneda(costoTotal) : '<span style="color:#aaa">—</span>';
     }
     case 'rendimiento_ha': {
       const val = t.rendimiento && t.hectareas ? Math.round(t.rendimiento / t.hectareas) : null;
