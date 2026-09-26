@@ -784,8 +784,14 @@ async function editarTrabajo(id) {
   const btnGuardar = document.querySelector('#mtr-form-contenido button[onclick="guardarTrabajoModal()"]');
   if (btnGuardar) btnGuardar.textContent = '💾 Guardar cambios';
 
-  // 1. Tipo de trabajo
+  // 1. Tipo de trabajo (precarga tarifa sugerida; se sobrescribe abajo con el valor guardado)
   if (t.tipo_labor) mtrSeleccionarTipo(t.tipo_labor);
+
+  // Sobrescribir tarifa con el valor guardado en el registro (no el sugerido)
+  if (t.tarifa_ha) {
+    const tarifaEl = document.getElementById('mtr-tarifa-ha');
+    if (tarifaEl) { tarifaEl.value = t.tarifa_ha; mtrOnTarifaChange(); }
+  }
 
   // 2. Propio vs tercero
   const propietario = t.lotes?.partes?.nombre;
@@ -918,7 +924,7 @@ async function guardarTrabajoModal() {
 
     await sb('PATCH', 'trabajos', {
       fecha, tipo_labor: _mtrTipo, lote_id: loteId,
-      hectareas: has, cultivo, campania,
+      hectareas: has, tarifa_ha: tarifaHa || null, cultivo, campania,
       cantidad_rollos: cantRollos, rendimiento
     }, `?id=eq.${tid}`);
 
@@ -993,7 +999,7 @@ async function guardarTrabajoModal() {
     // 1. Insertar TRABAJOS
     const tRes = await sb('POST', 'trabajos', {
       fecha, tipo_labor: _mtrTipo, lote_id: entry.loteId,
-      hectareas: entry.has, cultivo, campania,
+      hectareas: entry.has, tarifa_ha: tarifaHa || null, cultivo, campania,
       cantidad_rollos: cantRollos, rendimiento
     });
     if (!tRes?.[0]) { toast('❌ Error al guardar (lote ' + (entryLote?.lote || entry.loteId) + ')', 'var(--rojo)'); continue; }
@@ -1272,7 +1278,7 @@ async function resolverParteId(nombre) {
 
 async function cargarTrabajos() {
   const [rows] = await Promise.all([
-    sb('GET', 'trabajos', '', '?select=id,fecha,tipo_labor,hectareas,cultivo,campania,cantidad_rollos,rendimiento,origen_id,lotes(campo,lote,partes(nombre)),trabajo_insumos(*),trabajo_contratista(costo,partes(nombre)),trabajo_maquinaria(tarifa_gasoil,cobro_total_pesos,maquinaria(nombre),empleados(nombre))&order=fecha.desc'),
+    sb('GET', 'trabajos', '', '?select=id,fecha,tipo_labor,hectareas,tarifa_ha,cultivo,campania,cantidad_rollos,rendimiento,origen_id,lotes(campo,lote,partes(nombre)),trabajo_insumos(*),trabajo_contratista(costo,partes(nombre)),trabajo_maquinaria(tarifa_gasoil,cobro_total_pesos,maquinaria(nombre),empleados(nombre))&order=fecha.desc'),
     cargarDatosCostosInsumos()
   ]);
   trabajosTodos = rows || [];
@@ -1317,13 +1323,16 @@ function _celda(t, key) {
     case 'contratista':
       return `<span style="font-size:13px">${t.trabajo_contratista?.[0]?.partes?.nombre || 'Propio'}</span>`;
     case 'tarifa_ha': {
-      const tarifaRow = (tarifasTrabajos || []).find(r => normTipoTrab(r.tipo) === normTipoTrab(tl));
-      const val = tarifaRow?.tarifa_ha || null;
+      const val = t.tarifa_ha
+        || (tarifasTrabajos || []).find(r => normTipoTrab(r.tipo) === normTipoTrab(tl))?.tarifa_ha
+        || null;
       return val ? fmtDualMoneda(val) : '<span style="color:#aaa">—</span>';
     }
     case 'tarifa_total': {
-      const tarifaRow = (tarifasTrabajos || []).find(r => normTipoTrab(r.tipo) === normTipoTrab(tl));
-      const val = tarifaRow?.tarifa_ha && t.hectareas ? tarifaRow.tarifa_ha * t.hectareas : null;
+      const tha = t.tarifa_ha
+        || (tarifasTrabajos || []).find(r => normTipoTrab(r.tipo) === normTipoTrab(tl))?.tarifa_ha
+        || 0;
+      const val = tha && t.hectareas ? Math.round(tha * t.hectareas) : null;
       return val ? fmtDualMoneda(val) : '<span style="color:#aaa">—</span>';
     }
     case 'insumos': {
@@ -1348,9 +1357,9 @@ function _celda(t, key) {
     case 'costo_ha': {
       const insList = t.trabajo_insumos || [];
       const costoIns = insList.reduce((s, i) => s + (i.costo_total || 0), 0);
-      const tarifaRow2 = (tarifasTrabajos || []).find(r => normTipoTrab(r.tipo) === normTipoTrab(tl));
       const contCosto2 = t.trabajo_contratista?.[0]?.costo || 0;
-      const tarifa2 = contCosto2 || (tarifaRow2?.tarifa_ha && t.hectareas ? tarifaRow2.tarifa_ha * t.hectareas : 0);
+      const tha2 = t.tarifa_ha || (tarifasTrabajos || []).find(r => normTipoTrab(r.tipo) === normTipoTrab(tl))?.tarifa_ha || 0;
+      const tarifa2 = contCosto2 || (tha2 && t.hectareas ? tha2 * t.hectareas : 0);
       const costoTotal2 = costoIns + tarifa2;
       const has = t.hectareas || 0;
       const val = costoTotal2 && has ? costoTotal2 / has : null;
@@ -1360,8 +1369,8 @@ function _celda(t, key) {
       const insList = t.trabajo_insumos || [];
       const costoIns = insList.reduce((s, i) => s + (i.costo_total || 0), 0);
       const contCosto = t.trabajo_contratista?.[0]?.costo || 0;
-      const tarifaRow = (tarifasTrabajos || []).find(r => normTipoTrab(r.tipo) === normTipoTrab(tl));
-      const tarifa = contCosto || (tarifaRow?.tarifa_ha && t.hectareas ? tarifaRow.tarifa_ha * t.hectareas : 0);
+      const tha = t.tarifa_ha || (tarifasTrabajos || []).find(r => normTipoTrab(r.tipo) === normTipoTrab(tl))?.tarifa_ha || 0;
+      const tarifa = contCosto || (tha && t.hectareas ? tha * t.hectareas : 0);
       const costoTotal = costoIns + tarifa;
       return costoTotal ? fmtDualMoneda(costoTotal) : '<span style="color:#aaa">—</span>';
     }
