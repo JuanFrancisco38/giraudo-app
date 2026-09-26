@@ -20,7 +20,7 @@ async function cargarMaquinaria() {
   const [maq, mant, trab] = await Promise.all([
     sb('GET', 'maquinaria', null, '?order=categoria,nombre'),
     sb('GET', 'mantenimiento', null, '?order=fecha.desc'),
-    sb('GET', 'trabajos_agricolas', null, '?order=fecha.desc')
+    sb('GET', 'trabajos', null, '?select=id,fecha,tipo_labor,hectareas,cultivo,campania,cantidad_rollos,rendimiento,tarifa_ha,lotes(lote,campo,partes(nombre)),trabajo_maquinaria(maquina_id,operario_id,tarifa_gasoil,cobro_total_pesos,empleados(nombre)),trabajo_factura(tarifa_ha,subtotal,iva_pct,iva_monto,total,tipo_cambio,total_usd)&order=fecha.desc')
   ]);
   maquinas = maq || [];
   mantenimientos = mant || [];
@@ -217,7 +217,23 @@ function renderContenidoFichaMaq(tab) {
       </table></div>`;
 
   } else if (tab === 'trabajos') {
-    const todosRegistros = trabajosMaq.filter(t => t.maquina_id === m.id);
+    const todosRegistros = trabajosMaq
+      .filter(t => (t.trabajo_maquinaria||[]).some(r => r.maquina_id === m.id))
+      .map(t => {
+        const maqRow  = (t.trabajo_maquinaria||[]).find(r => r.maquina_id === m.id) || {};
+        const fact    = (t.trabajo_factura||[])[0] || {};
+        const loteObj = t.lotes || {};
+        return Object.assign({}, t, {
+          establecimiento: loteObj.partes?.nombre || t.establecimiento || null,
+          lote:            loteObj.lote           || t.lote            || null,
+          propietario:     loteObj.campo          || t.propietario     || null,
+          operario:        maqRow.empleados?.nombre || t.operario      || null,
+          tarifa_gasoil:   maqRow.tarifa_gasoil   ?? t.tarifa_gasoil  ?? null,
+          cobro_total_pesos: maqRow.cobro_total_pesos ?? null,
+          // factura fields — sólo para Cosecha/Siembra
+          _fact: fact,
+        });
+      });
     const cat = m.categoria;
     const $n = v => v != null ? fmtNum(v) : '—';
     const $p = v => v != null ? '$' + fmtNum(v) : '—';
@@ -295,15 +311,15 @@ function renderContenidoFichaMaq(tab) {
         <th>Total $</th><th>TC</th><th>Total U$D</th><th></th>
       </tr>`;
       rowFn = t => {
-        const e = t.extras || {};
+        const f = t._fact || {};
         return `<tr>
           <td>${fmtFecha(t.fecha)}</td><td>${t.propietario||'—'}</td><td>${t.establecimiento||'—'}</td><td>${t.lote||'—'}</td>
           <td>${$n(t.hectareas)}</td><td>${t.cultivo||'—'}</td>
-          <td>${t.tarifa_cobrada != null ? '$'+fmtNum(t.tarifa_cobrada) : '—'}</td>
-          <td>${$p(e.subtotal)}</td>
-          <td>${e.iva_pct != null ? e.iva_pct+'%' : '—'}</td>
-          <td>${$p(e.iva_monto)}</td>
-          <td>${$p(t.total_pesos)}</td><td>${$n(t.tipo_cambio)}</td><td>${$u(t.total_usd)}</td>
+          <td>${f.tarifa_ha != null ? '$'+fmtNum(f.tarifa_ha) : (t.tarifa_ha != null ? '$'+fmtNum(t.tarifa_ha) : '—')}</td>
+          <td>${$p(f.subtotal)}</td>
+          <td>${f.iva_pct != null ? f.iva_pct+'%' : '—'}</td>
+          <td>${$p(f.iva_monto)}</td>
+          <td>${$p(f.total)}</td><td>${$n(f.tipo_cambio)}</td><td>${$u(f.total_usd)}</td>
           <td><button class="btn btn-sm" style="color:#c0392b;padding:2px 6px" onclick="eliminarTrabajoMaq('${t.id}')">🗑</button></td>
         </tr>`;
       };
@@ -425,9 +441,9 @@ function renderContenidoFichaMaq(tab) {
           ${cultHtml}
         </div>
         ${cat === 'Cosecha' || cat === 'Siembra' ? (() => {
-            const totSubtotal = filtrados.reduce((s, t) => s + ((t.extras||{}).subtotal || 0), 0);
-            const totUsd      = filtrados.reduce((s, t) => s + (t.total_usd || 0), 0);
-            const promHa      = unidadTot > 0 ? totSubtotal / unidadTot : null;
+            const totSubtotal = filtrados.reduce((s, t) => s + ((t._fact||{}).total || 0), 0);
+            const totUsd      = filtrados.reduce((s, t) => s + ((t._fact||{}).total_usd || 0), 0);
+            const promHa      = unidadTot > 0 && totSubtotal > 0 ? totSubtotal / unidadTot : null;
             return kard('Facturado $', '$' + fmtNum(totSubtotal), totUsd > 0 ? 'U$D ' + fmtNum(totUsd) : null, promHa != null ? '$' + fmtNum(promHa) + '/ha' : null);
           })() : `
         ${costoTotPesos > 0 ? kard('Costo total',
