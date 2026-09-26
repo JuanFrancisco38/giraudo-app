@@ -161,11 +161,26 @@ function actualizarSelectMaquinaria(tipo) {
 }
 
 function filaLoteModalHTML() {
+  const campo = document.getElementById('mtr-campo-txt')?.value || '';
+  const lotesFiltrados = campo ? _mtrLotes.filter(l => l.campo === campo) : _mtrLotes;
+  const optsLote = '<option value="">— Elegir lote —</option>' +
+    lotesFiltrados.map(l => `<option value="${l.id}">${l.lote}${l.hectareas ? ' ('+l.hectareas+' ha)' : ''}</option>`).join('');
   return `<div class="lote-row" style="display:grid;grid-template-columns:1fr 1fr auto;gap:6px;margin-bottom:6px;align-items:flex-end">
-    <div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;color:#555;font-weight:600">Lote</label><input type="text" class="lot-num" placeholder="Ej: 3" style="border:1px solid #ccc;border-radius:5px;padding:5px 7px;font-size:13px"></div>
+    <div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;color:#555;font-weight:600">Lote adicional</label>
+      <select class="lot-id" onchange="mtrLoteAdicionalChange(this)" style="border:1px solid #ccc;border-radius:5px;padding:5px 7px;font-size:13px">${optsLote}</select></div>
     <div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;color:#555;font-weight:600">Hectáreas</label><input type="number" class="lot-has" placeholder="Ej: 78" style="border:1px solid #ccc;border-radius:5px;padding:5px 7px;font-size:13px" oninput="recalcularTodosInsumos()"></div>
-    <button type="button" onclick="this.closest('.lote-row').remove()" style="padding:5px 8px;border:1px solid #ccc;background:#fff;border-radius:5px;cursor:pointer;font-size:14px;color:#999;align-self:flex-end">🗑️</button>
+    <button type="button" onclick="this.closest('.lote-row').remove();recalcularTodosInsumos()" style="padding:5px 8px;border:1px solid #ccc;background:#fff;border-radius:5px;cursor:pointer;font-size:14px;color:#999;align-self:flex-end">🗑️</button>
   </div>`;
+}
+
+function mtrLoteAdicionalChange(sel) {
+  const row = sel.closest('.lote-row');
+  const lote = _mtrLotes.find(l => l.id === sel.value);
+  const hasInput = row.querySelector('.lot-has');
+  if (hasInput && !hasInput.value && lote?.hectareas) {
+    hasInput.value = lote.hectareas;
+    recalcularTodosInsumos();
+  }
 }
 
 function agregarFilaLoteModal() {
@@ -634,6 +649,11 @@ async function abrirModalTrabajo() {
             <input type="text" id="mtr-campania" placeholder="Auto" oninput="this.dataset.editado='1'"></div>
         </div>
 
+        <div style="margin-bottom:14px">
+          <div id="mtr-lotes-list"></div>
+          <button type="button" onclick="agregarFilaLoteModal()" style="padding:6px 12px;font-size:12px;border:1px dashed #8B1A2F;background:none;color:#8B1A2F;border-radius:6px;cursor:pointer">+ Agregar lote adicional</button>
+        </div>
+
         <div id="mtr-wrap-rollos" style="display:none;margin-bottom:16px">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#8B1A2F;letter-spacing:.5px;margin-bottom:8px">4. Producción</div>
           <div class="form-group" style="margin:0;max-width:220px"><label>Cantidad de rollos</label>
@@ -939,80 +959,104 @@ async function guardarTrabajoModal() {
   }
   // ── FIN MODO EDICIÓN ──────────────────────────────────────────
 
-  // 1. Insertar en tabla nueva TRABAJOS
-  const tRes = await sb('POST', 'trabajos', {
-    fecha, tipo_labor: _mtrTipo, lote_id: loteId,
-    hectareas: has, cultivo, campania,
-    cantidad_rollos: cantRollos, rendimiento
-  });
-  if (!tRes?.[0]) { toast('❌ Error al guardar', 'var(--rojo)'); return; }
-  const tid = tRes[0].id;
+  // Construir lista de lotes a guardar: el principal + los adicionales
+  const lotesAdicionales = [...document.querySelectorAll('#mtr-lotes-list .lote-row')]
+    .map(row => ({
+      loteId: row.querySelector('.lot-id')?.value || null,
+      has:    parseFloat(row.querySelector('.lot-has')?.value) || null,
+    }))
+    .filter(l => l.loteId);
 
-  // 2. Ejecutor
-  if (ejecutor === 'propio' && (maquinaId || operarioId)) {
-    await sb('POST', 'trabajo_maquinaria', {
-      trabajo_id: tid,
-      maquina_id:   maquinaId || undefined,
-      operario_id:  operarioId || undefined,
-      tarifa_gasoil:      esTercero ? tarifaLts    : null,
-      precio_gasoil_ars:  esTercero ? precioGasoil : null,
-      cobro_total_pesos:  esTercero ? cobroPesos   : null,
-    });
-  } else if (ejecutor === 'contratista' && contratistaNombre) {
-    const contId = await resolverParteId(contratistaNombre);
-    if (contId) await sb('POST', 'trabajo_contratista', {
-      trabajo_id: tid, contratista_id: contId, costo: contratistaCosto
-    });
+  const lotesAGuardar = [
+    { loteId, has },
+    ...lotesAdicionales,
+  ].filter(l => l.loteId);
+
+  if (!lotesAGuardar.length) { toast('Elegí al menos un lote', 'var(--tierra)'); return; }
+
+  // Resolver contratista una sola vez si aplica
+  let contId = null;
+  if (ejecutor === 'contratista' && contratistaNombre) {
+    contId = await resolverParteId(contratistaNombre);
   }
 
-  // 3. Factura a tercero (cosecha/siembra)
-  if (esTercero && MTR_TIPO_FACTURA.has(_mtrTipo) && factTarifa) {
-    await sb('POST', 'trabajo_factura', {
-      trabajo_id: tid,
-      tarifa_ha: factTarifa, subtotal: factSubtotal,
-      iva_pct: factIvaPct, iva_monto: factIvaMonto,
-      total: factTotal, tipo_cambio: factTc, total_usd: factTotalUsd,
-    });
-  }
-
-  // 4. Insumos
-  for (const ins of insumos) {
-    await sb('POST', 'trabajo_insumos', {
-      trabajo_id: tid, insumo: ins.insumo,
-      cantidad: ins.cantidad, costo_total: ins.costo_total
-    });
-  }
-
-  // 5. Dual-write a trabajos_agricolas (legacy)
   const TIPO_INV = {
     siembra:'Siembra', pulverizacion:'Pulverización', fertilizacion:'Fertilización',
     cosecha:'Cosecha', enrollado:'Henificación', corte:'Segadora',
     rastrillado:'Rastrillo', movimiento_suelos:'Labranza',
     recoleccion_rollos:'Enrollado', picado:'Picado'
   };
-  const legBase = {
-    tipo: TIPO_INV[_mtrTipo] || _mtrTipo,
-    fecha, campo: lote?.campo || '', lote: lote?.lote || '',
-    hectareas: has, cultivo, campania,
-    maquina_id: maquinaId || null,
-    contratista: ejecutor === 'contratista' ? (contratistaNombre || 'Propio') : 'Propio',
-    cliente: esTercero ? lote?.partes?.nombre : null,
-    tarifa_cobrada:    esTercero ? cobroLts    : null,
-    precio_gasoil_ars: esTercero ? precioGasoil: null,
-    total_pesos:       esTercero ? cobroPesos  : null,
-  };
-  if (insumos.length) {
-    for (const ins of insumos) {
-      await sb('POST', 'trabajos_agricolas', {
-        ...legBase, descripcion: ins.insumo, dosis: ins.dosis,
-        consumo_total: ins.cantidad, precio_unitario: ins.precio_unit
+
+  for (const entry of lotesAGuardar) {
+    const entryLote = _mtrLotes.find(l => l.id === entry.loteId);
+
+    // 1. Insertar TRABAJOS
+    const tRes = await sb('POST', 'trabajos', {
+      fecha, tipo_labor: _mtrTipo, lote_id: entry.loteId,
+      hectareas: entry.has, cultivo, campania,
+      cantidad_rollos: cantRollos, rendimiento
+    });
+    if (!tRes?.[0]) { toast('❌ Error al guardar (lote ' + (entryLote?.lote || entry.loteId) + ')', 'var(--rojo)'); continue; }
+    const tid = tRes[0].id;
+
+    // 2. Ejecutor
+    if (ejecutor === 'propio' && (maquinaId || operarioId)) {
+      await sb('POST', 'trabajo_maquinaria', {
+        trabajo_id: tid,
+        maquina_id:   maquinaId || undefined,
+        operario_id:  operarioId || undefined,
+        tarifa_gasoil:      esTercero ? tarifaLts    : null,
+        precio_gasoil_ars:  esTercero ? precioGasoil : null,
+        cobro_total_pesos:  esTercero ? cobroPesos   : null,
+      });
+    } else if (contId) {
+      await sb('POST', 'trabajo_contratista', { trabajo_id: tid, contratista_id: contId, costo: contratistaCosto });
+    }
+
+    // 3. Factura a tercero (cosecha/siembra)
+    if (esTercero && MTR_TIPO_FACTURA.has(_mtrTipo) && factTarifa) {
+      await sb('POST', 'trabajo_factura', {
+        trabajo_id: tid,
+        tarifa_ha: factTarifa, subtotal: factSubtotal,
+        iva_pct: factIvaPct, iva_monto: factIvaMonto,
+        total: factTotal, tipo_cambio: factTc, total_usd: factTotalUsd,
       });
     }
-  } else {
-    await sb('POST', 'trabajos_agricolas', legBase);
+
+    // 4. Insumos — se replican para cada lote
+    for (const ins of insumos) {
+      await sb('POST', 'trabajo_insumos', {
+        trabajo_id: tid, insumo: ins.insumo,
+        cantidad: ins.cantidad, costo_total: ins.costo_total
+      });
+    }
+
+    // 5. Dual-write a trabajos_agricolas (legacy)
+    const legBase = {
+      tipo: TIPO_INV[_mtrTipo] || _mtrTipo,
+      fecha, campo: entryLote?.campo || '', lote: entryLote?.lote || '',
+      hectareas: entry.has, cultivo, campania,
+      maquina_id: maquinaId || null,
+      contratista: ejecutor === 'contratista' ? (contratistaNombre || 'Propio') : 'Propio',
+      cliente: esTercero ? entryLote?.partes?.nombre : null,
+      tarifa_cobrada:    esTercero ? cobroLts    : null,
+      precio_gasoil_ars: esTercero ? precioGasoil: null,
+      total_pesos:       esTercero ? cobroPesos  : null,
+    };
+    if (insumos.length) {
+      for (const ins of insumos) {
+        await sb('POST', 'trabajos_agricolas', {
+          ...legBase, descripcion: ins.insumo, dosis: ins.dosis,
+          consumo_total: ins.cantidad, precio_unitario: ins.precio_unit
+        });
+      }
+    } else {
+      await sb('POST', 'trabajos_agricolas', legBase);
+    }
   }
 
-  toast('✅ Trabajo guardado');
+  const cantidad = lotesAGuardar.length;
+  toast(`✅ ${cantidad === 1 ? 'Trabajo guardado' : cantidad + ' trabajos guardados'}`);
   cerrarModalTrabajo();
   cargarTrabajos();
 }
