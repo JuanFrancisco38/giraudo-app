@@ -1518,9 +1518,10 @@ function renderTrabajos() {
   tbody.innerHTML = pagina.map(t => _renderFilaTrabajo(t, cols)).join('');
 }
 
-const INSUMO_COLS = new Set(['insumos', 'dosis_ha', 'dosis_total']);
+// Columnas que varían por insumo (aparecen en cada sub-renglón)
+const INSUMO_COLS = new Set(['insumos', 'dosis_ha', 'dosis_total', 'costo_ha', 'total']);
 
-function _celdaInsumo(ins, k) {
+function _celdaInsumo(ins, k, t) {
   switch (k) {
     case 'insumos': {
       const costo = ins.costo_total ? ` <span style="color:#666;font-size:11px">$${fmtNum(ins.costo_total)}</span>` : '';
@@ -1530,6 +1531,13 @@ function _celdaInsumo(ins, k) {
       return `<span style="font-size:11px;color:#555">${ins.dosis_ha || ins.dosis || '—'}</span>`;
     case 'dosis_total':
       return `<span style="font-size:11px;color:#555">${ins.cantidad || '—'}</span>`;
+    case 'costo_ha': {
+      const has = t?.hectareas || 0;
+      const val = ins.costo_total && has ? Math.round(ins.costo_total / has) : null;
+      return val ? fmtDualMoneda(val) : '<span style="color:#aaa">—</span>';
+    }
+    case 'total':
+      return ins.costo_total ? fmtDualMoneda(ins.costo_total) : '<span style="color:#aaa">—</span>';
     default:
       return '—';
   }
@@ -1538,38 +1546,48 @@ function _celdaInsumo(ins, k) {
 function _renderFilaTrabajo(t, cols) {
   const insList = t.trabajo_insumos || [];
   const N = insList.length;
-  const btnAcciones = `<td style="white-space:nowrap;vertical-align:top">
+  const btnTd = (rs) => `<td${rs ? ` rowspan="${rs}"` : ''} style="white-space:nowrap;vertical-align:top">
     <button class="btn btn-secondary" style="padding:4px 8px;font-size:12px;margin-right:4px" onclick="editarTrabajo('${t.id}')">✏️</button>
     <button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarTrabajo('${t.id}')">🗑️</button>
   </td>`;
 
   if (N <= 1) {
-    return `<tr>${cols.map(k => `<td>${_celda(t, k)}</td>`).join('')}${btnAcciones}</tr>`;
+    return `<tr>${cols.map(k => `<td>${_celda(t, k)}</td>`).join('')}${btnTd()}</tr>`;
   }
 
-  // Multi-insumo: rowspan en columnas estáticas, sub-renglón por insumo
-  const rowspan = N;
+  // Multi-insumo: N sub-renglones de insumo + 1 fila de total = N+1 filas totales
+  const rowspan = N + 1;
   const bgStripe = 'background:rgba(139,26,47,.04)';
   const borderTop = 'border-top:2px solid rgba(139,26,47,.18)';
+  const cellBorder = 'border-bottom:1px solid #f0f0f0';
 
+  // Fila 1: columnas estáticas con rowspan + primer insumo
   const firstRow = `<tr style="${borderTop}">` +
-    cols.map(k => {
-      if (INSUMO_COLS.has(k)) {
-        return `<td style="border-bottom:1px solid #f0f0f0">${_celdaInsumo(insList[0], k)}</td>`;
-      }
-      return `<td rowspan="${rowspan}" style="vertical-align:top;${bgStripe}">${_celda(t, k)}</td>`;
-    }).join('') +
-    btnAcciones.replace('<td', `<td rowspan="${rowspan}"`) +
+    cols.map(k => INSUMO_COLS.has(k)
+      ? `<td style="${cellBorder}">${_celdaInsumo(insList[0], k, t)}</td>`
+      : `<td rowspan="${rowspan}" style="vertical-align:top;${bgStripe}">${_celda(t, k)}</td>`
+    ).join('') +
+    btnTd(rowspan) +
     `</tr>`;
 
+  // Filas 2..N: solo columnas de insumo
+  const insumoCols = cols.filter(k => INSUMO_COLS.has(k));
   const subRows = insList.slice(1).map(ins =>
     `<tr style="${bgStripe}">` +
-    cols.filter(k => INSUMO_COLS.has(k))
-        .map(k => `<td style="border-bottom:1px solid #f0f0f0">${_celdaInsumo(ins, k)}</td>`).join('') +
+    insumoCols.map(k => `<td style="${cellBorder}">${_celdaInsumo(ins, k, t)}</td>`).join('') +
     `</tr>`
   ).join('');
 
-  return firstRow + subRows;
+  // Fila de total: tarifa + todos los insumos sumados
+  const totalRow = `<tr style="background:rgba(139,26,47,.12);font-weight:700;border-bottom:2px solid rgba(139,26,47,.2)">` +
+    insumoCols.map(k => {
+      if (k === 'insumos') return `<td><span style="font-size:11px;color:#8B1A2F;letter-spacing:.3px">TOTAL</span></td>`;
+      if (k === 'dosis_ha' || k === 'dosis_total') return `<td></td>`;
+      return `<td>${_celda(t, k)}</td>`; // costo_ha y total: _celda ya suma tarifa + insumos
+    }).join('') +
+    `</tr>`;
+
+  return firstRow + subRows + totalRow;
 }
 
 
