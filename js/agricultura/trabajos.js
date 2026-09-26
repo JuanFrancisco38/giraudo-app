@@ -1515,12 +1515,61 @@ function renderTrabajos() {
   const pagina = rows.slice((trabajosPagina - 1) * FILAS_POR_PAGINA, trabajosPagina * FILAS_POR_PAGINA);
   if (pag) pag.innerHTML = htmlPaginador(trabajosPagina, rows.length, 'irPaginaTrabajos');
 
-  tbody.innerHTML = pagina.map(t =>
-    `<tr>${cols.map(k => `<td>${_celda(t, k)}</td>`).join('')}<td style="white-space:nowrap">
-      <button class="btn btn-secondary" style="padding:4px 8px;font-size:12px;margin-right:4px" onclick="editarTrabajo('${t.id}')">✏️</button>
-      <button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarTrabajo('${t.id}')">🗑️</button>
-    </td></tr>`
+  tbody.innerHTML = pagina.map(t => _renderFilaTrabajo(t, cols)).join('');
+}
+
+const INSUMO_COLS = new Set(['insumos', 'dosis_ha', 'dosis_total']);
+
+function _celdaInsumo(ins, k) {
+  switch (k) {
+    case 'insumos': {
+      const costo = ins.costo_total ? ` <span style="color:#666;font-size:11px">$${fmtNum(ins.costo_total)}</span>` : '';
+      return `<span style="font-size:12px">${ins.insumo || '—'}${costo}</span>`;
+    }
+    case 'dosis_ha':
+      return `<span style="font-size:11px;color:#555">${ins.dosis_ha || ins.dosis || '—'}</span>`;
+    case 'dosis_total':
+      return `<span style="font-size:11px;color:#555">${ins.cantidad || '—'}</span>`;
+    default:
+      return '—';
+  }
+}
+
+function _renderFilaTrabajo(t, cols) {
+  const insList = t.trabajo_insumos || [];
+  const N = insList.length;
+  const btnAcciones = `<td style="white-space:nowrap;vertical-align:top">
+    <button class="btn btn-secondary" style="padding:4px 8px;font-size:12px;margin-right:4px" onclick="editarTrabajo('${t.id}')">✏️</button>
+    <button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarTrabajo('${t.id}')">🗑️</button>
+  </td>`;
+
+  if (N <= 1) {
+    return `<tr>${cols.map(k => `<td>${_celda(t, k)}</td>`).join('')}${btnAcciones}</tr>`;
+  }
+
+  // Multi-insumo: rowspan en columnas estáticas, sub-renglón por insumo
+  const rowspan = N;
+  const bgStripe = 'background:rgba(139,26,47,.04)';
+  const borderTop = 'border-top:2px solid rgba(139,26,47,.18)';
+
+  const firstRow = `<tr style="${borderTop}">` +
+    cols.map(k => {
+      if (INSUMO_COLS.has(k)) {
+        return `<td style="border-bottom:1px solid #f0f0f0">${_celdaInsumo(insList[0], k)}</td>`;
+      }
+      return `<td rowspan="${rowspan}" style="vertical-align:top;${bgStripe}">${_celda(t, k)}</td>`;
+    }).join('') +
+    btnAcciones.replace('<td', `<td rowspan="${rowspan}"`) +
+    `</tr>`;
+
+  const subRows = insList.slice(1).map(ins =>
+    `<tr style="${bgStripe}">` +
+    cols.filter(k => INSUMO_COLS.has(k))
+        .map(k => `<td style="border-bottom:1px solid #f0f0f0">${_celdaInsumo(ins, k)}</td>`).join('') +
+    `</tr>`
   ).join('');
+
+  return firstRow + subRows;
 }
 
 
