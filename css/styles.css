@@ -108,6 +108,7 @@ tr:hover td{background:var(--gris)}
 .resumen-box{background:var(--bordo-claro);border:1px solid var(--bordo-suave);border-radius:10px;padding:16px;margin-bottom:16px}
 .resumen-box h4{font-size:13px;font-weight:600;color:var(--bordo);margin-bottom:12px}
 .resumen-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.lotes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
 .resumen-item{background:white;border-radius:8px;padding:12px;border:1px solid var(--bordo-suave)}
 .resumen-item .ri-label{font-size:11px;color:var(--texto-suave);margin-bottom:4px}
 .resumen-item .ri-value{font-size:16px;font-weight:700;color:var(--bordo)}
