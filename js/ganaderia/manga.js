@@ -896,7 +896,7 @@ function renderTabAnimales(rodeoId, animales) {
             else           { estadoFisio = 'Seca';         colFisio = '#5a4a1a'; bgFisio = '#f5ecd5'; }
           }
 
-          // Fecha probable de parto
+          // Fecha probable / real de parto
           let fppHtml = '';
           if (resUlt === 'Preñada' && ultimoSrv?.fecha) {
             const fSrv = new Date(ultimoSrv.fecha);
@@ -909,6 +909,16 @@ function renderTabAnimales(rodeoId, animales) {
               <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px">Parto probable</div>
               <div style="font-size:16px;font-weight:700;color:#1a7a3a">${fmtFP(fParto)}</div>
               <div style="font-size:13px;color:#555">${diasG} días gest. · ${diasR > 0 ? diasR + ' días' : '¡Vencida!'}</div>
+            </div>`;
+          } else if (resUlt === 'Vacía' && ultimoSrv?.fecha_parto) {
+            const fmtFP = d => { const dd=String(d.getDate()).padStart(2,'0'),mm=String(d.getMonth()+1).padStart(2,'0'),aa=String(d.getFullYear()).slice(-2); return `${dd}/${mm}/${aa}`; };
+            const fParto = new Date(ultimoSrv.fecha_parto);
+            const hoyCard = new Date(); hoyCard.setHours(0,0,0,0);
+            const diasDesde = Math.floor((hoyCard - fParto) / 86400000);
+            fppHtml = `<div style="margin-top:6px;text-align:center">
+              <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px">Parto</div>
+              <div style="font-size:16px;font-weight:700;color:#1a7a3a">${fmtFP(fParto)}</div>
+              <div style="font-size:13px;color:#555">${diasDesde} días</div>
             </div>`;
           }
 
