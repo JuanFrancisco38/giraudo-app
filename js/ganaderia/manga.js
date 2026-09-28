@@ -6,6 +6,7 @@ let serviciosAnimal = [];
 let sanidadAnimal = [];
 let renspas = [];
 let pesadasAnimal = [];
+let campanias = [];
 
 const TIPOS_REPRODUCTIVO = ['Inseminación (IATF)', 'Servicio'];
 const TIPOS_SANIDAD = ['Vacunación', 'Desparasitación', 'Tratamiento', 'Caravana electrónica', 'Tacto / Preñez', 'Otro'];
@@ -43,7 +44,8 @@ const COLORES_RODEO = {
 
 async function cargarManga() {
   let indicesCampania, indicesManuales;
-  [rodeos, trabajosManga, animalesRodeo, novedadesGanaderas, serviciosAnimal, sanidadAnimal, renspas, pesadasAnimal, indicesCampania, indicesManuales] = await Promise.all([
+  let campaniasCargadas;
+  [rodeos, trabajosManga, animalesRodeo, novedadesGanaderas, serviciosAnimal, sanidadAnimal, renspas, pesadasAnimal, indicesCampania, indicesManuales, campaniasCargadas] = await Promise.all([
     sb('GET', 'rodeos', null, '?order=created_at.asc&activo=eq.true'),
     sb('GET', 'trabajos_manga', null, '?order=fecha.desc'),
     sb('GET', 'animales_rodeo', null, '?activo=eq.true&order=caravana_interna.asc.nullslast'),
@@ -53,8 +55,10 @@ async function cargarManga() {
     sb('GET', 'renspas', null, '?order=propietario.asc'),
     sb('GET', 'pesadas_animal', null, '?order=fecha.asc'),
     sb('GET', 'indices_campania', null, '?order=campania.desc'),
-    sb('GET', 'indices_manuales', null, '')
+    sb('GET', 'indices_manuales', null, ''),
+    sb('GET', 'campanias_rodeo', null, '?order=created_at.desc')
   ]);
+  campanias = campaniasCargadas || [];
   rodeos = rodeos || [];
   trabajosManga = trabajosManga || [];
   window._indicesCampania = indicesCampania || [];
@@ -440,15 +444,20 @@ function cambiarTipoIndices(rodeoId, val) {
 function renderTabIndices(rodeoId, novedades) {
   const novRodeo = novedades.filter(n => n.rodeo_id === rodeoId);
 
-  // Campañas disponibles para el selector
-  const campanias = [...new Set(novRodeo.map(n => n.campania).filter(Boolean))].sort().reverse();
-  const campSelec = window._campIndices[rodeoId] || campanias[0] || '';
+  // Campañas disponibles para el selector (formales primero, luego texto libre de novedades como fallback)
+  const campsRodeo = campanias.filter(c => c.rodeo_id === rodeoId);
+  const campActiva = campsRodeo.find(c => c.activa);
+  const campSelec = window._campIndices[rodeoId] ?? (campActiva?.id || campsRodeo[0]?.id || '');
 
-  // Filtrar por campaña seleccionada (estricto: excluye otras campañas)
-  const novFilt = campSelec ? novRodeo.filter(n => n.campania === campSelec) : novRodeo;
+  // Filtrar por campaña seleccionada — usa campania_id en servicios_animal
+  const campSelecObj = campsRodeo.find(c => c.id === campSelec);
+  const novFilt = novRodeo; // novedades sin filtro formal de campaña por ahora
 
-  // Servicios desde servicios_animal (animales individuales)
-  const srvRodeo = (window._allServicios || []).filter(s => s.rodeo_id === rodeoId);
+  // Servicios desde servicios_animal (animales individuales), filtrados por campaña si hay una seleccionada
+  const srvRodeoTodos = (window._allServicios || []).filter(s => s.rodeo_id === rodeoId);
+  const srvRodeo = campSelec
+    ? srvRodeoTodos.filter(s => s.campania_id === campSelec)
+    : srvRodeoTodos;
   const inseminadasSrv = srvRodeo.filter(s => s.metodo === 'IATF' || s.metodo === 'Toro').length;
 
   // Inseminadas desde novedades de manga (Trabajo de manga - IATF o Inseminación)
@@ -476,13 +485,13 @@ function renderTabIndices(rodeoId, novedades) {
   // Destetes
   const destetes = novFilt.filter(n => n.tipo === 'Destete').reduce((s,n) => s + (n.cantidad||1), 0);
 
-  const campSelectHTML = `<div style="display:flex;align-items:center;gap:6px">
+  const campSelectHTML = campsRodeo.length ? `<div style="display:flex;align-items:center;gap:6px">
     <span style="font-size:11px;color:#888">Campaña:</span>
     <select onchange="cambiarCampaniaIndices('${rodeoId}', this.value)" style="padding:4px 8px;border:1px solid #e0e0dc;border-radius:6px;font-size:12px;font-weight:600;min-width:120px">
       <option value="">Todas</option>
-      ${campanias.map(c => `<option value="${c}"${c === campSelec ? ' selected' : ''}>${c}</option>`).join('')}
+      ${campsRodeo.map(c => `<option value="${c.id}"${c.id === campSelec ? ' selected' : ''}>${c.nombre}${c.activa ? ' ✓' : ''}</option>`).join('')}
     </select>
-  </div>`;
+  </div>` : '';
 
   const base = inseminadas || totalPren || nacimientos || 1;
 
@@ -1474,12 +1483,44 @@ function onChangeRodeoNovedad() {
     const el = document.getElementById(id);
     if (el) { el.innerHTML = ''; el.style.display = 'none'; }
   });
+  poblarSelectCampania();
   onChangeTipoNovedad();
   const tipo = document.getElementById('nov-tipo-main')?.value;
   if (tipo === 'Pesada') {
     const rodeoId = document.getElementById('nov-rodeo-main')?.value;
     if (rodeoId) renderListaPesadaNov(rodeoId);
   }
+}
+
+function poblarSelectCampania() {
+  const sel = document.getElementById('nov-campania');
+  if (!sel) return;
+  const rodeoId = document.getElementById('nov-rodeo-main')?.value;
+  const camps = rodeoId ? campanias.filter(c => c.rodeo_id === rodeoId) : campanias;
+  const activa = camps.find(c => c.activa);
+  sel.innerHTML = '<option value="">— Sin campaña —</option>' +
+    camps.map(c => `<option value="${c.id}"${c.activa ? ' selected' : ''}>${c.nombre}${c.activa ? ' ✓' : ''}</option>`).join('');
+}
+
+async function nuevaCampaniaRodeo() {
+  const rodeoId = document.getElementById('nov-rodeo-main')?.value;
+  if (!rodeoId) { toast('Seleccioná un rodeo primero', 'var(--tierra)'); return; }
+  const nombre = prompt('Nombre de la campaña (ej: 26/27):');
+  if (!nombre?.trim()) return;
+  const fecha = document.getElementById('nov-fecha-main')?.value || new Date().toISOString().split('T')[0];
+  // Marcar la anterior como inactiva
+  const anterior = campanias.find(c => c.rodeo_id === rodeoId && c.activa);
+  if (anterior) await sb('PATCH', 'campanias_rodeo', { activa: false }, `?id=eq.${anterior.id}`);
+  const res = await sb('POST', 'campanias_rodeo', {
+    rodeo_id: rodeoId, nombre: nombre.trim(), fecha_inicio_servicio: fecha, activa: true
+  });
+  if (res?.[0]) {
+    if (anterior) anterior.activa = false;
+    campanias.unshift(res[0]);
+    poblarSelectCampania();
+    document.getElementById('nov-campania').value = res[0].id;
+    toast(`✅ Campaña "${nombre.trim()}" creada`);
+  } else toast('❌ Error al crear campaña', 'var(--rojo)');
 }
 
 // ── Selector de animales para novedades ───────────────────
@@ -1595,6 +1636,7 @@ function renderListaTactoNov(rodeoId) {
 
 async function guardarTactoNov(cabecera, novedadId = null) {
   const filas = document.querySelectorAll('.tacto-resultado-nov');
+  const campaniaId = document.getElementById('nov-campania')?.value || null;
   let actualizados = 0;
   for (const sel of filas) {
     const resultado = sel.value;
@@ -1608,7 +1650,8 @@ async function guardarTactoNov(cabecera, novedadId = null) {
       await sb('POST', 'servicios_animal', {
         animal_id: animalId, fecha: cabecera.fecha,
         metodo: 'Tacto', toro: '', resultado, fecha_tacto: fechaTacto,
-        observaciones: cabecera.observaciones || '', novedad_id: novedadId
+        observaciones: cabecera.observaciones || '', novedad_id: novedadId,
+        ...(campaniaId ? { campania_id: campaniaId } : {})
       });
     }
     actualizados++;
@@ -1856,7 +1899,18 @@ async function procesarNovNacimientos(rodeoId, fecha) {
       caravana_madre: caravana_madre || null, caravana_padre: caravana_padre || null,
       renspa_id, activo: true
     });
-    if (!animalRes) errores++;
+    if (!animalRes) { errores++; continue; }
+
+    // Cerrar el servicio activo de la madre con fecha_parto
+    if (madre) {
+      const srvMadre = serviciosAnimal
+        .filter(s => s.animal_id === madre.id && s.resultado === 'Preñada' && !s.fecha_parto)
+        .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))[0];
+      if (srvMadre) {
+        await sb('PATCH', 'servicios_animal', { fecha_parto: fecha }, `?id=eq.${srvMadre.id}`);
+        srvMadre.fecha_parto = fecha; // actualizar en memoria
+      }
+    }
   }
 
   if (errores > 0) {
@@ -2388,6 +2442,7 @@ async function borrarPesadaAnimal(id, animalId) {
 async function guardarInseminacion(cabecera, novedadId, subtipo) {
   const checks = document.querySelectorAll('.ins-check');
   const metodo = subtipo === 'Inseminación (IATF)' ? 'IATF' : 'Toro';
+  const campaniaId = document.getElementById('nov-campania')?.value || null;
   let guardados = 0;
   for (const chk of checks) {
     if (!chk.checked) continue;
@@ -2397,7 +2452,8 @@ async function guardarInseminacion(cabecera, novedadId, subtipo) {
     await sb('POST', 'servicios_animal', {
       animal_id: animalId, fecha: cabecera.fecha,
       metodo, toro, resultado: 'Pendiente',
-      observaciones: obs, novedad_id: novedadId
+      observaciones: obs, novedad_id: novedadId,
+      ...(campaniaId ? { campania_id: campaniaId } : {})
     });
     guardados++;
   }

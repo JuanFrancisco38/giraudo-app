@@ -744,7 +744,12 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
                 </select></div>
                 <div class="form-group"><label>Veterinario</label><input type="text" id="nov-vet" placeholder="Ej: Dr. García"></div>
                 <div class="form-group"><label>Cantidad tratados</label><input type="number" id="nov-cant-trab" placeholder="Ej: 48"></div>
-                <div class="form-group"><label>Campaña</label><input type="text" id="nov-campania" placeholder="Ej: 25/26"></div>
+                <div class="form-group"><label>Campaña</label>
+                  <div style="display:flex;gap:6px;align-items:center">
+                    <select id="nov-campania" style="flex:1"><option value="">— Sin campaña —</option></select>
+                    <button type="button" class="btn btn-secondary" style="font-size:12px;white-space:nowrap" onclick="nuevaCampaniaRodeo()">+ Nueva</button>
+                  </div>
+                </div>
                 <div class="form-group full"><label>Animales afectados <span style="font-weight:400;color:var(--texto-suave)">(vacío = todos)</span></label>
                   <button type="button" class="btn btn-secondary" style="font-size:12px;margin-bottom:6px" onclick="toggleSelectorAnimalesNov('sel-trab')">👆 Seleccionar de la lista</button>
                   <div id="sel-trab" style="display:none"></div>
