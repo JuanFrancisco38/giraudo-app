@@ -38,7 +38,7 @@ function abrirModalReporteAnimales(rodeoId) {
   ).join('');
 
   const html = `<div id="modal-reporte-animales" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)cerrarModalReporte()">
-    <div style="background:var(--fondo-card);border-radius:14px;padding:24px;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.25)">
+    <div style="background:var(--blanco);border-radius:14px;padding:24px;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.25)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <h3 style="margin:0;font-size:17px">📄 Reporte de animales — ${rodeo?.nombre || ''}</h3>
         <button onclick="cerrarModalReporte()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--texto-suave)">✕</button>
