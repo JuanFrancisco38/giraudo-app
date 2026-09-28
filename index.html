@@ -1295,6 +1295,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             </select>
             <button class="btn btn-primary" onclick="abrirModalTrabajo()">✚ Cargar trabajo</button>
             <button class="btn btn-secondary" onclick="exportarTrabajos()">⬇ Excel</button>
+            <button class="btn btn-secondary" onclick="generarReporteTrabajos('pdf')">📄 PDF</button>
             <div style="position:relative">
               <button class="btn btn-secondary" onclick="toggleColPicker()" id="btn-col-picker">⚙ Columnas</button>
               <div id="col-picker-panel" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--gris-borde);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.15);z-index:999;min-width:200px;padding:8px 0">
@@ -2595,6 +2596,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 <script src="js/ganaderia/hoteleria.js"></script>
 <script src="js/ganaderia/alimentacion.js"></script>
 <script src="js/agricultura/trabajos.js"></script>
+<script src="js/agricultura/reporte_trabajos.js"></script>
 <script src="js/agricultura/tabla-precios.js"></script>
 <script src="js/agricultura/agro-dashboard.js"></script>
 <script src="js/agricultura/lotes.js"></script>
