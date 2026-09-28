@@ -332,6 +332,8 @@ function renderBoletas() {
     const cr = document.getElementById('bol-resumen-rubro');
     if (cr) cr.innerHTML = '<p style="font-size:13px;color:var(--texto-suave)">Sin datos.</p>';
     document.getElementById('bol-paginador').innerHTML = '';
+    const footEl = document.getElementById('tabla-boletas-foot');
+    if (footEl) footEl.innerHTML = '';
     return;
   }
 
@@ -422,6 +424,25 @@ function renderBoletas() {
       <td style="white-space:nowrap">${r.archivo_url ? `<a class="btn btn-secondary" style="padding:4px 8px;font-size:12px;text-decoration:none" href="${r.archivo_url}" target="_blank" rel="noopener" title="Ver documento">👁️</a> ` : ''}<button class="btn btn-secondary" style="padding:4px 8px;font-size:12px" onclick="borrarBoleta('${r.id}')">🗑️</button></td>
     </tr>`;
   }).join('');
+
+  // ── Fila de totales filtrados ──────────────────────────────
+  const foot = document.getElementById('tabla-boletas-foot');
+  if (foot) {
+    const totCant  = rowsTabla.reduce((s, r) => { try { return s + (JSON.parse(r.observaciones || '{}').cantidad || 0); } catch(e) { return s; } }, 0);
+    const totTotal = rowsTabla.reduce((s, r) => s + (r.monto || 0), 0);
+    const checkPad = bolCalcState.active ? '<td></td>' : '';
+    const nCols = 18 + (bolCalcState.active ? 1 : 0);
+    const labelCols = nCols - 2; // columnas vacías antes de Cant. y Total
+    // columnas vacías: checkTd(0-1) + Fecha + N°Fact + Firma + Proveedor + Rubro + Descripción = 7 fijas antes de Cant.
+    foot.innerHTML = `<tr style="background:var(--bordo-claro);font-weight:700;border-top:2px solid var(--bordo-suave);font-size:13px">
+      ${checkPad}
+      <td colspan="6" style="color:var(--texto-suave);font-size:12px;padding:8px 10px">Totales filtrados · ${rowsTabla.length} ítem${rowsTabla.length !== 1 ? 's' : ''}</td>
+      <td style="padding:8px 6px">${totCant ? fmtNum(totCant, 2) : '—'}</td>
+      <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+      <td style="padding:8px 6px">${fmtMonto(totTotal, 'ARS')}</td>
+      <td></td><td></td><td></td>
+    </tr>`;
+  }
 }
 
 async function patchObsBoleta(id, cambios) {
