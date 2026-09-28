@@ -906,9 +906,9 @@ function renderTabAnimales(rodeoId, animales) {
             const diasR = Math.floor((fParto - hoyCard) / 86400000);
             const fmtFP = d => { const dd=String(d.getDate()).padStart(2,'0'),mm=String(d.getMonth()+1).padStart(2,'0'),aa=String(d.getFullYear()).slice(-2); return `${dd}/${mm}/${aa}`; };
             fppHtml = `<div style="margin-top:6px;text-align:center">
-              <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px">Parto probable</div>
-              <div style="font-size:14px;font-weight:700;color:#1a7a3a">${fmtFP(fParto)}</div>
-              <div style="font-size:11px;color:#555">${diasG} días gest. · ${diasR > 0 ? diasR + ' días' : '¡Vencida!'}</div>
+              <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px">Parto probable</div>
+              <div style="font-size:16px;font-weight:700;color:#1a7a3a">${fmtFP(fParto)}</div>
+              <div style="font-size:13px;color:#555">${diasG} días gest. · ${diasR > 0 ? diasR + ' días' : '¡Vencida!'}</div>
             </div>`;
           }
 
@@ -931,9 +931,9 @@ function renderTabAnimales(rodeoId, animales) {
               if (d > 0) gdpCard = (ultPesCard.peso_kg / d).toFixed(2) + ' kg/día';
             }
             return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:110px">
-              ${diasEdad != null ? `<div style="text-align:center"><div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px">Edad</div><div style="font-size:15px;font-weight:800;color:var(--cielo)">${diasEdad} d <span style="font-size:12px;font-weight:500">(${mesesEdad}m)</span></div></div>` : ''}
-              <div style="text-align:center"><div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px">Último peso</div><div style="font-size:18px;font-weight:800;color:var(--verde)">${ultPesCard.peso_kg} kg</div></div>
-              <div style="text-align:center"><div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px">GDP</div><div style="font-size:13px;font-weight:700;color:var(--tierra)">${gdpCard}</div></div>
+              ${diasEdad != null ? `<div style="text-align:center"><div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px">Edad</div><div style="font-size:17px;font-weight:800;color:var(--cielo)">${diasEdad} d <span style="font-size:14px;font-weight:500">(${mesesEdad}m)</span></div></div>` : ''}
+              <div style="text-align:center"><div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px">Último peso</div><div style="font-size:20px;font-weight:800;color:var(--verde)">${ultPesCard.peso_kg} kg</div></div>
+              <div style="text-align:center"><div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px">GDP</div><div style="font-size:15px;font-weight:700;color:var(--tierra)">${gdpCard}</div></div>
             </div>`;
           })();
 
@@ -969,19 +969,19 @@ function renderTabAnimales(rodeoId, animales) {
               <div style="flex:1;min-width:0">
                 <div style="width:7px;height:7px;background:rgba(0,0,0,0.2);border-radius:50%;margin:0 auto 5px;border:1px solid ${borderCard}"></div>
                 <div style="text-align:center;margin-bottom:6px">
-                  <span style="background:${bgMain};color:#fff;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700">${a.categoria || a.sexo || '—'}</span>
+                  <span style="background:${bgMain};color:#fff;border-radius:20px;padding:2px 10px;font-size:13px;font-weight:700">${a.categoria || a.sexo || '—'}</span>
                 </div>
                 <div style="font-size:22px;font-weight:800;color:${bgMain};margin-bottom:3px;text-align:center">#${caravanaDisplay(a)}</div>
-                ${a.caravana_interna && a.caravana_electronica ? `<div style="font-size:11px;color:var(--texto-suave);text-align:center">E: ${a.caravana_electronica}</div>` : ''}
-                <div style="font-size:12px;color:var(--texto-suave);text-align:center">${a.raza || ''}</div>
-                ${a.caravana_madre ? `<div style="font-size:11px;color:var(--texto-suave);margin-top:3px;text-align:center">Madre: ${a.caravana_madre}</div>` : ''}
-                ${a.renspa_id ? `<div style="font-size:11px;color:var(--cielo);margin-top:3px;text-align:center">🏷️ ${renspaLabel(a.renspa_id) || ''}</div>` : ''}
-                ${crias ? `<div style="font-size:11px;color:var(--verde);margin-top:3px;text-align:center">🐣 ${crias} cría${crias !== 1 ? 's' : ''}</div>` : ''}
+                ${a.caravana_interna && a.caravana_electronica ? `<div style="font-size:13px;color:var(--texto-suave);text-align:center">E: ${a.caravana_electronica}</div>` : ''}
+                <div style="font-size:14px;color:var(--texto-suave);text-align:center">${a.raza || ''}</div>
+                ${a.caravana_madre ? `<div style="font-size:13px;color:var(--texto-suave);margin-top:3px;text-align:center">Madre: ${a.caravana_madre}</div>` : ''}
+                ${a.renspa_id ? `<div style="font-size:13px;color:var(--cielo);margin-top:3px;text-align:center">🏷️ ${renspaLabel(a.renspa_id) || ''}</div>` : ''}
+                ${crias ? `<div style="font-size:13px;color:var(--verde);margin-top:3px;text-align:center">🐣 ${crias} cría${crias !== 1 ? 's' : ''}</div>` : ''}
               </div>
               <!-- datos reproductivos / peso -->
               <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;flex:1;text-align:center">
-                ${esHembraCard && resUlt ? `<div style="background:${bgReprod};color:${colReprod};border-radius:8px;padding:6px 10px;font-size:15px;font-weight:800;width:100%">${estadoReprod}</div>` : ''}
-                ${esHembraCard && estadoFisio ? `<div style="background:${bgFisio};color:${colFisio};border-radius:8px;padding:5px 10px;font-size:13px;font-weight:700;width:100%">${estadoFisio}</div>` : ''}
+                ${esHembraCard && resUlt ? `<div style="background:${bgReprod};color:${colReprod};border-radius:8px;padding:6px 10px;font-size:17px;font-weight:800;width:100%">${estadoReprod}</div>` : ''}
+                ${esHembraCard && estadoFisio ? `<div style="background:${bgFisio};color:${colFisio};border-radius:8px;padding:5px 10px;font-size:15px;font-weight:700;width:100%">${estadoFisio}</div>` : ''}
                 ${fppHtml}
                 ${pesadasCardHtml}
               </div>
