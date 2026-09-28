@@ -17,8 +17,8 @@ let paginaManga = 1;
 let statFiltroActivo = null;
 
 const CATS_MACHO = ['Ternero', 'Novillito', 'Novillo', 'Torito', 'Toro'];
-const CATS_HEMBRA = ['Ternera', 'Vaquillona', 'Vaca', 'Vaca Preñada'];
-const esVaca = a => a.categoria === 'Vaca' || a.categoria === 'Vaca Preñada';
+const CATS_HEMBRA = ['Ternera', 'Vaquillona', 'Vaca'];
+const esVaca = a => a.categoria === 'Vaca';
 
 function caravanaDisplay(a) {
   return a.caravana_interna || a.caravana_electronica || 'S/N';
@@ -171,7 +171,7 @@ function renderEstadisticasManga() {
   const porCat = {};
   animalesRodeo.forEach(a => { porCat[a.categoria] = (porCat[a.categoria] || 0) + 1; });
 
-  const vacasPreñadas = animalesRodeo.filter(a => esVaca(a) && (ultimoSrvPorAnimal[a.id]?.resultado === 'Preñada' || a.categoria === 'Vaca Preñada')).length;
+  const vacasPreñadas = animalesRodeo.filter(a => esVaca(a) && ultimoSrvPorAnimal[a.id]?.resultado === 'Preñada').length;
   const vacasVacias = animalesRodeo.filter(a => esVaca(a) && ultimoSrvPorAnimal[a.id]?.resultado === 'Vacía').length;
 
   // Sub-texto RENSPA para un grupo de animales
@@ -190,8 +190,8 @@ function renderEstadisticasManga() {
   const tieneCria = id => animalesRodeo.some(x => x.caravana_madre && (x.caravana_madre === animalesRodeo.find(a=>a.id===id)?.caravana_interna || x.caravana_madre === animalesRodeo.find(a=>a.id===id)?.caravana_electronica));
 
   const ORDEN_CATS = [
-    { label: 'Vacas preñadas',    filtro: a => esVaca(a) && (ultimoSrvPorAnimal[a.id]?.resultado === 'Preñada' || a.categoria === 'Vaca Preñada'), color: 'verde' },
-    { label: 'Vacas vacías',      filtro: a => esVaca(a) && ultimoSrvPorAnimal[a.id]?.resultado !== 'Preñada' && a.categoria !== 'Vaca Preñada', color: 'rojo' },
+    { label: 'Vacas preñadas',    filtro: a => esVaca(a) && ultimoSrvPorAnimal[a.id]?.resultado === 'Preñada', color: 'verde' },
+    { label: 'Vacas vacías',      filtro: a => esVaca(a) && ultimoSrvPorAnimal[a.id]?.resultado !== 'Preñada', color: 'rojo' },
     { label: 'Vacas en lactancia',filtro: a => esVaca(a) && tieneCria(a.id), color: 'cielo' },
     { label: 'Vaquillonas', filtro: a => a.categoria === 'Vaquillona', color: 'tierra' },
     { label: 'Terneras', filtro: a => a.categoria === 'Ternera', color: 'verde' },
@@ -243,8 +243,8 @@ function renderListaStatAnimales(label, ultimoSrvPorAnimal) {
 
   const FILTROS = {
     'total': a => true,
-    'Vacas preñadas': a => esVaca(a) && (ultimoSrvPorAnimal[a.id]?.resultado === 'Preñada' || a.categoria === 'Vaca Preñada'),
-    'Vacas vacías': a => esVaca(a) && ultimoSrvPorAnimal[a.id]?.resultado !== 'Preñada' && a.categoria !== 'Vaca Preñada',
+    'Vacas preñadas': a => esVaca(a) && ultimoSrvPorAnimal[a.id]?.resultado === 'Preñada',
+    'Vacas vacías': a => esVaca(a) && ultimoSrvPorAnimal[a.id]?.resultado !== 'Preñada',
     'Vacas en lactancia': a => esVaca(a) && animalesRodeo.some(x => x.caravana_madre && (x.caravana_madre === a.caravana_interna || x.caravana_madre === a.caravana_electronica)),
     'Vaquillonas': a => a.categoria === 'Vaquillona',
     'Terneras': a => a.categoria === 'Ternera',
@@ -327,9 +327,21 @@ function renderRodeosManga() {
       animalesDelRodeo.forEach(a => { if (a.categoria) cats[a.categoria] = (cats[a.categoria] || 0) + 1; });
       const catHtml = Object.entries(cats).length
         ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
-            ${Object.entries(cats).map(([cat, n]) => `<span style="font-size:11px;color:var(--texto-suave);background:var(--gris-fondo);border-radius:4px;padding:1px 6px">${cat}: <strong>${n}</strong></span>`).join('')}
+            ${Object.entries(cats).map(([cat, n]) => `<span style="font-size:13px;color:var(--texto-suave);background:var(--gris-fondo);border-radius:4px;padding:2px 8px">${cat}: <strong style="font-size:15px;color:var(--texto)">${n}</strong></span>`).join('')}
            </div>`
         : '';
+
+      // Renglón de parición — solo si hay vacas con servicio Preñada en este rodeo
+      const idsRodeo = new Set(animalesDelRodeo.filter(a => esVaca(a)).map(a => a.id));
+      const srvsPrenadasRodeo = serviciosAnimal.filter(s => idsRodeo.has(s.animal_id) && s.resultado === 'Preñada');
+      let paricionHtml = '';
+      if (srvsPrenadasRodeo.length) {
+        const parieron = srvsPrenadasRodeo.filter(s => s.fecha_parto).length;
+        const faltan   = srvsPrenadasRodeo.filter(s => !s.fecha_parto).length;
+        paricionHtml = `<div style="font-size:12px;margin-top:6px;color:var(--texto-suave);border-top:1px solid var(--gris-borde);padding-top:6px">
+          🐄 Parición: <strong style="color:#1a7a3a">${parieron} parieron</strong> · <strong style="color:#7a5a00">${faltan} faltan parir</strong>
+        </div>`;
+      }
 
       return `<div onclick="seleccionarRodeoManga('${r.id}')" style="cursor:pointer;background:var(--fondo);border:2px solid ${sel ? 'var(--bordo)' : 'var(--gris-borde)'};border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:4px;box-shadow:${sel ? '0 2px 8px rgba(128,0,32,0.15)' : '0 1px 3px rgba(0,0,0,0.05)'}">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
@@ -343,6 +355,7 @@ function renderRodeosManga() {
           <span style="color:var(--texto-suave)">${nNov} novedad${nNov !== 1 ? 'es' : ''}</span>
         </div>
         ${catHtml}
+        ${paricionHtml}
       </div>`;
     }).join('');
   }
@@ -623,7 +636,7 @@ function renderIndicesCrecimiento(rodeoId, novFilt, campSelec) {
   const efVaca = pesoDestete && man.peso_promedio_vaca ? ((parseFloat(pesoDestete) / man.peso_promedio_vaca) * 100).toFixed(1) : null;
 
   // Muertes de vientres
-  const muertesVientres = novFilt.filter(n => n.tipo === 'Muerte' && (n.categoria === 'Vaca' || n.categoria === 'Vaca Preñada' || n.categoria === 'Vientres')).reduce((s,n) => s+(n.cantidad||1), 0);
+  const muertesVientres = novFilt.filter(n => n.tipo === 'Muerte' && (n.categoria === 'Vaca' || n.categoria === 'Vientres')).reduce((s,n) => s+(n.cantidad||1), 0);
   const pctMortVientres = nVacas ? (muertesVientres / nVacas * 100).toFixed(1) : null;
 
   function ref(ok, text) {
@@ -855,7 +868,7 @@ function renderTabAnimales(rodeoId, animales) {
           const esHembraCard = a.sexo === 'Hembra';
 
           // Estado reproductivo — si ya parió (tiene crías), pasa a Vacía sin importar el resultado del último servicio
-          const resUltSrv = ultimoSrv?.resultado || (a.categoria === 'Vaca Preñada' ? 'Preñada' : '');
+          const resUltSrv = ultimoSrv?.resultado || '';
           const resUlt = crias > 0 ? 'Vacía' : resUltSrv;
           const estadoReprod = resUlt || (esHembraCard ? 'Sin datos' : '');
           const colReprod = resUlt === 'Preñada' ? '#1a7a3a' : resUlt === 'Vacía' ? '#b32b2b' : resUlt === 'Pendiente' ? '#7a5a00' : resUlt === 'Abortó' ? '#7a2020' : '#666';
