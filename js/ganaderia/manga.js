@@ -785,6 +785,14 @@ function filtrarAnimales(rodeoId) {
   renderDetalleManga();
 }
 
+function estadoReprodAnimal(animalId) {
+  const srvs = serviciosAnimal.filter(s => s.animal_id === animalId);
+  if (!srvs.length) return 'Sin registro';
+  const ultimo = srvs.sort((a, b) => new Date(b.fecha) - new Date(a.fecha))[0];
+  if (ultimo.resultado === 'Preñada' && ultimo.fecha_parto) return 'Vacía';
+  return ultimo.resultado || 'Sin registro';
+}
+
 function renderTabAnimales(rodeoId, animales) {
   const cardStyle = 'border:1.5px solid #ccc;border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .15s,border-color .15s';
 
@@ -804,8 +812,7 @@ function renderTabAnimales(rodeoId, animales) {
   if (fSexo) animalesFiltrados = animalesFiltrados.filter(a => a.sexo === fSexo);
   if (fCat) animalesFiltrados = animalesFiltrados.filter(a => a.categoria === fCat);
   if (fRep) animalesFiltrados = animalesFiltrados.filter(a => {
-    const ultimo = serviciosAnimal.filter(s => s.animal_id === a.id).sort((x,y) => new Date(y.fecha)-new Date(x.fecha))[0];
-    return (ultimo?.resultado || 'Sin registro') === fRep;
+    return estadoReprodAnimal(a.id) === fRep;
   });
   if (fFechaDesde) animalesFiltrados = animalesFiltrados.filter(a => a.fecha_nacimiento >= fFechaDesde);
   if (fFechaHasta) animalesFiltrados = animalesFiltrados.filter(a => a.fecha_nacimiento <= fFechaHasta);
@@ -876,9 +883,8 @@ function renderTabAnimales(rodeoId, animales) {
           const crias = _ref ? animalesRodeo.filter(x => x.caravana_madre === _ref).length : 0;
           const esHembraCard = a.sexo === 'Hembra';
 
-          // Estado reproductivo — si ya parió (tiene crías), pasa a Vacía sin importar el resultado del último servicio
-          const resUltSrv = ultimoSrv?.resultado || '';
-          const resUlt = crias > 0 ? 'Vacía' : resUltSrv;
+          // Estado reproductivo basado en último servicio; Preñada con fecha_parto ya registrada → Vacía
+          const resUlt = estadoReprodAnimal(a.id);
           const estadoReprod = resUlt || (esHembraCard ? 'Sin datos' : '');
           const colReprod = resUlt === 'Preñada' ? '#1a7a3a' : resUlt === 'Vacía' ? '#b32b2b' : resUlt === 'Pendiente' ? '#7a5a00' : resUlt === 'Abortó' ? '#7a2020' : '#666';
           const bgReprod  = resUlt === 'Preñada' ? '#d4edda' : resUlt === 'Vacía' ? '#fce8e8' : resUlt === 'Pendiente' ? '#fff3cd' : resUlt === 'Abortó' ? '#fce8e8' : '#f0f0f0';
