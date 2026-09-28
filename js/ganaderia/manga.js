@@ -821,7 +821,10 @@ function renderTabAnimales(rodeoId, animales) {
   const cats = [...new Set(animales.map(a => a.categoria).filter(Boolean))].sort();
 
   return `<div class="card-body" style="padding-top:12px">
-    <button class="btn btn-secondary" style="font-size:12px;margin-bottom:12px" onclick="toggleFormAnimalManga('${rodeoId}')">+ Agregar animal</button>
+    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+      <button class="btn btn-secondary" style="font-size:12px" onclick="toggleFormAnimalManga('${rodeoId}')">+ Agregar animal</button>
+      <button class="btn btn-secondary" style="font-size:12px" onclick="abrirModalReporteAnimales('${rodeoId}')">📄 Reporte</button>
+    </div>
     <div id="form-animal-${rodeoId}" style="display:none;background:var(--fondo);border-radius:8px;padding:12px;margin-bottom:16px">
       <div class="form-grid">
         <div class="form-group"><label>Caravana interna</label><input type="text" id="an-caravana-interna" placeholder="Ej: 12"></div>
