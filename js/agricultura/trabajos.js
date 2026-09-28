@@ -1504,7 +1504,7 @@ function renderTrabajos() {
       // Para selects: comparación exacta; para texto: includes
       const col = TRAB_COLS_ALL.find(c => c.key === k);
       if (col?.filterType === 'select') {
-        if (v !== q) return false;
+        if (v.toLowerCase() !== q) return false;
       } else {
         if (!v.toLowerCase().includes(q)) return false;
       }
