@@ -2101,6 +2101,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
               <button class="btn btn-primary" onclick="toggleForm('form-chr')">+ Cargar cheque</button>
               <button class="btn btn-secondary" onclick="activarSuma('recibido')" id="btn-suma-chr">➕ Sumar</button>
               <button class="btn btn-secondary" onclick="exportarCheques('recibido')">⬇ Excel</button>
+              <button class="btn btn-secondary" onclick="generarReporteCheques('recibido','pdf')">📄 PDF</button>
             </div>
           </div>
           <div id="form-chr" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
@@ -2211,6 +2212,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
               <button class="btn btn-primary" onclick="toggleForm('form-che')">+ Cargar cheque</button>
               <button class="btn btn-secondary" onclick="activarSuma('emitido')" id="btn-suma-che">➕ Sumar</button>
               <button class="btn btn-secondary" onclick="exportarCheques('emitido')">⬇ Excel</button>
+              <button class="btn btn-secondary" onclick="generarReporteCheques('emitido','pdf')">📄 PDF</button>
             </div>
           </div>
           <div id="form-che" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
@@ -2617,6 +2619,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 <script src="js/contabilidad/facturas-emitidas.js"></script>
 <script src="js/contabilidad/notas.js"></script>
 <script src="js/contabilidad/cheques.js"></script>
+<script src="js/contabilidad/reporte_cheques.js"></script>
 <script src="js/contabilidad/balance.js"></script>
 <script src="js/mercado/precios.js"></script>
 <script src="js/importar.js"></script>
