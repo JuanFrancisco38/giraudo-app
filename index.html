@@ -1156,6 +1156,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             <input type="text" id="liqgr-filtro-busca" placeholder="🔎 Buscar..." oninput="filtrarLiqGrReset()" style="padding:4px 8px;border:1px solid var(--gris-borde);border-radius:6px;font-size:12px;width:160px">
             <button class="btn btn-primary" onclick="toggleForm('form-liqgr')">+ Registrar</button>
             <button class="btn btn-secondary" onclick="exportarLiqGranos()">⬇ Excel</button>
+            <button class="btn btn-secondary" onclick="generarReporteLiqGranos('pdf')">📄 PDF</button>
           </div>
         </div>
         <div id="form-liqgr" style="display:none;padding:18px;border-top:1px solid var(--gris-borde)">
@@ -1726,6 +1727,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
             <button class="btn btn-secondary" style="font-size:12px" onclick="activarCalcBoleta()">🧮 Calculadora</button>
             <button class="btn btn-primary" onclick="abrirFormBoleta()">+ Cargar boleta</button>
             <button class="btn btn-secondary" onclick="exportarBoletas()">⬇ Excel</button>
+            <button class="btn btn-secondary" onclick="generarReporteBoletas('pdf')">📄 PDF</button>
           </div>
         </div>
 
@@ -2604,9 +2606,11 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 <script src="js/maquinaria.js"></script>
 <script src="js/contabilidad/liq-hacienda.js"></script>
 <script src="js/contabilidad/liq-granos.js"></script>
+<script src="js/contabilidad/reporte_liq_granos.js"></script>
 <script src="js/contabilidad/resumen-granos.js"></script>
 <script src="js/contabilidad/movimientos.js"></script>
 <script src="js/contabilidad/boletas.js"></script>
+<script src="js/contabilidad/reporte_boletas.js"></script>
 <script src="js/contabilidad/proyecciones.js"></script>
 <script src="js/contabilidad/creditos.js"></script>
 <script src="js/ganaderia/indices-repro.js"></script>
