@@ -130,7 +130,8 @@ function showSection(id, el) {
     mantenimiento:'Mantenimiento', precios:'Precios relativos',
     boletas:'Facturas recibidas', facturas_emitidas:'Facturas emitidas',
     notas_credito:'Notas de crédito', notas_debito:'Notas de débito', movimientos:'Movimientos',
-    retenciones:'Retenciones', balance:'Balance mensual', cheques:'Cheques', sueldos:'Sueldos'
+    retenciones:'Retenciones', balance:'Balance mensual', cheques:'Cheques', sueldos:'Sueldos',
+    lluvias:'Lluvias'
   };
   if (id === 'sueldos') sueldosInit();
   if (id === 'boletas') cargarBoletas();
@@ -153,6 +154,7 @@ function showSection(id, el) {
   if (id === 'liq_hacienda') cargarLiqHacienda();
   if (id === 'cheques') cargarTodosCheques();
   if (id === 'dashboard') cargarDashboard();
+  if (id === 'lluvias') cargarLluvias();
   document.getElementById('topbar-title').textContent = titles[id] || id;
   closeSidebar();
 }

@@ -203,6 +203,11 @@ tr:hover td{background:var(--gris)}
     <div class="nav-item" onclick="showSection('indices-repro',this)">📋 Índices reproductivos</div>
   </div>
 
+  <div class="sidebar-section" onclick="toggleNav(this)">Clima <span class="nav-chevron">▾</span></div>
+  <div class="sidebar-group">
+    <div class="nav-item" onclick="showSection('lluvias',this)">🌧️ Lluvias</div>
+  </div>
+
   <div class="sidebar-footer">
     <div style="font-weight:600;margin-bottom:2px">Francisco Giraudo</div>
     <div style="opacity:0.6">Administrador</div>
@@ -2581,6 +2586,113 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
       </div>
     </div>
 
+    <!-- LLUVIAS -->
+    <div id="section-lluvias" class="section">
+      <div class="page-header">
+        <h2>🌧️ Lluvias</h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary" style="font-size:12px" onclick="generarReporteLluvias()">📄 PDF</button>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+          <div class="form-group" style="margin:0;min-width:160px">
+            <label>Campaña</label>
+            <select id="lluvia-f-camp" onchange="aplicarFiltrosLluvias()">
+              <option value="">Todas</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;min-width:200px">
+            <label>Campo</label>
+            <select id="lluvia-f-campo" onchange="aplicarFiltrosLluvias()">
+              <option value="">Todos</option>
+              <option>Doña Vica</option>
+              <option>Sant-Yago</option>
+              <option>Don Alfredo (Azcona)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Carga rápida -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-header">Registrar lluvia</div>
+        <div class="card-body">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+            <div class="form-group" style="margin:0;min-width:140px">
+              <label>Fecha</label>
+              <input type="date" id="lluvia-fecha">
+            </div>
+            <div class="form-group" style="margin:0;min-width:200px">
+              <label>Campo</label>
+              <select id="lluvia-campo">
+                <option>Doña Vica</option>
+                <option>Sant-Yago</option>
+                <option>Don Alfredo (Azcona)</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;min-width:100px">
+              <label>mm</label>
+              <input type="number" id="lluvia-mm" min="0" step="0.1" placeholder="0.0">
+            </div>
+            <div class="form-group" style="margin:0;min-width:200px;flex:1">
+              <label>Observación (opcional)</label>
+              <input type="text" id="lluvia-obs" placeholder="granizo, llovizna…">
+            </div>
+            <button class="btn btn-primary" onclick="guardarLluvia()">Guardar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Totales campaña -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-header">Totales campaña</div>
+        <div class="card-body" id="lluvia-totales">
+          <div class="empty-state"><div class="icon">🌧️</div><h3>Sin datos</h3></div>
+        </div>
+      </div>
+
+      <!-- Panorama mensual -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-header">Panorama mensual</div>
+        <div class="card-body" style="overflow-x:auto" id="lluvia-calendario">
+          <div class="empty-state"><div class="icon">📅</div><h3>Sin datos</h3></div>
+        </div>
+      </div>
+
+      <!-- Tabla de registros -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-header">Registros</div>
+        <div style="overflow-x:auto">
+          <table class="tabla-datos">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Campo</th>
+                <th>mm</th>
+                <th>Campaña</th>
+                <th>Observación</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="lluvia-tabla-body">
+              <tr><td colspan="6"><div class="empty-state"><div class="icon">🌧️</div><h3>Sin registros</h3></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Comparación entre campañas -->
+      <div class="card">
+        <div class="card-header">Comparación entre campañas</div>
+        <div class="card-body" style="overflow-x:auto" id="lluvia-comparacion">
+          <div class="empty-state"><div class="icon">📊</div><h3>Sin datos</h3></div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </main>
 </div>
@@ -2625,6 +2737,8 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 <script src="js/importar.js"></script>
 <script src="js/consultas-ia.js"></script>
 <script src="js/dashboard.js"></script>
+<script src="js/clima/lluvias.js"></script>
+<script src="js/clima/reporte_lluvias.js"></script>
 
 <!-- Modal Cargar Trabajo -->
 <div id="modal-trabajo-overlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:9998" onclick="cerrarModalTrabajo()"></div>
