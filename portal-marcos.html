@@ -131,7 +131,10 @@
 <script src="js/clima/lluvias.js"></script>
 <script src="js/clima/reporte_lluvias.js"></script>
 <script>
-  document.addEventListener('DOMContentLoaded', () => { cargarLluvias(); });
+  document.addEventListener('DOMContentLoaded', () => {
+    cargarLluvias();
+    document.getElementById('lluvia-campo').value = 'Don Alfredo (Azcona)';
+  });
 </script>
 </body>
 </html>
