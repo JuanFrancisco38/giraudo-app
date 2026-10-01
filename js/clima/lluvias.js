@@ -26,7 +26,7 @@ function _lluviasGetFiltered() {
 }
 
 async function cargarLluvias() {
-  const data = await sb('GET', 'lluvias', null, 'order=fecha.desc');
+  const data = await sb('GET', 'lluvias', null, '?order=fecha.desc');
   lluviasTodas = data || [];
   renderLluvias();
 }
@@ -208,7 +208,7 @@ function _renderTablaRegistros() {
 
 async function eliminarLluvia(id) {
   if (!confirm('¿Eliminar este registro?')) return;
-  await sb('DELETE', 'lluvias', null, `id=eq.${id}`);
+  await sb('DELETE', 'lluvias', null, `?id=eq.${id}`);
   lluviasTodas = lluviasTodas.filter(r => r.id !== id);
   toast('Registro eliminado', 'var(--tierra)');
   renderLluvias();
