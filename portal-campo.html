@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grupo Giraudo — Lluvias</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    /* En pantallas angostas, apilar el formulario de carga en columna */
+    @media (max-width: 600px) {
+      .carga-form { flex-direction: column !important; }
+      .carga-form .form-group { min-width: 0 !important; width: 100% !important; }
+      .carga-form button { width: 100%; }
+      .tabla-datos { font-size: 12px; }
+      .tabla-datos td, .tabla-datos th { padding: 6px 8px !important; }
+    }
+  </style>
+</head>
+<body>
+
+<header style="background:var(--bordo);color:white;padding:16px 20px;display:flex;align-items:center;justify-content:space-between">
+  <h1 style="font-size:18px;margin:0">🌧️ Grupo Giraudo — Lluvias</h1>
+  <span style="font-size:13px;opacity:.75">Juan Wilhelm</span>
+</header>
+
+<main style="padding:16px;max-width:900px;margin:0 auto">
+
+  <!-- Filtros -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+      <div class="form-group" style="margin:0;min-width:160px">
+        <label>Campaña</label>
+        <select id="lluvia-f-camp" onchange="aplicarFiltrosLluvias()">
+          <option value="">Todas</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0;min-width:200px">
+        <label>Campo</label>
+        <select id="lluvia-f-campo" onchange="aplicarFiltrosLluvias()">
+          <option value="">Todos</option>
+          <option>Doña Vica</option>
+          <option>Sant-Yago</option>
+          <option>Don Alfredo (Azcona)</option>
+        </select>
+      </div>
+      <button class="btn btn-secondary" style="font-size:12px" onclick="generarReporteLluvias()">📄 PDF</button>
+    </div>
+  </div>
+
+  <!-- Carga rápida -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-header">Registrar lluvia</div>
+    <div class="card-body">
+      <div class="carga-form" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+        <div class="form-group" style="margin:0;min-width:140px">
+          <label>Fecha</label>
+          <input type="date" id="lluvia-fecha">
+        </div>
+        <div class="form-group" style="margin:0;min-width:200px">
+          <label>Campo</label>
+          <select id="lluvia-campo">
+            <option>Doña Vica</option>
+            <option>Sant-Yago</option>
+            <option>Don Alfredo (Azcona)</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;min-width:100px">
+          <label>mm</label>
+          <input type="number" id="lluvia-mm" min="0" step="0.1" placeholder="0.0">
+        </div>
+        <div class="form-group" style="margin:0;min-width:200px;flex:1">
+          <label>Observación (opcional)</label>
+          <input type="text" id="lluvia-obs" placeholder="granizo, llovizna…">
+        </div>
+        <button class="btn btn-primary" onclick="guardarLluvia()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Totales campaña -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-header">Totales campaña</div>
+    <div class="card-body" id="lluvia-totales">
+      <div class="empty-state"><div class="icon">🌧️</div><h3>Sin datos</h3></div>
+    </div>
+  </div>
+
+  <!-- Panorama mensual -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-header">Panorama mensual</div>
+    <div class="card-body" style="overflow-x:auto" id="lluvia-calendario">
+      <div class="empty-state"><div class="icon">📅</div><h3>Sin datos</h3></div>
+    </div>
+  </div>
+
+  <!-- Tabla de registros -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-header">Registros</div>
+    <div style="overflow-x:auto">
+      <table class="tabla-datos">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Campo</th>
+            <th>mm</th>
+            <th>Campaña</th>
+            <th>Observación</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="lluvia-tabla-body">
+          <tr><td colspan="6"><div class="empty-state"><div class="icon">🌧️</div><h3>Sin registros</h3></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Comparación entre campañas -->
+  <div class="card">
+    <div class="card-header">Comparación entre campañas</div>
+    <div class="card-body" style="overflow-x:auto" id="lluvia-comparacion">
+      <div class="empty-state"><div class="icon">📊</div><h3>Sin datos</h3></div>
+    </div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/core.js"></script>
+<script src="js/clima/lluvias.js"></script>
+<script src="js/clima/reporte_lluvias.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => { cargarLluvias(); });
+</script>
+</body>
+</html>
