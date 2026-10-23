@@ -41,4 +41,4 @@ async function cargarDashboard() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', cargarDashboard);
+alIniciarSesion(() => { if (esAdmin()) cargarDashboard(); });

@@ -115,6 +115,11 @@ async function subirArchivo(file) {
 }
 
 function showSection(id, el) {
+  // Guardia de permisos: si el usuario existe y no puede ver la sección, volver al landing
+  if (typeof USUARIO !== 'undefined' && USUARIO && !puedeVer(id)) {
+    showSection(USUARIO.landing, document.querySelector(`.nav-item[onclick*="showSection('${USUARIO.landing}'"]`));
+    return;
+  }
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('section-' + id).classList.add('active');

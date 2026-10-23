@@ -41,6 +41,11 @@ async function cargarLluvias() {
   const hoy = new Date().toISOString().slice(0, 7);
   _calMesAbierto = hoy;
   renderLluvias();
+  // Preseleccionar campo si el usuario tiene campo_default
+  if (typeof USUARIO !== 'undefined' && USUARIO?.campo_default) {
+    const sel = document.getElementById('lluvia-campo');
+    if (sel) sel.value = USUARIO.campo_default;
+  }
 }
 
 function renderLluvias() {

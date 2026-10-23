@@ -34,7 +34,8 @@ async function cargarHoteleria() {
 }
 
 // Carga inicial de hotelería al entrar a la sección
-document.addEventListener('DOMContentLoaded', async () => {
+alIniciarSesion(async () => {
+  if (!esAdmin() && !USUARIO.modulos.includes('ganaderia')) return;
   const existing = await sb('GET', 'hoteleria', '', '?limit=1');
   if (existing && existing.length === 0) {
     await sb('POST', 'hoteleria', {propietario:'Santiagueños',fecha_ingreso:'2026-05-06',categoria:'Vacas',cantidad:9,raza:'Santiagueña',peso_promedio:334,lote:'Corral',observaciones:'Glipondin 4 - 5cc.',activo:true});

@@ -153,6 +153,41 @@ tr:hover td{background:var(--gris)}
 </style>
 </head>
 <body>
+
+<!-- LOGIN OVERLAY — visible por defecto, se oculta al autenticar -->
+<div id="login-overlay" style="position:fixed;inset:0;z-index:99999;background:var(--bordo);display:flex;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:16px;padding:32px 28px;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,0.3)">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-size:36px;margin-bottom:8px">🌾</div>
+      <div style="font-size:20px;font-weight:700;color:var(--bordo)">Grupo Giraudo</div>
+      <div style="font-size:13px;color:var(--texto-suave);margin-top:4px">Sistema de gestión agropecuaria</div>
+    </div>
+    <form onsubmit="event.preventDefault();iniciarSesion(document.getElementById('login-usuario').value,document.getElementById('login-clave').value)">
+      <div style="margin-bottom:14px">
+        <label style="font-size:13px;font-weight:600;color:var(--texto);display:block;margin-bottom:6px">Usuario</label>
+        <input id="login-usuario" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false"
+          style="width:100%;box-sizing:border-box;padding:12px 14px;font-size:16px;border:1.5px solid var(--gris-borde);border-radius:10px;outline:none;font-family:inherit"
+          placeholder="tu usuario">
+      </div>
+      <div style="margin-bottom:20px">
+        <label style="font-size:13px;font-weight:600;color:var(--texto);display:block;margin-bottom:6px">Contraseña</label>
+        <div style="position:relative">
+          <input id="login-clave" type="password" autocomplete="current-password"
+            style="width:100%;box-sizing:border-box;padding:12px 42px 12px 14px;font-size:16px;border:1.5px solid var(--gris-borde);border-radius:10px;outline:none;font-family:inherit"
+            placeholder="••••••••">
+          <button type="button" onclick="const i=document.getElementById('login-clave');i.type=i.type==='password'?'text':'password'"
+            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:var(--texto-suave);padding:4px">👁</button>
+        </div>
+      </div>
+      <div id="login-error" style="font-size:13px;color:var(--rojo);margin-bottom:12px;min-height:18px;text-align:center"></div>
+      <button id="login-btn" type="submit"
+        style="width:100%;padding:14px;background:var(--bordo);color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer">
+        Entrar
+      </button>
+    </form>
+  </div>
+</div>
+
 <div class="app">
 
 <!-- SIDEBAR -->
@@ -2703,6 +2738,7 @@ MAQUINARIA: Cambio aceite y filtros Case Puma 140, 4580 hs, costo $85000. Repara
 <script src="js/exportar.js"></script>
 <script src="js/sueldos.js"></script>
 <script src="js/core.js"></script>
+<script src="js/auth.js"></script>
 <script src="js/ganaderia/animales.js"></script>
 <script src="js/ganaderia/manga.js"></script>
 <script src="js/ganaderia/planillas.js"></script>
