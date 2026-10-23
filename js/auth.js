@@ -31,6 +31,15 @@ function _guardarSesion(data) {
   return s;
 }
 
+// ── Forzar renovación (para que sb() pueda usarla tras un 401) ───────────────
+
+async function forzarRenovacion() {
+  const s = _sesionGuardada();
+  if (!s) return;
+  // Poner expires_at en 0 para que tokenActual() renueve siempre
+  localStorage.setItem(SESION_KEY, JSON.stringify({ ...s, expires_at: 0 }));
+}
+
 // ── Token vigente (renueva si hace falta) ────────────────────────────────────
 
 async function tokenActual() {
@@ -147,7 +156,12 @@ async function _arrancarConSesion(ses, mensajeVencida) {
     { headers: { ...headers, 'Content-Type': 'application/json' } }
   ).then(r => r.ok ? r.json() : null).catch(() => null);
 
-  if (!perm || !perm.length) {
+  if (!perm) {
+    // Error de red: no cerrar sesión, mostrar aviso y dejar el overlay visible
+    _mostrarError('Sin conexión. Revisá la señal y recargá la página.');
+    return;
+  }
+  if (!perm.length) {
     _mostrarError('Tu usuario todavía no tiene permisos asignados. Avisale a Juan.');
     localStorage.removeItem(SESION_KEY);
     return;

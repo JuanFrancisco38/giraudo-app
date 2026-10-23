@@ -2362,7 +2362,7 @@ async function guardarEdicionNovedad() {
   const url = `${SUPABASE_URL}/rest/v1/novedades_ganaderas?id=eq.${id}`;
   const res = await fetch(url, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=representation' },
+    headers: { 'Content-Type': 'application/json', ...(await authHeaders()), 'Prefer': 'return=representation' },
     body: JSON.stringify({ fecha, campania, descripcion: desc, cantidad })
   });
   if (res.ok) {

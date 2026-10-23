@@ -64,21 +64,45 @@ function fmtFecha(f) {
 
 async function sb(method, table, data=null, query='') {
   const url = `${SUPABASE_URL}/rest/v1/${table}${query}`;
-  const opts = {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Prefer': (method === 'POST' || method === 'PATCH') ? 'return=representation' : ''
-    }
+  const _hacer = async () => {
+    const ah = (typeof authHeaders === 'function') ? await authHeaders() : { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
+    const opts = {
+      method,
+      headers: { 'Content-Type': 'application/json', ...ah, 'Prefer': (method === 'POST' || method === 'PATCH') ? 'return=representation' : '' }
+    };
+    if (data) opts.body = JSON.stringify(data);
+    return fetch(url, opts);
   };
-  if (data) opts.body = JSON.stringify(data);
-  const r = await fetch(url, opts);
+
+  let r;
+  try { r = await _hacer(); } catch (_) { return null; } // corte de señal: no cerrar sesión
+
+  if (r.status === 401 && typeof USUARIO !== 'undefined' && USUARIO) {
+    // Token vencido: forzar renovación y reintentar una vez
+    if (typeof forzarRenovacion === 'function') await forzarRenovacion();
+    const token = typeof tokenActual === 'function' ? await tokenActual() : null;
+    if (!token) { _mostrarLoginVencido(); return null; }
+    try { r = await _hacer(); } catch (_) { return null; }
+    if (r.status === 401) { _mostrarLoginVencido(); return null; }
+  }
+
   if (!r.ok) { console.error(await r.text()); return null; }
   if (method === 'DELETE') return true;
   const text = await r.text();
   return text ? JSON.parse(text) : [];
+}
+
+function _mostrarLoginVencido() {
+  if (typeof USUARIO !== 'undefined') {
+    localStorage.removeItem(typeof SESION_KEY !== 'undefined' ? SESION_KEY : 'giraudo_sesion');
+    USUARIO = null;
+  }
+  const ov = document.getElementById('login-overlay');
+  if (ov) {
+    ov.style.display = 'flex';
+    const err = document.getElementById('login-error');
+    if (err) err.textContent = 'Tu sesión venció, entrá de nuevo.';
+  }
 }
 
 const FILAS_POR_PAGINA = 20;
