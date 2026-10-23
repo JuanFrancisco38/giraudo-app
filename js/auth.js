@@ -57,12 +57,20 @@ async function tokenActual() {
       body: JSON.stringify({ refresh_token: s.refresh_token }),
     })
       .then(async r => {
-        if (!r.ok) { localStorage.removeItem(SESION_KEY); return null; }
+        if (r.status === 400 || r.status === 401) {
+          // Refresh token inválido: sesión muerta para siempre
+          localStorage.removeItem(SESION_KEY);
+          return null;
+        }
+        if (!r.ok) {
+          // Error 5xx u otro: problema de red/servidor, conservar la sesión para reintentar
+          return null;
+        }
         const data = await r.json();
         _guardarSesion(data);
         return data.access_token;
       })
-      .catch(() => { localStorage.removeItem(SESION_KEY); return null; })
+      .catch(() => null) // error de red: no borrar sesión
       .finally(() => { _renovando = null; });
   }
   return _renovando;
@@ -72,6 +80,11 @@ async function tokenActual() {
 
 async function authHeaders() {
   const token = await tokenActual();
+  if (!token && typeof USUARIO !== 'undefined' && USUARIO) {
+    // Hay sesión de usuario pero no hay token (corte de red durante renovación)
+    // Devolver null para que sb() corte sin hacer el pedido
+    return null;
+  }
   return {
     apikey: SUPABASE_KEY,
     Authorization: 'Bearer ' + (token || SUPABASE_KEY),
@@ -137,6 +150,13 @@ async function iniciarSesion(usuario, clave) {
   const data = await r.json();
   const ses  = _guardarSesion(data);
   await _arrancarConSesion(ses);
+
+  // Si el overlay sigue visible (sin permisos, error de red, etc.), reactivar el botón
+  const ov = document.getElementById('login-overlay');
+  if (ov && ov.style.display !== 'none') {
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+  }
 }
 
 // ── Cerrar sesión ─────────────────────────────────────────────────────────────

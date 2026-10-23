@@ -66,23 +66,29 @@ async function sb(method, table, data=null, query='') {
   const url = `${SUPABASE_URL}/rest/v1/${table}${query}`;
   const _hacer = async () => {
     const ah = (typeof authHeaders === 'function') ? await authHeaders() : { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
+    if (ah === null) return null; // sin token por corte de red: no hacer el pedido
     const opts = {
       method,
       headers: { 'Content-Type': 'application/json', ...ah, 'Prefer': (method === 'POST' || method === 'PATCH') ? 'return=representation' : '' }
     };
     if (data) opts.body = JSON.stringify(data);
-    return fetch(url, opts);
+    return fetch(url, opts).catch(() => null); // corte de señal: devolver null, no tirar
   };
 
-  let r;
-  try { r = await _hacer(); } catch (_) { return null; } // corte de señal: no cerrar sesión
+  let r = await _hacer();
+  if (r === null) return null; // sin token o sin red
 
   if (r.status === 401 && typeof USUARIO !== 'undefined' && USUARIO) {
     // Token vencido: forzar renovación y reintentar una vez
     if (typeof forzarRenovacion === 'function') await forzarRenovacion();
     const token = typeof tokenActual === 'function' ? await tokenActual() : null;
-    if (!token) { _mostrarLoginVencido(); return null; }
-    try { r = await _hacer(); } catch (_) { return null; }
+    if (!token) {
+      // Sin token después de renovar: puede ser corte de red; no cerrar sesión si la hay guardada
+      if (!_sesionGuardada || !_sesionGuardada()) _mostrarLoginVencido();
+      return null;
+    }
+    r = await _hacer();
+    if (r === null) return null;
     if (r.status === 401) { _mostrarLoginVencido(); return null; }
   }
 
