@@ -53,7 +53,7 @@ Mantenimientos: ${JSON.stringify((mantenimiento||[]).slice(0,10))}`;
   try {
     const res = await fetch('/api/claude', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: await headersClaude(),
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1000,

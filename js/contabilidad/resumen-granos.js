@@ -92,7 +92,7 @@ async function actualizarDolarIA() {
     const hoyStr = new Date().toLocaleDateString('es-AR');
     const res = await fetch('/api/claude', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: await headersClaude(),
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 800,

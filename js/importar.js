@@ -54,7 +54,7 @@ async function importarJornada() {
   const result = document.getElementById('import-result');
   result.style.display = 'block'; result.innerHTML = 'Analizando...';
   try {
-    const res = await fetch('/api/claude', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:2000,system:buildImportSystem(campo,fecha),messages:[{role:'user',content:texto}]})});
+    const res = await fetch('/api/claude', {method:'POST',headers:await headersClaude(),body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:2000,system:buildImportSystem(campo,fecha),messages:[{role:'user',content:texto}]})});
     const json = await res.json();
     let raw = json.content?.[0]?.text || '{}';
     raw = raw.replace(/```json|```/g,'').trim();
@@ -105,7 +105,7 @@ async function importarJornadaImagen() {
       { type: 'image', source: { type: 'base64', media_type: file.type, data: base64 } },
       { type: 'text', text: 'Extraé todos los datos de esta imagen de campo y cargalos.' }
     ];
-    const res = await fetch('/api/claude', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:2000,system:buildImportSystem(campo,fecha),messages:[{role:'user',content}]})});
+    const res = await fetch('/api/claude', {method:'POST',headers:await headersClaude(),body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:2000,system:buildImportSystem(campo,fecha),messages:[{role:'user',content}]})});
     const json = await res.json();
     let raw = json.content?.[0]?.text || '{}';
     raw = raw.replace(/```json|```/g,'').trim();

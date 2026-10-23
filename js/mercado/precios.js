@@ -23,7 +23,7 @@ async function actualizarPreciosIA() {
     const hoyStr = new Date().toLocaleDateString('es-AR');
     const res = await fetch('/api/claude', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: await headersClaude(),
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: 1500,

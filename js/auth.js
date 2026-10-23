@@ -91,6 +91,13 @@ async function authHeaders() {
   };
 }
 
+// ── Headers para /api/claude ─────────────────────────────────────────────────
+
+async function headersClaude() {
+  const token = await tokenActual();
+  return { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) };
+}
+
 // ── Mapa secciones → módulos ──────────────────────────────────────────────────
 
 const SECCION_MODULO = {

@@ -21,7 +21,7 @@ async function extraerDocIA(file, system, instruccion) {
     : { type: 'image', source: { type: 'base64', media_type: file.type, data: base64 } };
   const res = await fetch('/api/claude', {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
+    headers: await headersClaude(),
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
       max_tokens: 1200,
@@ -128,16 +128,13 @@ function htmlPaginador(pagina, totalItems, fnName, perPage = FILAS_POR_PAGINA) {
 
 async function subirArchivo(file) {
   if (!file) return null;
+  const ah = (typeof authHeaders === 'function') ? await authHeaders() : { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
+  if (ah === null) return null;
   const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
   const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const r = await fetch(`${SUPABASE_URL}/storage/v1/object/documentos/${path}`, {
     method: 'POST',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': file.type || 'application/octet-stream',
-      'x-upsert': 'true'
-    },
+    headers: { ...ah, 'Content-Type': file.type || 'application/octet-stream' },
     body: file
   });
   if (!r.ok) { console.error('Storage:', await r.text()); return null; }
@@ -261,23 +258,6 @@ function closeSidebar() {
   document.getElementById('overlay').classList.remove('show');
 }
 
-// Acceso veterinario por link
-(function() {
-  const vet = new URLSearchParams(window.location.search).get('vet');
-  if (vet === 'vetmaxi') {
-    window.addEventListener('DOMContentLoaded', () => {
-      // Ocultar sidebar y topbar, mostrar solo ganadería
-      document.getElementById('sidebar')?.remove();
-      document.getElementById('overlay')?.remove();
-      const topbar = document.getElementById('topbar');
-      if (topbar) {
-        topbar.querySelector('.hamburger')?.remove();
-        document.getElementById('topbar-title').textContent = 'Ganadería — Grupo Giraudo';
-      }
-      showSection('manga', null);
-    });
-  }
-})();
 
 function toast(msg, color='var(--bordo)') {
   const t = document.getElementById('toast');
