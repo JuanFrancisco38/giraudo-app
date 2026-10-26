@@ -12,7 +12,7 @@ async function enviarConsulta() {
   msgs.innerHTML += `<div class="msg msg-user">${pregunta}</div><div class="msg msg-ai" id="msg-loading">⏳ Consultando...</div>`;
   msgs.scrollTop = msgs.scrollHeight;
 
-  const [rodeos, animales, hotel, novedades, pesadas, trabajos, liqGranos, liqHac, maquinaria, mantenimiento, boletas, cheques] = await Promise.all([
+  const [rodeos, animales, hotel, novedades, pesadas, trabajos, liqGranos, liqHac, maquinaria, mantenimiento, boletas, cheques, chequesEm] = await Promise.all([
     sb('GET','rodeos','','?activo=eq.true&order=nombre.asc'),
     sb('GET','animales_rodeo','','?activo=eq.true&order=categoria.asc'),
     sb('GET','hoteleria','','?activo=eq.true'),
@@ -24,7 +24,8 @@ async function enviarConsulta() {
     sb('GET','maquinaria','','?order=nombre.asc'),
     sb('GET','mantenimiento','','?order=fecha.desc&limit=20'),
     sb('GET','boletas','','?order=fecha.desc&limit=20'),
-    sb('GET','cheques_recibidos','','?order=fecha.desc&limit=20'),
+    sb('GET','cheques','','?tipo=eq.recibido&order=fecha_cobro.desc&limit=20'),
+    sb('GET','cheques','','?tipo=eq.emitido&order=fecha_cobro.desc&limit=20'),
   ]);
 
   // Armar resumen de stock por rodeo
@@ -47,6 +48,7 @@ Liquidaciones granos recientes: ${JSON.stringify((liqGranos||[]).slice(0,15))}
 Liquidaciones hacienda recientes: ${JSON.stringify((liqHac||[]).slice(0,10))}
 Facturas recibidas recientes: ${JSON.stringify((boletas||[]).slice(0,10))}
 Cheques recibidos recientes: ${JSON.stringify((cheques||[]).slice(0,10))}
+Cheques emitidos recientes: ${JSON.stringify((chequesEm||[]).slice(0,10))}
 Maquinaria (inventario): ${JSON.stringify(maquinaria||[])}
 Mantenimientos: ${JSON.stringify((mantenimiento||[]).slice(0,10))}`;
 
