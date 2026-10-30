@@ -149,6 +149,37 @@ function ciclosDeAnimal(animalId) {
     criaAsignada.set(cria.id, elegido.i);
   }
 
+  // ── Asignar cría a ciclos con fecha_parto pero sin cria_id ───────────────────
+  // Caso real: parto cargado manualmente sin vincular la cría. Se busca entre
+  // todasCrias la que no esté ya tomada (por cria_id explícito) y cuya
+  // fecha_nacimiento esté a ≤20 días de fecha_parto. Cada cría se usa una sola vez.
+  const criasTomadas = new Set(
+    ciclos.flatMap(c => c.filas.filter(f => f.cria_id).map(f => f.cria_id))
+  );
+  // Mapa cicloIdx → cría vinculada por fecha_parto
+  const criaVinculadaPorFecha = new Map(); // ciclo índice → cria
+  for (let idx = 0; idx < ciclos.length; idx++) {
+    const c = ciclos[idx];
+    const filaConParto = c.filas.find(f => f.fecha_parto);
+    if (!filaConParto || c.filas.some(f => f.cria_id)) continue; // ya tiene cria_id
+    const fParto = fechaLocal(filaConParto.fecha_parto);
+    // Candidatas: no tomadas, con fecha_nacimiento ≤20 días de diferencia
+    let mejor = null, mejorDelta = Infinity;
+    for (const cria of todasCrias) {
+      if (!cria.fecha_nacimiento) continue;
+      if (criasTomadas.has(cria.id)) continue;
+      // Saltar solo si la cría fue inferida para un ciclo DIFERENTE; si fue
+      // inferida para este mismo idx, la inferencia no la usará (fecha_parto está)
+      if (criaAsignada.has(cria.id) && criaAsignada.get(cria.id) !== idx) continue;
+      const delta = Math.abs((fechaLocal(cria.fecha_nacimiento) - fParto) / 86400000);
+      if (delta <= 20 && delta < mejorDelta) { mejor = cria; mejorDelta = delta; }
+    }
+    if (mejor) {
+      criaVinculadaPorFecha.set(idx, mejor);
+      criasTomadas.add(mejor.id);
+    }
+  }
+
   return ciclos.map((c, idx) => {
     const ultimoTacto = c.tactos.length ? c.tactos[c.tactos.length - 1] : null;
     const resultado = ultimoTacto?.resultado || c.srv.resultado || 'Pendiente';
@@ -170,7 +201,10 @@ function ciclosDeAnimal(animalId) {
       if (criaPre) { criaInferida = criaPre; partoInferido = true; }
     }
 
-    const cria = criaById || criaInferida;
+    // Cría vinculada por proximidad de fecha_parto (fecha confirmada, sin cria_id)
+    const criaFecha = (!criaById && !criaInferida) ? (criaVinculadaPorFecha.get(idx) || null) : null;
+
+    const cria = criaById || criaInferida || criaFecha;
     const fechaPartoEfectiva = fechaParto ||
       (partoInferido && cria?.fecha_nacimiento ? cria.fecha_nacimiento : null);
 

@@ -3284,10 +3284,11 @@ function _calcularControles(filtroRodeoId) {
         controles.push({ tipo: 'parto_sin_confirmar', animal, ciclo });
       }
 
-      // Control: parto sin fecha_cierre explícita y sin cría o con cierreInferido.
-      // Cuando cierreInferido=true, ciclos.js pone fase='cerrado', no 'lactancia',
-      // por eso la condición usa estado='parto' + !fechaCierre en vez de fase='lactancia'.
-      if (ciclo.estado === 'parto' && !ciclo.fechaCierre && (!ciclo.cria || ciclo.cierreInferido)) {
+      // Control: parto sin fecha_cierre explícita, sin cría vinculada Y sin ternero
+      // activo al pie, o con cierreInferido (cría ya no al pie).
+      // No avisar si la vaca tiene una cría activa al pie aunque no esté vinculada al ciclo.
+      if (ciclo.estado === 'parto' && !ciclo.fechaCierre &&
+          (ciclo.cierreInferido || (!ciclo.cria && criasLactantes(animal).length === 0))) {
         controles.push({ tipo: 'lactancia_sin_cerrar', animal, ciclo });
       }
 
@@ -3451,7 +3452,7 @@ function _htmlFilaControl(tipo, c, hoy) {
     const partoFecha = c.ciclo.cria?.fecha_nacimiento || '';
     botones = `<button class="btn btn-primary" style="font-size:11px;padding:3px 8px" onclick="_ctrlConfirmarParto('${c.ciclo.srv.id}','${partoFecha}','${criaId}')">Confirmar parto</button>`;
   } else if (tipo === 'lactancia_sin_cerrar') {
-    const motivoLabel = c.ciclo.cierreInferido ? (c.ciclo.motivoCierre || 'Destetada/vendida') : 'Sin cría registrada';
+    const motivoLabel = c.ciclo.cierreInferido ? (c.ciclo.motivoCierre || 'Cría ya no al pie') : 'Sin cría registrada ni al pie';
     const fechaDef = c.ciclo.fechaPartoEfectiva || '';
     info = motivoLabel;
     botones = `
