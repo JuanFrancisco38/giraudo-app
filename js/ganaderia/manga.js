@@ -1652,47 +1652,135 @@ function renderListaTactoNov(rodeoId) {
     lista.innerHTML = '<div style="color:var(--texto-suave);font-size:13px">No hay hembras identificadas en este rodeo. Cargalas primero desde la pestaña Animales.</div>';
     return;
   }
+
+  const rows = hembras.map(a => {
+    const ciclos = ciclosDeAnimal(a.id);
+    const ult = ciclos.length ? ciclos[ciclos.length - 1] : null;
+
+    // Ciclo abierto en gestación (puede haber dos ciclos: uno en lactancia + uno nuevo en gestación)
+    const cicloGest = ciclos.slice().reverse().find(c => c.enGestacion) || null;
+    const cicloLact = ciclos.slice().reverse().find(c => c.fase === 'lactancia') || null;
+
+    let infoCiclo = '—';
+    let srvId = '';
+    let esToroCandidato = false; // animal sin ciclo en gestación: puede marcarse como toro suelto
+
+    if (cicloGest) {
+      const dias = cicloGest.diasGest != null ? ` · ${cicloGest.diasGest}d` : '';
+      const toro = cicloGest.srv.toro ? ` · ${cicloGest.srv.toro}` : '';
+      const res = cicloGest.resultado;
+      infoCiclo = `${fmtFecha(cicloGest.fechaServicio)}${toro}${dias}`;
+      srvId = cicloGest.id;
+    } else {
+      esToroCandidato = true;
+      infoCiclo = cicloLact
+        ? `<span style="color:var(--tierra);font-size:11px">En lactancia</span>`
+        : '<span style="color:var(--texto-suave);font-size:11px">Sin servicio</span>';
+    }
+
+    const criaAlPie = cicloLact?.cria
+      ? ` <span style="font-size:10px;color:var(--tierra)">🐣 cría #${caravanaDisplay(cicloLact.cria)}</span>`
+      : '';
+
+    const optsBase = `<option value="">— Sin cambio —</option>
+      <option value="Preñada">Preñada</option>
+      <option value="Vacía">Vacía</option>
+      <option value="Repetidora">Repetidora</option>`;
+    const optsToro = esToroCandidato
+      ? `<option value="_toro_suelto">Preñada (toro suelto)</option>`
+      : '';
+
+    return `<tr>
+      <td><strong>${caravanaDisplay(a)}</strong></td>
+      <td>${a.categoria || '—'}</td>
+      <td>${infoCiclo}${criaAlPie}</td>
+      <td>
+        <select data-animal-id="${a.id}" data-srv-id="${srvId}" class="tacto-resultado-nov"
+          style="font-size:13px;padding:4px 8px"
+          onchange="_onChangeTactoResultado(this)">
+          ${optsBase}${optsToro}
+        </select>
+        <input type="number" class="tacto-meses-nov" data-animal-id="${a.id}"
+          min="1" max="9" placeholder="meses gest."
+          style="font-size:13px;padding:4px 6px;width:110px;display:none;margin-top:4px">
+      </td>
+      <td><input type="date" class="tacto-fecha-nov" data-animal-id="${a.id}" style="font-size:13px;padding:4px 8px"></td>
+    </tr>`;
+  }).join('');
+
   lista.innerHTML = `<div class="table-wrap"><table>
-    <thead><tr><th>Caravana</th><th>Categoría</th><th>Último servicio</th><th>Resultado</th><th>Fecha tacto</th></tr></thead>
-    <tbody>${hembras.map(a => {
-      const ultimoSrv = serviciosAnimal.filter(s => s.animal_id === a.id).sort((x, y) => new Date(y.fecha) - new Date(x.fecha))[0];
-      return `<tr>
-        <td><strong>${caravanaDisplay(a)}</strong></td>
-        <td>${a.categoria || '—'}</td>
-        <td>${ultimoSrv ? fmtFecha(ultimoSrv.fecha) + ' · ' + (ultimoSrv.toro || '—') : '—'}</td>
-        <td><select data-animal-id="${a.id}" data-srv-id="${ultimoSrv?.id || ''}" class="tacto-resultado-nov" style="font-size:13px;padding:4px 8px">
-          <option value="Pendiente">— Sin cambio —</option>
-          <option value="Preñada">Preñada</option>
-          <option value="Vacía">Vacía</option>
-          <option value="Repetidora">Repetidora</option>
-        </select></td>
-        <td><input type="date" class="tacto-fecha-nov" data-animal-id="${a.id}" style="font-size:13px;padding:4px 8px"></td>
-      </tr>`;
-    }).join('')}</tbody>
+    <thead><tr><th>Caravana</th><th>Categoría</th><th>Ciclo abierto</th><th>Resultado</th><th>Fecha tacto</th></tr></thead>
+    <tbody>${rows}</tbody>
   </table></div>`;
+}
+
+function _onChangeTactoResultado(sel) {
+  const animalId = sel.dataset.animalId;
+  const mesesInput = document.querySelector(`.tacto-meses-nov[data-animal-id="${animalId}"]`);
+  if (mesesInput) mesesInput.style.display = sel.value === '_toro_suelto' ? '' : 'none';
 }
 
 async function guardarTactoNov(cabecera, novedadId = null) {
   const filas = document.querySelectorAll('.tacto-resultado-nov');
   const campaniaId = document.getElementById('nov-campania')?.value || null;
+  const hoy = new Date(); hoy.setHours(23, 59, 59, 0);
   let actualizados = 0;
+  const erroresTacto = [];
+
   for (const sel of filas) {
     const resultado = sel.value;
-    if (resultado === 'Pendiente') continue;
+    if (!resultado) continue; // "— Sin cambio —"
     const srvId = sel.dataset.srvId;
     const animalId = sel.dataset.animalId;
     const fechaTacto = document.querySelector(`.tacto-fecha-nov[data-animal-id="${animalId}"]`)?.value || cabecera.fecha;
-    if (srvId) {
-      await sb('PATCH', 'servicios_animal', { resultado, fecha_tacto: fechaTacto }, `?id=eq.${srvId}`);
-    } else {
-      await sb('POST', 'servicios_animal', {
-        animal_id: animalId, fecha: cabecera.fecha,
-        metodo: 'Tacto', toro: '', resultado, fecha_tacto: fechaTacto,
-        observaciones: cabecera.observaciones || '', novedad_id: novedadId,
+
+    // Validaciones de fecha
+    if (srvId && fechaTacto) {
+      const srv = serviciosAnimal.find(s => s.id === srvId);
+      if (srv?.fecha && fechaLocal(fechaTacto) < fechaLocal(srv.fecha)) {
+        const animal = animalesRodeo.find(a => a.id === animalId);
+        erroresTacto.push(`#${caravanaDisplay(animal)} — tacto anterior al servicio`);
+        continue;
+      }
+    }
+    if (fechaTacto && fechaLocal(fechaTacto) > hoy) {
+      const animal = animalesRodeo.find(a => a.id === animalId);
+      erroresTacto.push(`#${caravanaDisplay(animal)} — fecha futura`);
+      continue;
+    }
+
+    if (resultado === '_toro_suelto') {
+      // Crear servicio nuevo con metodo=Toro suelto
+      const meses = parseInt(document.querySelector(`.tacto-meses-nov[data-animal-id="${animalId}"]`)?.value) || 3;
+      const fBase = fechaTacto ? fechaLocal(fechaTacto) : fechaLocal(cabecera.fecha);
+      const fEstimada = new Date(fBase.getTime() - meses * 30.44 * 86400000);
+      const fEstStr = fEstimada.getFullYear() + '-' + String(fEstimada.getMonth()+1).padStart(2,'0') + '-' + String(fEstimada.getDate()).padStart(2,'0');
+      const r = await sb('POST', 'servicios_animal', {
+        animal_id: animalId, fecha: fEstStr, metodo: 'Toro suelto',
+        resultado: 'Preñada', fecha_tacto: fechaTacto,
+        meses_gestacion_tacto: meses, novedad_id: novedadId,
         ...(campaniaId ? { campania_id: campaniaId } : {})
       });
+      if (r) actualizados++;
+      else {
+        const animal = animalesRodeo.find(a => a.id === animalId);
+        erroresTacto.push(`#${caravanaDisplay(animal)} — error al crear servicio`);
+      }
+    } else if (srvId) {
+      const r = await sb('PATCH', 'servicios_animal',
+        { resultado, fecha_tacto: fechaTacto },
+        `?id=eq.${srvId}`);
+      if (r) actualizados++;
+      else {
+        const animal = animalesRodeo.find(a => a.id === animalId);
+        erroresTacto.push(`#${caravanaDisplay(animal)} — error al guardar`);
+      }
     }
-    actualizados++;
+    // Si no hay srvId y no es toro suelto: la vaca no tiene ciclo abierto, salteamos silenciosamente
+  }
+
+  if (erroresTacto.length) {
+    toast(`⚠️ ${actualizados} ok · ${erroresTacto.length} error(es): ${erroresTacto.slice(0,2).join('; ')}`, 'var(--tierra)');
   }
   return actualizados;
 }
