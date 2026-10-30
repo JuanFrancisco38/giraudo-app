@@ -1752,25 +1752,37 @@ function resetFormNovedad() {
 
 // ── Dispatcher guardarNovedad ─────────────────────────────
 
+let _guardandoNovedad = false;
+
 async function guardarNovedad() {
-  const tipo = document.getElementById('nov-tipo-main').value;
-  const rodeoId = document.getElementById('nov-rodeo-main').value;
-  const fecha = document.getElementById('nov-fecha-main').value;
+  if (_guardandoNovedad) return;
+  const btn = document.querySelector('button[onclick="guardarNovedad()"]');
+  const btnLabel = btn?.textContent;
+  _guardandoNovedad = true;
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+  try {
+    const tipo = document.getElementById('nov-tipo-main').value;
+    const rodeoId = document.getElementById('nov-rodeo-main').value;
+    const fecha = document.getElementById('nov-fecha-main').value;
 
-  if (!rodeoId) { toast('Seleccioná un rodeo', 'var(--rojo)'); return; }
-  if (!fecha) { toast('Ingresá la fecha', 'var(--rojo)'); return; }
+    if (!rodeoId) { toast('Seleccioná un rodeo', 'var(--rojo)'); return; }
+    if (!fecha) { toast('Ingresá la fecha', 'var(--rojo)'); return; }
 
-  if (tipo === 'Trabajo de manga') await procesarNovTrabajoManga(rodeoId, fecha);
-  else if (tipo === 'Nacimiento') await procesarNovNacimientos(rodeoId, fecha);
-  else if (tipo === 'Ingreso') await procesarNovIngreso(rodeoId, fecha);
-  else if (tipo === 'Destete') await procesarNovDestete(rodeoId, fecha);
-  else if (tipo === 'Aborto') await procesarNovAborto(rodeoId, fecha);
-  else if (tipo === 'Muerte' || tipo === 'Venta / Salida') await procesarNovBaja(rodeoId, fecha, tipo);
-  else if (tipo === 'Traslado') await procesarNovTraslado(rodeoId, fecha);
-  else if (tipo === 'Cambio de categoría') await procesarNovCambioCategoria(rodeoId, fecha);
-  else if (tipo === 'Entrada de toros') await procesarNovEntradaToros(rodeoId, fecha);
-  else if (tipo === 'Retiro de toros') await procesarNovRetiroToros(rodeoId, fecha);
-  else if (tipo === 'Pesada') await procesarNovPesada(rodeoId, fecha);
+    if (tipo === 'Trabajo de manga') await procesarNovTrabajoManga(rodeoId, fecha);
+    else if (tipo === 'Nacimiento') await procesarNovNacimientos(rodeoId, fecha);
+    else if (tipo === 'Ingreso') await procesarNovIngreso(rodeoId, fecha);
+    else if (tipo === 'Destete') await procesarNovDestete(rodeoId, fecha);
+    else if (tipo === 'Aborto') await procesarNovAborto(rodeoId, fecha);
+    else if (tipo === 'Muerte' || tipo === 'Venta / Salida') await procesarNovBaja(rodeoId, fecha, tipo);
+    else if (tipo === 'Traslado') await procesarNovTraslado(rodeoId, fecha);
+    else if (tipo === 'Cambio de categoría') await procesarNovCambioCategoria(rodeoId, fecha);
+    else if (tipo === 'Entrada de toros') await procesarNovEntradaToros(rodeoId, fecha);
+    else if (tipo === 'Retiro de toros') await procesarNovRetiroToros(rodeoId, fecha);
+    else if (tipo === 'Pesada') await procesarNovPesada(rodeoId, fecha);
+  } finally {
+    _guardandoNovedad = false;
+    if (btn) { btn.disabled = false; btn.textContent = btnLabel; }
+  }
 }
 
 function aplicarPesoPromedioATodos() {
@@ -2117,7 +2129,7 @@ async function procesarNovDestete(rodeoId, fecha) {
   const destino = rodeos.find(r => r.id === destinoId);
   const desc = `${terneros.length} ternero${terneros.length !== 1 ? 's' : ''} → ${destino?.nombre || destinoId}${nuevaCat ? ' como ' + nuevaCat : ''} · ${getCaravanaResumen(terneros)}`;
   await sb('POST', 'novedades_ganaderas', {
-    rodeo_id: rodeoId, fecha, tipo: 'Destete', cantidad: cantIngresada, descripcion: desc
+    rodeo_id: rodeoId, fecha, tipo: 'Destete', cantidad: terneros.length, descripcion: desc
   });
 
   toast(`✅ Destete registrado · ${terneros.length} ternero${terneros.length !== 1 ? 's' : ''} trasladados`);
