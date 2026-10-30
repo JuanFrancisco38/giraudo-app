@@ -47,14 +47,15 @@ function criasDe(animal) {
 
 function criasLactantes(animal) {
   const ciclos = ciclosDeAnimal(animal.id);
-  const criaIdsEnLactancia = new Set(
-    ciclos.filter(c => c.fase === 'lactancia' && c.cria)
+  // Crías que ya terminaron: pertenecen a un ciclo cerrado (destete, baja, etc.)
+  const criaIdsCerradas = new Set(
+    ciclos.filter(c => c.estado === 'parto' && c.fase === 'cerrado' && c.cria)
           .map(c => c.cria.id)
   );
   return criasDe(animal).filter(c =>
     c.activo !== false &&
     (c.categoria === 'Ternero' || c.categoria === 'Ternera') &&
-    criaIdsEnLactancia.has(c.id)
+    !criaIdsCerradas.has(c.id)
   );
 }
 

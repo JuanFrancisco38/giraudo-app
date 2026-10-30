@@ -1723,7 +1723,9 @@ function renderListaTactoNov(rodeoId) {
       <td>${a.categoria || '—'}</td>
       <td>${infoCiclo}${criaAlPie}</td>
       <td>
-        <select data-animal-id="${a.id}" data-srv-id="${srvId}" data-lact-srv-id="${cicloLact?.id || ''}" class="tacto-resultado-nov"
+        <select data-animal-id="${a.id}" data-srv-id="${srvId}" data-lact-srv-id="${cicloLact?.id || ''}"
+          data-parto-fecha="${cicloLact?.fechaPartoEfectiva || ''}" data-cria-id="${cicloLact?.cria?.id || ''}"
+          class="tacto-resultado-nov"
           style="font-size:13px;padding:4px 8px"
           onchange="_onChangeTactoResultado(this)">
           ${optsBase}${optsExtra}
@@ -1838,8 +1840,10 @@ async function guardarTactoNov(cabecera, novedadId = null) {
     if (resultado === '_confirmar_parto') {
       const lactSrvId = sel.dataset.lactSrvId;
       if (lactSrvId) {
+        const partoFecha = sel.dataset.partoFecha || null;
+        const criaId = sel.dataset.criaId || null;
         const r = await sb('PATCH', 'servicios_animal',
-          { fecha_parto: fechaTacto || cabecera.fecha },
+          { fecha_parto: partoFecha, cria_id: criaId || undefined },
           `?id=eq.${lactSrvId}`);
         if (r) {
           detalles.push({ servicio_id: lactSrvId, creado: false, accion: 'confirmar_parto' });
@@ -2494,10 +2498,10 @@ async function procesarNovDestete(rodeoId, fecha) {
       const ciclos = ciclosDeAnimal(madre.id);
       const cicloLact = ciclos.slice().reverse().find(c => c.fase === 'lactancia' && c.cria?.id === a.id);
       if (cicloLact) {
-        await sb('PATCH', 'servicios_animal',
+        const rc = await sb('PATCH', 'servicios_animal',
           { fecha_cierre: fecha, motivo_cierre: 'Destete' },
           `?id=eq.${cicloLact.id}`);
-        ciclos_cerrados.push({ servicio_id: cicloLact.id, madre_id: madre.id, cria_id: a.id });
+        if (rc) ciclos_cerrados.push({ servicio_id: cicloLact.id, madre_id: madre.id, cria_id: a.id });
       }
     }
   }
@@ -2544,8 +2548,8 @@ async function procesarNovBaja(rodeoId, fecha, tipo) {
   const ciclos_cerrados = [];
 
   for (const a of animalesAfectados) {
-    await sb('PATCH', 'animales_rodeo', { activo: false, fecha_baja: fecha, motivo_baja: motivo || tipo }, `?id=eq.${a.id}`);
-    animales_detalle.push({ id: a.id });
+    const rBaja = await sb('PATCH', 'animales_rodeo', { activo: false, fecha_baja: fecha, motivo_baja: motivo || tipo }, `?id=eq.${a.id}`);
+    if (rBaja) animales_detalle.push({ id: a.id });
 
     const madre = madreDe(a);
     if (madre) {
@@ -2740,7 +2744,7 @@ async function borrarNovedadManga(id) {
     for (const t of nov.detalle.tactos) {
       if (!t.servicio_id) continue;
       if (t.accion === 'confirmar_parto') {
-        await sb('PATCH', 'servicios_animal', { fecha_parto: null }, `?id=eq.${t.servicio_id}`);
+        await sb('PATCH', 'servicios_animal', { fecha_parto: null, cria_id: null }, `?id=eq.${t.servicio_id}`);
       } else if (t.creado) {
         await sb('DELETE', 'servicios_animal', null, `?id=eq.${t.servicio_id}`);
       } else {
@@ -2851,6 +2855,8 @@ async function borrarAnimalManga(id) {
 async function guardarServicio(animalId) {
   const fecha = document.getElementById('srv-fecha').value;
   if (!fecha) { toast('La fecha del servicio es obligatoria', 'var(--rojo)'); return; }
+  const hoyLimite = new Date(); hoyLimite.setHours(23, 59, 59, 0);
+  if (fechaLocal(fecha) > hoyLimite) { toast('La fecha del servicio no puede ser futura', 'var(--rojo)'); return; }
 
   // Confirmar si el animal ya tiene un ciclo abierto
   const ciclosExistentes = ciclosDeAnimal(animalId);
