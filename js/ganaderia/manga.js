@@ -79,6 +79,13 @@ async function cargarManga() {
   _poblarSelectsRenspa();
   renderEstadisticasManga();
   renderRodeosManga();
+  // Actualizar contador de Controles si el panel ya está abierto
+  const _btnCtrl = document.getElementById('btn-controles-manga');
+  if (_btnCtrl) {
+    const _nCtrl = _calcularControles('').length;
+    _btnCtrl.textContent = `🔎 Controles${_nCtrl ? ' (' + _nCtrl + ')' : ''}`;
+  }
+  renderControles();
 }
 
 function _poblarSelectsRenspa() {
@@ -3238,4 +3245,424 @@ Texto: ${texto}` }]
     btn.disabled = false;
     btn.textContent = 'Interpretar con IA';
   }
+}
+
+// ── Controles de datos ─────────────────────────────────────────────────────────
+
+function _calcularControles(filtroRodeoId) {
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const controles = [];
+
+  const hembras = animalesRodeo.filter(a =>
+    a.sexo === 'Hembra' && (!filtroRodeoId || a.rodeo_id === filtroRodeoId)
+  );
+
+  for (const animal of hembras) {
+    const ciclos = ciclosDeAnimal(animal.id);
+    if (!ciclos.length) continue;
+
+    // Control: más de un ciclo en gestación
+    const enGestacion = ciclos.filter(c => c.enGestacion);
+    if (enGestacion.length >= 2) {
+      controles.push({ tipo: 'doble_gestion', animal, ciclos: enGestacion });
+    }
+
+    for (const ciclo of ciclos) {
+      // Control: parto vencido sin cría
+      if (ciclo.estado === 'preñada' && ciclo.fpp) {
+        const vencimientoControl = new Date(ciclo.fpp.getTime() + 20 * 86400000);
+        if (hoy > vencimientoControl && !ciclo.cria) {
+          const okHasta = ciclo.srv.control_ok_hasta ? fechaLocal(ciclo.srv.control_ok_hasta) : null;
+          if (!okHasta || hoy > okHasta) {
+            controles.push({ tipo: 'parto_vencido', animal, ciclo });
+          }
+        }
+      }
+
+      // Control: parto sin confirmar
+      if (ciclo.partoInferido) {
+        controles.push({ tipo: 'parto_sin_confirmar', animal, ciclo });
+      }
+
+      // Control: lactancia sin cría o cría ya no al pie (cierreInferido)
+      if (ciclo.fase === 'lactancia' && (!ciclo.cria || ciclo.cierreInferido)) {
+        controles.push({ tipo: 'lactancia_sin_cerrar', animal, ciclo });
+      }
+
+      // Control: tacto que toca (Pendiente, 40-90 días)
+      if (ciclo.estado === 'pendiente' && ciclo.diasGest != null && ciclo.diasGest >= 40 && ciclo.diasGest <= 90) {
+        controles.push({ tipo: 'tacto_toca', animal, ciclo });
+      }
+
+      // Control: tacto atrasado (Pendiente, >90 días)
+      if (ciclo.estado === 'pendiente' && ciclo.diasGest != null && ciclo.diasGest > 90) {
+        controles.push({ tipo: 'tacto_atrasado', animal, ciclo });
+      }
+
+      // Control: tacto anterior al servicio
+      if (ciclo.tactos.length) {
+        const ultimoTacto = ciclo.tactos[ciclo.tactos.length - 1];
+        const fTacto = ultimoTacto.fecha_tacto || ultimoTacto.fecha;
+        if (fTacto && ciclo.fechaServicio && fechaLocal(fTacto) < fechaLocal(ciclo.fechaServicio)) {
+          controles.push({ tipo: 'tacto_anterior', animal, ciclo, tacto: ultimoTacto });
+        }
+      }
+
+      // Control: ciclo abierto en animal dado de baja
+      if (!animal.activo && (ciclo.enGestacion || ciclo.fase === 'lactancia')) {
+        controles.push({ tipo: 'ciclo_baja', animal, ciclo });
+      }
+    }
+  }
+
+  // Control: cría Ternero/Ternera activa con más de 330 días
+  const terneros = animalesRodeo.filter(a =>
+    (a.categoria === 'Ternero' || a.categoria === 'Ternera') &&
+    a.activo !== false && a.fecha_nacimiento &&
+    (!filtroRodeoId || a.rodeo_id === filtroRodeoId)
+  );
+  for (const t of terneros) {
+    const dias = Math.floor((hoy - fechaLocal(t.fecha_nacimiento)) / 86400000);
+    if (dias > 330) controles.push({ tipo: 'ternero_largo', animal: t, dias });
+  }
+
+  // Control: cría con madre inexistente (caravana_madre sin match)
+  const criasHuerfanas = animalesRodeo.filter(a =>
+    a.caravana_madre &&
+    !a.madre_id &&
+    (!filtroRodeoId || a.rodeo_id === filtroRodeoId) &&
+    !animalesRodeo.find(m => m.caravana_interna === a.caravana_madre || m.caravana_electronica === a.caravana_madre)
+  );
+  for (const c of criasHuerfanas) {
+    controles.push({ tipo: 'madre_inexistente', animal: c });
+  }
+
+  return controles;
+}
+
+function _labelTipoControl(tipo) {
+  const labels = {
+    parto_vencido:       '🚨 Parto vencido sin cría',
+    parto_sin_confirmar: '⚠️ Parto sin confirmar',
+    lactancia_sin_cerrar:'⚠️ Lactancia sin cerrar',
+    doble_gestion:       '⚠️ Más de un ciclo en gestación',
+    tacto_toca:          '📋 Toca tacto',
+    tacto_atrasado:      '🔴 Tacto atrasado',
+    tacto_anterior:      '❌ Tacto anterior al servicio',
+    madre_inexistente:   '❓ Cría con madre inexistente',
+    ciclo_baja:          '⚠️ Ciclo abierto en animal dado de baja',
+    ternero_largo:       '📅 Ternero/a con más de 330 días',
+  };
+  return labels[tipo] || tipo;
+}
+
+function abrirControles() {
+  const panel = document.getElementById('manga-controles');
+  if (!panel) return;
+  if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  renderControles();
+}
+
+function renderControles() {
+  const panel = document.getElementById('manga-controles');
+  if (!panel || panel.style.display === 'none') return;
+
+  const filtroRodeoId = document.getElementById('controles-filtro-rodeo')?.value || '';
+  const controles = _calcularControles(filtroRodeoId);
+
+  // Actualizar contador en botón
+  const btn = document.getElementById('btn-controles-manga');
+  if (btn) btn.textContent = `🔎 Controles${controles.length ? ' (' + controles.length + ')' : ''}`;
+
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+
+  if (!controles.length) {
+    panel.innerHTML = `
+      <div style="background:var(--fondo);border:1px solid var(--gris-borde);border-radius:10px;padding:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <strong style="font-size:15px">🔎 Controles de datos</strong>
+          ${_htmlFiltroRodeoControles(filtroRodeoId)}
+          <button onclick="abrirControles()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--texto-suave)">×</button>
+        </div>
+        <div style="color:var(--verde);font-size:14px">✅ Todo en orden</div>
+      </div>`;
+    return;
+  }
+
+  // Agrupar por tipo
+  const grupos = {};
+  for (const c of controles) {
+    if (!grupos[c.tipo]) grupos[c.tipo] = [];
+    grupos[c.tipo].push(c);
+  }
+
+  const gruposHtml = Object.entries(grupos).map(([tipo, items]) => {
+    const filas = items.map(c => _htmlFilaControl(tipo, c, hoy)).join('');
+    return `<div style="margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;color:var(--bordo);margin-bottom:6px">${_labelTipoControl(tipo)} <span style="font-weight:400;color:var(--texto-suave)">(${items.length})</span></div>
+      <div style="display:flex;flex-direction:column;gap:6px">${filas}</div>
+    </div>`;
+  }).join('');
+
+  panel.innerHTML = `
+    <div style="background:var(--fondo);border:1px solid var(--gris-borde);border-radius:10px;padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <strong style="font-size:15px">🔎 Controles de datos <span style="font-weight:400;color:var(--texto-suave);font-size:13px">${controles.length} ítem${controles.length !== 1 ? 's' : ''}</span></strong>
+        ${_htmlFiltroRodeoControles(filtroRodeoId)}
+        <button onclick="abrirControles()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--texto-suave)">×</button>
+      </div>
+      ${gruposHtml}
+    </div>`;
+}
+
+function _htmlFiltroRodeoControles(valorActual) {
+  const opts = '<option value="">Todos los rodeos</option>' +
+    rodeos.map(r => `<option value="${r.id}"${valorActual === r.id ? ' selected' : ''}>${r.nombre}</option>`).join('');
+  return `<select id="controles-filtro-rodeo" onchange="renderControles()" style="font-size:12px;padding:4px 8px;border:1px solid var(--gris-borde);border-radius:6px">${opts}</select>`;
+}
+
+function _htmlFilaControl(tipo, c, hoy) {
+  const a = c.animal;
+  const cara = `#${caravanaDisplay(a)}`;
+  const rodeoNombre = rodeos.find(r => r.id === a.rodeo_id)?.nombre || '';
+
+  let info = '';
+  let botones = '';
+
+  if (tipo === 'parto_vencido') {
+    const dias = c.ciclo.diasGest ?? '?';
+    const fpp = c.ciclo.fpp ? fmtFecha(c.ciclo.fpp.toISOString().split('T')[0]) : '—';
+    info = `${fmtFecha(c.ciclo.fechaServicio)} · ${dias} días · FPP ${fpp}`;
+    botones = `
+      <button class="btn btn-primary" style="font-size:11px;padding:3px 8px" onclick="_ctrlRegistrarParto('${a.id}')">Registró parto</button>
+      <button class="btn btn-secondary" style="font-size:11px;padding:3px 8px" onclick="_ctrlAborto('${c.ciclo.id}','${a.id}')">Abortó</button>
+      <button class="btn btn-secondary" style="font-size:11px;padding:3px 8px" onclick="_ctrlVacia('${c.ciclo.id}','${a.id}')">Marcar vacía</button>
+      <button class="btn btn-secondary" style="font-size:11px;padding:3px 8px" onclick="_ctrlSeguirEsperando('${c.ciclo.srv.id}')">Seguir esperando 30 días</button>`;
+  } else if (tipo === 'parto_sin_confirmar') {
+    const fNac = c.ciclo.cria?.fecha_nacimiento ? fmtFecha(c.ciclo.cria.fecha_nacimiento) : '—';
+    const criaCara = c.ciclo.cria ? `#${caravanaDisplay(c.ciclo.cria)}` : '—';
+    info = `Cría inferida: ${criaCara} · nacimiento ${fNac}`;
+    const criaId = c.ciclo.cria?.id || '';
+    const partoFecha = c.ciclo.cria?.fecha_nacimiento || '';
+    botones = `<button class="btn btn-primary" style="font-size:11px;padding:3px 8px" onclick="_ctrlConfirmarParto('${c.ciclo.srv.id}','${partoFecha}','${criaId}')">Confirmar parto</button>`;
+  } else if (tipo === 'lactancia_sin_cerrar') {
+    const motivoLabel = c.ciclo.cierreInferido ? (c.ciclo.motivoCierre || 'Destetada/vendida') : 'Sin cría registrada';
+    const fechaDef = c.ciclo.fechaPartoEfectiva || '';
+    info = motivoLabel;
+    botones = `
+      <button class="btn btn-secondary" style="font-size:11px;padding:3px 8px" onclick="_ctrlCerrarLactancia('${c.ciclo.id}','${fechaDef}','Destete')">Cerrar: Destete</button>
+      <button class="btn btn-secondary" style="font-size:11px;padding:3px 8px" onclick="_ctrlCerrarLactancia('${c.ciclo.id}','${fechaDef}','Cría muerta')">Cría muerta</button>
+      <button class="btn btn-secondary" style="font-size:11px;padding:3px 8px" onclick="_ctrlCerrarLactancia('${c.ciclo.id}','${fechaDef}','Cría vendida')">Cría vendida</button>`;
+  } else if (tipo === 'doble_gestion') {
+    const ciclosLabel = c.ciclos.map(ci => `${fmtFecha(ci.fechaServicio)} (${ci.resultado})`).join(', ');
+    info = ciclosLabel;
+    const idsViejos = c.ciclos.slice(0, -1).map(ci => ci.id).join(',');
+    botones = `<button class="btn btn-secondary" style="font-size:11px;padding:3px 8px" onclick="_ctrlCerrarViejos('${idsViejos}')">Cerrar los viejos (Vacía)</button>`;
+  } else if (tipo === 'tacto_toca') {
+    info = `${c.ciclo.diasGest} días de gestación`;
+    botones = `<button class="btn btn-primary" style="font-size:11px;padding:3px 8px" onclick="_ctrlCargarTacto('${a.rodeo_id}')">Cargar tacto</button>`;
+  } else if (tipo === 'tacto_atrasado') {
+    info = `${c.ciclo.diasGest} días de gestación (atrasado)`;
+    botones = `<button class="btn btn-primary" style="font-size:11px;padding:3px 8px" onclick="_ctrlCargarTacto('${a.rodeo_id}')">Cargar tacto</button>`;
+  } else if (tipo === 'tacto_anterior') {
+    const fTacto = c.tacto.fecha_tacto || c.tacto.fecha;
+    info = `Servicio ${fmtFecha(c.ciclo.fechaServicio)} · Tacto ${fmtFecha(fTacto)}`;
+    botones = `<button class="btn btn-secondary" style="font-size:11px;padding:3px 8px" onclick="_ctrlCorregirFechaTacto('${c.tacto.id}','${c.ciclo.fechaServicio}')">Corregir fecha</button>`;
+  } else if (tipo === 'madre_inexistente') {
+    info = `Caravana madre: ${a.caravana_madre || '—'}`;
+    botones = `<button class="btn btn-secondary" style="font-size:11px;padding:3px 8px" onclick="_ctrlElegirMadre('${a.id}')">Elegir madre</button>`;
+  } else if (tipo === 'ciclo_baja') {
+    info = `Ciclo ${c.ciclo.estado} · servicio ${fmtFecha(c.ciclo.fechaServicio)}`;
+    botones = `<button class="btn btn-secondary" style="font-size:11px;padding:3px 8px" onclick="_ctrlCerrarCicloBaja('${c.ciclo.id}')">Cerrar ciclo</button>`;
+  } else if (tipo === 'ternero_largo') {
+    info = `${c.dias} días · nacido ${fmtFecha(a.fecha_nacimiento)}`;
+    botones = `<button class="btn btn-secondary" style="font-size:11px;padding:3px 8px" onclick="_ctrlAbrirDestete('${a.rodeo_id}')">¿Se destetó?</button>`;
+  }
+
+  return `<div style="background:var(--fondo-alt,var(--gris-fondo));border:1px solid var(--gris-borde);border-radius:7px;padding:10px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+    <span style="font-weight:700;min-width:60px">${cara}</span>
+    <span style="font-size:12px;color:var(--texto-suave)">${rodeoNombre}</span>
+    <span style="font-size:12px;flex:1;min-width:100px">${info}</span>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">${botones}</div>
+  </div>`;
+}
+
+// ── Acciones de Controles ──────────────────────────────────────────────────────
+
+async function _ctrlRegistrarParto(animalId) {
+  if (!confirm('Se abrirá el formulario de Novedad → Nacimiento con este animal.')) return;
+  const animal = animalesRodeo.find(a => a.id === animalId);
+  if (!animal) return;
+  seleccionarRodeoManga(animal.rodeo_id);
+  setTimeout(() => {
+    toggleFormNovedad();
+    setTimeout(() => {
+      const sel = document.getElementById('nov-tipo');
+      if (sel) { sel.value = 'Nacimiento'; sel.dispatchEvent(new Event('change')); }
+    }, 100);
+  }, 200);
+}
+
+async function _ctrlAborto(cicloId, animalId) {
+  if (!confirm('¿Registrar este ciclo como Abortó? Se marcará Vacía con motivo de cierre Aborto.')) return;
+  const fresh = await sb('GET', 'servicios_animal', null, `?id=eq.${cicloId}`);
+  if (!fresh?.[0]) { toast('❌ No se encontró el servicio', 'var(--rojo)'); return; }
+  const fTacto = fresh[0].fecha_tacto || fresh[0].fecha;
+  const r = await sb('PATCH', 'servicios_animal',
+    { resultado: 'Abortó', fecha_tacto: fTacto },
+    `?id=eq.${cicloId}`);
+  if (!r) { toast('❌ Error al guardar', 'var(--rojo)'); return; }
+  toast('✅ Registrado como Abortó');
+  await cargarManga();
+  renderControles();
+}
+
+async function _ctrlVacia(cicloId, animalId) {
+  if (!confirm('¿Marcar este ciclo como Vacía?')) return;
+  const fresh = await sb('GET', 'servicios_animal', null, `?id=eq.${cicloId}`);
+  if (!fresh?.[0]) { toast('❌ No se encontró el servicio', 'var(--rojo)'); return; }
+  const fTacto = fresh[0].fecha_tacto || fresh[0].fecha;
+  const r = await sb('PATCH', 'servicios_animal',
+    { resultado: 'Vacía', fecha_tacto: fTacto },
+    `?id=eq.${cicloId}`);
+  if (!r) { toast('❌ Error al guardar', 'var(--rojo)'); return; }
+  toast('✅ Marcada como Vacía');
+  await cargarManga();
+  renderControles();
+}
+
+async function _ctrlSeguirEsperando(srvId) {
+  if (!confirm('Se pospondrá este control 30 días. ¿Continuar?')) return;
+  const fresh = await sb('GET', 'servicios_animal', null, `?id=eq.${srvId}`);
+  if (!fresh?.[0]) { toast('❌ No se encontró el servicio', 'var(--rojo)'); return; }
+  const hoy = new Date();
+  const okHasta = new Date(hoy.getTime() + 30 * 86400000);
+  const okHastaStr = okHasta.getFullYear() + '-' + String(okHasta.getMonth()+1).padStart(2,'0') + '-' + String(okHasta.getDate()).padStart(2,'0');
+  const r = await sb('PATCH', 'servicios_animal', { control_ok_hasta: okHastaStr }, `?id=eq.${srvId}`);
+  if (!r) { toast('❌ Error al guardar', 'var(--rojo)'); return; }
+  toast('✅ Control pospuesto 30 días');
+  await cargarManga();
+  renderControles();
+}
+
+async function _ctrlConfirmarParto(srvId, partoFecha, criaId) {
+  if (!confirm(`¿Confirmar parto del ${fmtFecha(partoFecha)}${criaId ? ' y vincular la cría?' : '?'}`)) return;
+  const fresh = await sb('GET', 'servicios_animal', null, `?id=eq.${srvId}`);
+  if (!fresh?.[0]) { toast('❌ No se encontró el servicio', 'var(--rojo)'); return; }
+  const payload = { fecha_parto: partoFecha || null };
+  if (criaId) payload.cria_id = criaId;
+  const r = await sb('PATCH', 'servicios_animal', payload, `?id=eq.${srvId}`);
+  if (!r) { toast('❌ Error al guardar', 'var(--rojo)'); return; }
+  toast('✅ Parto confirmado');
+  await cargarManga();
+  renderControles();
+}
+
+async function _ctrlCerrarLactancia(cicloId, fechaDef, motivo) {
+  const fechaProp = fechaDef || new Date().toISOString().split('T')[0];
+  const fecha = prompt(`Fecha de cierre (YYYY-MM-DD):`, fechaProp);
+  if (!fecha) return;
+  if (!confirm(`¿Cerrar lactancia con motivo "${motivo}" el ${fmtFecha(fecha)}?`)) return;
+  const fresh = await sb('GET', 'servicios_animal', null, `?id=eq.${cicloId}`);
+  if (!fresh?.[0]) { toast('❌ No se encontró el servicio', 'var(--rojo)'); return; }
+  const r = await sb('PATCH', 'servicios_animal',
+    { fecha_cierre: fecha, motivo_cierre: motivo },
+    `?id=eq.${cicloId}`);
+  if (!r) { toast('❌ Error al guardar', 'var(--rojo)'); return; }
+  toast(`✅ Lactancia cerrada: ${motivo}`);
+  await cargarManga();
+  renderControles();
+}
+
+async function _ctrlCerrarViejos(idsStr) {
+  const ids = idsStr.split(',').filter(Boolean);
+  if (!ids.length) return;
+  if (!confirm(`¿Marcar ${ids.length} ciclo${ids.length !== 1 ? 's' : ''} viejo${ids.length !== 1 ? 's' : ''} como Vacía?`)) return;
+  let ok = 0;
+  for (const id of ids) {
+    const fresh = await sb('GET', 'servicios_animal', null, `?id=eq.${id}`);
+    if (!fresh?.[0]) continue;
+    const fTacto = fresh[0].fecha_tacto || fresh[0].fecha;
+    const r = await sb('PATCH', 'servicios_animal',
+      { resultado: 'Vacía', fecha_tacto: fTacto },
+      `?id=eq.${id}`);
+    if (r) ok++;
+  }
+  if (!ok) { toast('❌ Error al guardar', 'var(--rojo)'); return; }
+  toast(`✅ ${ok} ciclo${ok !== 1 ? 's' : ''} cerrado${ok !== 1 ? 's' : ''} como Vacía`);
+  await cargarManga();
+  renderControles();
+}
+
+function _ctrlCargarTacto(rodeoId) {
+  seleccionarRodeoManga(rodeoId);
+  setTimeout(() => {
+    toggleFormNovedad();
+    setTimeout(() => {
+      const sel = document.getElementById('nov-tipo');
+      if (sel) { sel.value = 'Tacto / Preñez'; sel.dispatchEvent(new Event('change')); }
+    }, 100);
+  }, 200);
+}
+
+async function _ctrlCorregirFechaTacto(tactoId, fechaServicio) {
+  const nueva = prompt(`Nueva fecha del tacto (YYYY-MM-DD, debe ser >= ${fmtFecha(fechaServicio)}):`, fechaServicio);
+  if (!nueva) return;
+  if (fechaLocal(nueva) < fechaLocal(fechaServicio)) {
+    toast('La fecha del tacto debe ser posterior al servicio', 'var(--rojo)'); return;
+  }
+  if (!confirm(`¿Corregir fecha del tacto a ${fmtFecha(nueva)}?`)) return;
+  const fresh = await sb('GET', 'servicios_animal', null, `?id=eq.${tactoId}`);
+  if (!fresh?.[0]) { toast('❌ No se encontró el servicio', 'var(--rojo)'); return; }
+  const r = await sb('PATCH', 'servicios_animal', { fecha_tacto: nueva }, `?id=eq.${tactoId}`);
+  if (!r) { toast('❌ Error al guardar', 'var(--rojo)'); return; }
+  toast('✅ Fecha del tacto corregida');
+  await cargarManga();
+  renderControles();
+}
+
+async function _ctrlElegirMadre(criaId) {
+  const madresDisp = animalesRodeo.filter(a => a.sexo === 'Hembra' && (a.categoria === 'Vaca' || a.categoria === 'Vaquillona'));
+  if (!madresDisp.length) { toast('No hay hembras disponibles', 'var(--tierra)'); return; }
+  const opciones = madresDisp.map(m => `${caravanaDisplay(m)} - ${m.categoria}`).join('\n');
+  const caravana = prompt(`Ingresá la caravana de la madre:\n${opciones}`);
+  if (!caravana) return;
+  const madre = madresDisp.find(m => m.caravana_interna === caravana || m.caravana_electronica === caravana);
+  if (!madre) { toast('No se encontró una hembra con esa caravana', 'var(--rojo)'); return; }
+  if (!confirm(`¿Asignar madre #${caravanaDisplay(madre)} a esta cría?`)) return;
+  const fresh = await sb('GET', 'animales_rodeo', null, `?id=eq.${criaId}`);
+  if (!fresh?.[0]) { toast('❌ No se encontró la cría', 'var(--rojo)'); return; }
+  const r = await sb('PATCH', 'animales_rodeo',
+    { madre_id: madre.id, caravana_madre: caravanaDisplay(madre) },
+    `?id=eq.${criaId}`);
+  if (!r) { toast('❌ Error al guardar', 'var(--rojo)'); return; }
+  toast('✅ Madre asignada');
+  await cargarManga();
+  renderControles();
+}
+
+async function _ctrlCerrarCicloBaja(cicloId) {
+  const hoy = new Date().toISOString().split('T')[0];
+  if (!confirm(`¿Cerrar este ciclo abierto? Se marcará como Vacía con fecha de hoy.`)) return;
+  const fresh = await sb('GET', 'servicios_animal', null, `?id=eq.${cicloId}`);
+  if (!fresh?.[0]) { toast('❌ No se encontró el servicio', 'var(--rojo)'); return; }
+  const r = await sb('PATCH', 'servicios_animal',
+    { resultado: 'Vacía', fecha_tacto: fresh[0].fecha_tacto || fresh[0].fecha },
+    `?id=eq.${cicloId}`);
+  if (!r) { toast('❌ Error al guardar', 'var(--rojo)'); return; }
+  toast('✅ Ciclo cerrado');
+  await cargarManga();
+  renderControles();
+}
+
+function _ctrlAbrirDestete(rodeoId) {
+  seleccionarRodeoManga(rodeoId);
+  setTimeout(() => {
+    toggleFormNovedad();
+    setTimeout(() => {
+      const sel = document.getElementById('nov-tipo');
+      if (sel) { sel.value = 'Destete'; sel.dispatchEvent(new Event('change')); }
+    }, 100);
+  }, 200);
 }
