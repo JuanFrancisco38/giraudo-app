@@ -1510,7 +1510,7 @@ function renderListaInseminacion(rodeoId, subtipo) {
     <tbody>${hembras.map(a => {
       const ultimoSrv = serviciosAnimal.filter(s => s.animal_id === a.id).sort((x,y) => new Date(y.fecha)-new Date(x.fecha))[0];
       return `<tr>
-        <td><strong>${caravanaDisplay(a)}</strong></td>
+        <td><strong>#${caravanaDisplay(a)}</strong></td>
         <td>${a.categoria || '—'}</td>
         <td>${ultimoSrv ? fmtFecha(ultimoSrv.fecha) + ' · ' + (ultimoSrv.resultado || '—') : '—'}</td>
         <td><input type="checkbox" class="ins-check" data-animal-id="${a.id}" checked style="width:18px;height:18px;cursor:pointer"></td>
@@ -1530,9 +1530,27 @@ function onChangeRodeoNovedad() {
   poblarSelectCampania();
   onChangeTipoNovedad();
   const tipo = document.getElementById('nov-tipo-main')?.value;
-  if (tipo === 'Pesada') {
-    const rodeoId = document.getElementById('nov-rodeo-main')?.value;
-    if (rodeoId) renderListaPesadaNov(rodeoId);
+  const rodeoId = document.getElementById('nov-rodeo-main')?.value;
+  if (tipo === 'Pesada' && rodeoId) renderListaPesadaNov(rodeoId);
+  if (tipo === 'Nacimiento' && rodeoId) {
+    // Refrescar el select de madre en las filas de nacimiento ya abiertas
+    const hembras = animalesRodeo.filter(a => a.rodeo_id === rodeoId && a.sexo === 'Hembra');
+    const preñadas = [], pendientes = [], otras = [];
+    for (const h of hembras) {
+      const ciclos = ciclosDeAnimal(h.id);
+      const ult = ciclos.length ? ciclos[ciclos.length - 1] : null;
+      if (ult?.estado === 'preñada') {
+        const fppTxt = ult.fpp ? ' · FPP ' + fmtFecha(ult.fpp.toISOString().slice(0,10)) : '';
+        preñadas.push(`<option value="${h.id}">#${caravanaDisplay(h)} · Preñada${fppTxt}</option>`);
+      } else if (ult?.estado === 'pendiente') {
+        pendientes.push(`<option value="${h.id}">#${caravanaDisplay(h)} · Pendiente</option>`);
+      } else {
+        otras.push(`<option value="${h.id}">#${caravanaDisplay(h)} · Sin preñez registrada</option>`);
+      }
+    }
+    const opts = '<option value="">— Sin identificar —</option>' +
+      preñadas.join('') + pendientes.join('') + otras.join('');
+    document.querySelectorAll('.nacimiento-row .nac-madre').forEach(sel => { sel.innerHTML = opts; });
   }
 }
 
@@ -1701,7 +1719,7 @@ function renderListaTactoNov(rodeoId) {
     }
 
     return `<tr data-animal-id="${a.id}">
-      <td><strong>${caravanaDisplay(a)}</strong></td>
+      <td><strong>#${caravanaDisplay(a)}</strong></td>
       <td>${a.categoria || '—'}</td>
       <td>${infoCiclo}${criaAlPie}</td>
       <td>
@@ -2484,6 +2502,12 @@ async function procesarNovDestete(rodeoId, fecha) {
     }
   }
 
+  if (!terneros_detalle.length) {
+    await sb('DELETE', 'novedades_ganaderas', null, `?id=eq.${novedadId}`);
+    toast(`❌ No se pudo mover ningún ternero: ${errores.join(', ')}`, 'var(--rojo)');
+    return;
+  }
+
   await sb('PATCH', 'novedades_ganaderas',
     { cantidad: terneros_detalle.length, detalle: { terneros: terneros_detalle, ciclos_cerrados } },
     `?id=eq.${novedadId}`);
@@ -2537,11 +2561,17 @@ async function procesarNovBaja(rodeoId, fecha, tipo) {
     }
   }
 
+  if (!animales_detalle.length) {
+    await sb('DELETE', 'novedades_ganaderas', null, `?id=eq.${novedadId}`);
+    toast(`❌ No se pudo registrar ninguna baja`, 'var(--rojo)');
+    return;
+  }
+
   await sb('PATCH', 'novedades_ganaderas',
-    { detalle: { animales: animales_detalle, ciclos_cerrados } },
+    { cantidad: animales_detalle.length, detalle: { animales: animales_detalle, ciclos_cerrados } },
     `?id=eq.${novedadId}`);
 
-  toast(`✅ ${tipo} registrada · ${animalesAfectados.length} animal${animalesAfectados.length !== 1 ? 'es' : ''}`);
+  toast(`✅ ${tipo} registrada · ${animales_detalle.length} animal${animales_detalle.length !== 1 ? 'es' : ''}`);
   resetFormNovedad();
   document.getElementById('form-novedad-wrap').style.display = 'none';
   tabRodeoActiva = 'novedades';
