@@ -960,6 +960,11 @@ function renderTabAnimales(rodeoId, animales) {
             </div>`;
           }
 
+          // Aviso "Toca tacto" para Pendiente con ≥40 días de gestación
+          const tocaTactoHtml = (resUlt === 'Pendiente' && cicloGestCard?.diasGest != null && cicloGestCard.diasGest >= 40)
+            ? `<div style="background:#fff3cd;color:#856404;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;width:100%;margin-top:2px">🔔 Toca tacto</div>`
+            : '';
+
           // Datos de pesadas para la tarjeta
           const pesadasCard = pesadasAnimal.filter(p => p.animal_id === a.id).sort((x,y) => new Date(x.fecha)-new Date(y.fecha));
           const ultPesCard = pesadasCard.length ? pesadasCard[pesadasCard.length-1] : null;
@@ -1012,9 +1017,9 @@ function renderTabAnimales(rodeoId, animales) {
               <div style="width:18px;height:18px;background:${bgMain};border-radius:50%;border:2px solid rgba(255,255,255,0.6);box-shadow:0 1px 4px rgba(0,0,0,0.3)"></div>
             </div>
             <!-- cuerpo caravana -->
-            <div style="background:${bgCard};border:2px solid ${borderCard};border-radius:12px 12px 40% 40% / 12px 12px 22px 22px;padding:10px 12px 16px;box-shadow:2px 4px 10px rgba(0,0,0,0.15);display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+            <div style="background:${bgCard};border:2px solid ${borderCard};border-radius:12px 12px 40% 40% / 12px 12px 22px 22px;padding:10px 12px 16px;box-shadow:2px 4px 10px rgba(0,0,0,0.15);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:10px">
               <!-- orificio + ID -->
-              <div style="flex:1;min-width:0">
+              <div style="flex:1;min-width:140px;overflow-wrap:anywhere">
                 <div style="width:7px;height:7px;background:rgba(0,0,0,0.2);border-radius:50%;margin:0 auto 5px;border:1px solid ${borderCard}"></div>
                 <div style="text-align:center;margin-bottom:6px">
                   <span style="background:${bgMain};color:#fff;border-radius:20px;padding:2px 10px;font-size:13px;font-weight:700">${a.categoria || a.sexo || '—'}</span>
@@ -1027,9 +1032,10 @@ function renderTabAnimales(rodeoId, animales) {
                 ${lactantesCard.length ? `<div style="font-size:13px;color:var(--verde);margin-top:3px;text-align:center">🐣 cría activa</div>` : ''}
               </div>
               <!-- datos reproductivos / peso -->
-              <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;flex:1;text-align:center">
+              <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;flex:1;min-width:140px;text-align:center">
                 ${esHembraCard && resUlt ? `<div style="background:${bgReprod};color:${colReprod};border-radius:8px;padding:6px 10px;font-size:17px;font-weight:800;width:100%${vencidaBorder}">${estadoReprod}${vencidaCard || partoSinConfirmar ? ' ⚠' : ''}</div>` : ''}
-                ${esHembraCard && estadoFisio ? `<div style="background:${bgFisio};color:${colFisio};border-radius:8px;padding:5px 10px;font-size:14px;font-weight:700;width:100%">${estadoFisio}${fichaLactancia}</div>` : ''}
+                ${esHembraCard && estadoFisio ? `<div style="background:${bgFisio};color:${colFisio};border-radius:8px;padding:5px 10px;font-size:14px;font-weight:700;width:100%;overflow-wrap:anywhere">${estadoFisio}${fichaLactancia}</div>` : ''}
+                ${tocaTactoHtml}
                 ${fppHtml}
                 ${pesadasCardHtml}
               </div>
