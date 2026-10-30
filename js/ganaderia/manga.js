@@ -3284,8 +3284,10 @@ function _calcularControles(filtroRodeoId) {
         controles.push({ tipo: 'parto_sin_confirmar', animal, ciclo });
       }
 
-      // Control: lactancia sin cría o cría ya no al pie (cierreInferido)
-      if (ciclo.fase === 'lactancia' && (!ciclo.cria || ciclo.cierreInferido)) {
+      // Control: parto sin fecha_cierre explícita y sin cría o con cierreInferido.
+      // Cuando cierreInferido=true, ciclos.js pone fase='cerrado', no 'lactancia',
+      // por eso la condición usa estado='parto' + !fechaCierre en vez de fase='lactancia'.
+      if (ciclo.estado === 'parto' && !ciclo.fechaCierre && (!ciclo.cria || ciclo.cierreInferido)) {
         controles.push({ tipo: 'lactancia_sin_cerrar', animal, ciclo });
       }
 
@@ -3308,7 +3310,9 @@ function _calcularControles(filtroRodeoId) {
         }
       }
 
-      // Control: ciclo abierto en animal dado de baja
+      // Control: ciclo abierto en animal dado de baja.
+      // Nota: animalesRodeo solo carga activos; este control solo dispara para
+      // animales inactivos con ciclos cargados en la sesión anterior.
       if (!animal.activo && (ciclo.enGestacion || ciclo.fase === 'lactancia')) {
         controles.push({ tipo: 'ciclo_baja', animal, ciclo });
       }
@@ -3457,6 +3461,7 @@ function _htmlFilaControl(tipo, c, hoy) {
   } else if (tipo === 'doble_gestion') {
     const ciclosLabel = c.ciclos.map(ci => `${fmtFecha(ci.fechaServicio)} (${ci.resultado})`).join(', ');
     info = ciclosLabel;
+    // ciclosDeAnimal devuelve ascendente por fecha; el último es el más nuevo
     const idsViejos = c.ciclos.slice(0, -1).map(ci => ci.id).join(',');
     botones = `<button class="btn btn-secondary" style="font-size:11px;padding:3px 8px" onclick="_ctrlCerrarViejos('${idsViejos}')">Cerrar los viejos (Vacía)</button>`;
   } else if (tipo === 'tacto_toca') {
@@ -3490,22 +3495,32 @@ function _htmlFilaControl(tipo, c, hoy) {
 
 // ── Acciones de Controles ──────────────────────────────────────────────────────
 
-async function _ctrlRegistrarParto(animalId) {
-  if (!confirm('Se abrirá el formulario de Novedad → Nacimiento con este animal.')) return;
+// Helper: abre el formulario de novedad con tipo (y subtipo) ya elegidos
+function _ctrlAbrirNovedad(rodeoId, tipo, subtipo) {
+  abrirNuevoNovedad(rodeoId);
+  const t = document.getElementById('nov-tipo-main');
+  if (t) { t.value = tipo; onChangeTipoNovedad(); }
+  if (subtipo) {
+    const s = document.getElementById('nov-subtipo');
+    if (s) { s.value = subtipo; onChangeSubtipoNovedad(); }
+  }
+}
+
+function _ctrlRegistrarParto(animalId) {
   const animal = animalesRodeo.find(a => a.id === animalId);
   if (!animal) return;
-  seleccionarRodeoManga(animal.rodeo_id);
-  setTimeout(() => {
-    toggleFormNovedad();
-    setTimeout(() => {
-      const sel = document.getElementById('nov-tipo');
-      if (sel) { sel.value = 'Nacimiento'; sel.dispatchEvent(new Event('change')); }
-    }, 100);
-  }, 200);
+  _ctrlAbrirNovedad(animal.rodeo_id, 'Nacimiento');
+  // Pre-elegir la madre en la primera fila de nacimiento
+  agregarNacimientoRow();
+  const rows = document.querySelectorAll('.nacimiento-row');
+  if (rows.length) {
+    const sel = rows[rows.length - 1].querySelector('.nac-madre');
+    if (sel) sel.value = animalId;
+  }
 }
 
 async function _ctrlAborto(cicloId, animalId) {
-  if (!confirm('¿Registrar este ciclo como Abortó? Se marcará Vacía con motivo de cierre Aborto.')) return;
+  if (!confirm('¿Registrar este ciclo como Abortó?')) return;
   const fresh = await sb('GET', 'servicios_animal', null, `?id=eq.${cicloId}`);
   if (!fresh?.[0]) { toast('❌ No se encontró el servicio', 'var(--rojo)'); return; }
   const fTacto = fresh[0].fecha_tacto || fresh[0].fecha;
@@ -3560,9 +3575,20 @@ async function _ctrlConfirmarParto(srvId, partoFecha, criaId) {
 }
 
 async function _ctrlCerrarLactancia(cicloId, fechaDef, motivo) {
-  const fechaProp = fechaDef || new Date().toISOString().split('T')[0];
+  const hoyParts = new Date();
+  const hoyStr = hoyParts.getFullYear() + '-' + String(hoyParts.getMonth()+1).padStart(2,'0') + '-' + String(hoyParts.getDate()).padStart(2,'0');
+  const fechaProp = fechaDef || hoyStr;
   const fecha = prompt(`Fecha de cierre (YYYY-MM-DD):`, fechaProp);
   if (!fecha) return;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha) || isNaN(fechaLocal(fecha))) {
+    toast('Formato de fecha inválido. Usá YYYY-MM-DD', 'var(--rojo)'); return;
+  }
+  if (fechaLocal(fecha) > fechaLocal(hoyStr)) {
+    toast('La fecha de cierre no puede ser futura', 'var(--rojo)'); return;
+  }
+  if (fechaDef && fechaLocal(fecha) < fechaLocal(fechaDef)) {
+    toast(`La fecha de cierre no puede ser anterior al parto (${fmtFecha(fechaDef)})`, 'var(--rojo)'); return;
+  }
   if (!confirm(`¿Cerrar lactancia con motivo "${motivo}" el ${fmtFecha(fecha)}?`)) return;
   const fresh = await sb('GET', 'servicios_animal', null, `?id=eq.${cicloId}`);
   if (!fresh?.[0]) { toast('❌ No se encontró el servicio', 'var(--rojo)'); return; }
@@ -3596,26 +3622,29 @@ async function _ctrlCerrarViejos(idsStr) {
 }
 
 function _ctrlCargarTacto(rodeoId) {
-  seleccionarRodeoManga(rodeoId);
-  setTimeout(() => {
-    toggleFormNovedad();
-    setTimeout(() => {
-      const sel = document.getElementById('nov-tipo');
-      if (sel) { sel.value = 'Tacto / Preñez'; sel.dispatchEvent(new Event('change')); }
-    }, 100);
-  }, 200);
+  _ctrlAbrirNovedad(rodeoId, 'Trabajo de manga', 'Tacto / Preñez');
 }
 
 async function _ctrlCorregirFechaTacto(tactoId, fechaServicio) {
   const nueva = prompt(`Nueva fecha del tacto (YYYY-MM-DD, debe ser >= ${fmtFecha(fechaServicio)}):`, fechaServicio);
   if (!nueva) return;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(nueva) || isNaN(fechaLocal(nueva))) {
+    toast('Formato de fecha inválido. Usá YYYY-MM-DD', 'var(--rojo)'); return;
+  }
+  const hoyT = new Date(); hoyT.setHours(23,59,59,0);
+  if (fechaLocal(nueva) > hoyT) {
+    toast('La fecha del tacto no puede ser futura', 'var(--rojo)'); return;
+  }
   if (fechaLocal(nueva) < fechaLocal(fechaServicio)) {
     toast('La fecha del tacto debe ser posterior al servicio', 'var(--rojo)'); return;
   }
   if (!confirm(`¿Corregir fecha del tacto a ${fmtFecha(nueva)}?`)) return;
   const fresh = await sb('GET', 'servicios_animal', null, `?id=eq.${tactoId}`);
   if (!fresh?.[0]) { toast('❌ No se encontró el servicio', 'var(--rojo)'); return; }
-  const r = await sb('PATCH', 'servicios_animal', { fecha_tacto: nueva }, `?id=eq.${tactoId}`);
+  // Filas con metodo='Tacto' guardan la fecha del tacto en `fecha`, no en `fecha_tacto`
+  const esFila = (fresh[0].metodo || '').toLowerCase() === 'tacto';
+  const payload = esFila ? { fecha: nueva } : { fecha_tacto: nueva };
+  const r = await sb('PATCH', 'servicios_animal', payload, `?id=eq.${tactoId}`);
   if (!r) { toast('❌ Error al guardar', 'var(--rojo)'); return; }
   toast('✅ Fecha del tacto corregida');
   await cargarManga();
@@ -3657,12 +3686,5 @@ async function _ctrlCerrarCicloBaja(cicloId) {
 }
 
 function _ctrlAbrirDestete(rodeoId) {
-  seleccionarRodeoManga(rodeoId);
-  setTimeout(() => {
-    toggleFormNovedad();
-    setTimeout(() => {
-      const sel = document.getElementById('nov-tipo');
-      if (sel) { sel.value = 'Destete'; sel.dispatchEvent(new Event('change')); }
-    }, 100);
-  }, 200);
+  _ctrlAbrirNovedad(rodeoId, 'Destete');
 }
