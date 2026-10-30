@@ -2290,23 +2290,37 @@ async function procesarNovAborto(rodeoId, fecha) {
   const observaciones = document.getElementById('aborto-obs').value.trim();
   const madres = getAnimalesPorSelector('sel-aborto', rodeoId, a => a.sexo === 'Hembra');
 
+  const abortos_detalle = [];
+  const sinCiclo = [];
+
   for (const madre of madres) {
-    const ultimoSrv = serviciosAnimal
-      .filter(s => s.animal_id === madre.id && s.resultado !== 'Vacía')
-      .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))[0];
-    if (ultimoSrv) {
-      await sb('PATCH', 'servicios_animal', { resultado: 'Abortó', fecha_tacto: fecha, observaciones }, `?id=eq.${ultimoSrv.id}`);
-    }
+    // Solo actuar sobre el ciclo abierto (en gestación)
+    const ciclos = ciclosDeAnimal(madre.id);
+    const cicloAbierto = ciclos.slice().reverse().find(c => c.enGestacion) || null;
+    if (!cicloAbierto) { sinCiclo.push(madre); continue; }
+
+    const resultado_anterior = cicloAbierto.resultado;
+    const r = await sb('PATCH', 'servicios_animal',
+      { resultado: 'Abortó', fecha_tacto: fecha, fecha_cierre: fecha, motivo_cierre: 'Aborto',
+        ...(observaciones ? { observaciones } : {}) },
+      `?id=eq.${cicloAbierto.id}`);
+    if (r) abortos_detalle.push({ madre_id: madre.id, servicio_id: cicloAbierto.id, resultado_anterior });
   }
 
-  const madresResumen = getCaravanaResumen(madres);
-  const desc = `${madres.length} aborto${madres.length !== 1 ? 's' : ''}${madresResumen ? ' · madres: ' + madresResumen : ''}${observaciones ? ' · ' + observaciones : ''}`;
+  if (sinCiclo.length) {
+    toast(`⚠️ ${sinCiclo.length} vaca(s) sin ciclo abierto: ${getCaravanaResumen(sinCiclo)}`, 'var(--tierra)');
+    if (!abortos_detalle.length) return;
+  }
+
+  const madresResumen = getCaravanaResumen(madres.filter(m => abortos_detalle.some(a => a.madre_id === m.id)));
+  const desc = `${abortos_detalle.length} aborto${abortos_detalle.length !== 1 ? 's' : ''} · madres: ${madresResumen}${observaciones ? ' · ' + observaciones : ''}`;
   const r = await sb('POST', 'novedades_ganaderas', {
-    rodeo_id: rodeoId, fecha, tipo: 'Aborto', cantidad: madres.length || null, descripcion: desc
+    rodeo_id: rodeoId, fecha, tipo: 'Aborto', cantidad: abortos_detalle.length, descripcion: desc,
+    detalle: { abortos: abortos_detalle }
   });
 
   if (r) {
-    toast(`✅ Aborto registrado${madres.length ? ' · historial reproductivo actualizado' : ''}`);
+    toast(`✅ ${abortos_detalle.length} aborto${abortos_detalle.length !== 1 ? 's' : ''} registrado${abortos_detalle.length !== 1 ? 's' : ''}`);
     resetFormNovedad();
     document.getElementById('form-novedad-wrap').style.display = 'none';
     tabRodeoActiva = 'novedades';
@@ -2327,14 +2341,29 @@ async function procesarNovDestete(rodeoId, fecha) {
   const patch = { rodeo_id: destinoId };
   if (nuevaCat) patch.categoria = nuevaCat;
 
+  const ciclos_cerrados = [];
   for (const a of terneros) {
     await sb('PATCH', 'animales_rodeo', patch, `?id=eq.${a.id}`);
+
+    // Cerrar el ciclo de lactancia de la madre
+    const madre = madreDe(a);
+    if (madre) {
+      const ciclos = ciclosDeAnimal(madre.id);
+      const cicloLact = ciclos.slice().reverse().find(c => c.fase === 'lactancia' && c.cria?.id === a.id);
+      if (cicloLact) {
+        await sb('PATCH', 'servicios_animal',
+          { fecha_cierre: fecha, motivo_cierre: 'Destete' },
+          `?id=eq.${cicloLact.id}`);
+        ciclos_cerrados.push({ servicio_id: cicloLact.id, madre_id: madre.id, cria_id: a.id });
+      }
+    }
   }
 
   const destino = rodeos.find(r => r.id === destinoId);
   const desc = `${terneros.length} ternero${terneros.length !== 1 ? 's' : ''} → ${destino?.nombre || destinoId}${nuevaCat ? ' como ' + nuevaCat : ''} · ${getCaravanaResumen(terneros)}`;
   await sb('POST', 'novedades_ganaderas', {
-    rodeo_id: rodeoId, fecha, tipo: 'Destete', cantidad: terneros.length, descripcion: desc
+    rodeo_id: rodeoId, fecha, tipo: 'Destete', cantidad: terneros.length, descripcion: desc,
+    detalle: { terneros: terneros.map(a => ({ id: a.id, rodeo_id_origen: rodeoId })), ciclos_cerrados }
   });
 
   toast(`✅ Destete registrado · ${terneros.length} ternero${terneros.length !== 1 ? 's' : ''} trasladados`);
@@ -2351,6 +2380,19 @@ async function procesarNovBaja(rodeoId, fecha, tipo) {
 
   for (const a of animalesAfectados) {
     await sb('PATCH', 'animales_rodeo', { activo: false, fecha_baja: fecha, motivo_baja: motivo || tipo }, `?id=eq.${a.id}`);
+
+    // Si es una cría, cerrar el ciclo de lactancia de la madre
+    const madre = madreDe(a);
+    if (madre) {
+      const ciclos = ciclosDeAnimal(madre.id);
+      const cicloLact = ciclos.slice().reverse().find(c => c.fase === 'lactancia' && c.cria?.id === a.id);
+      if (cicloLact) {
+        const motivoCierre = tipo === 'Muerte' ? 'Cría muerta' : 'Cría vendida';
+        await sb('PATCH', 'servicios_animal',
+          { fecha_cierre: fecha, motivo_cierre: motivoCierre },
+          `?id=eq.${cicloLact.id}`);
+      }
+    }
   }
 
   const desc = `${animalesAfectados.length} animal${animalesAfectados.length !== 1 ? 'es' : ''}${motivo ? ': ' + motivo : ''} · ${getCaravanaResumen(animalesAfectados)}`;
@@ -2478,12 +2520,43 @@ async function guardarRodeo() {
 // ── Borrar ────────────────────────────────────────────────
 
 async function borrarNovedadManga(id) {
-  if (!confirm('¿Borrar esta novedad? Se eliminarán también los registros en las fichas de los animales afectados.')) return;
-  // Borrar registros en fichas individuales vinculados a esta novedad
-  await Promise.all([
-    sb('DELETE', 'servicios_animal', null, `?novedad_id=eq.${id}`),
-    sb('DELETE', 'sanidad_animal', null, `?novedad_id=eq.${id}`)
-  ]);
+  if (!confirm('¿Borrar esta novedad? Se revertirán los cambios en los animales afectados.')) return;
+
+  const nov = novedadesGanaderas.find(n => n.id === id);
+
+  if (nov?.tipo === 'Nacimiento' && nov.detalle?.nacimientos?.length) {
+    // Undo nacimientos: borrar crías creadas y limpiar fecha_parto/cria_id del ciclo
+    for (const n of nov.detalle.nacimientos) {
+      if (n.cria_id) await sb('DELETE', 'animales_rodeo', null, `?id=eq.${n.cria_id}`);
+      if (n.servicio_id) await sb('PATCH', 'servicios_animal',
+        { fecha_parto: null, cria_id: null, fecha_cierre: null, motivo_cierre: null },
+        `?id=eq.${n.servicio_id}`);
+    }
+  } else if (nov?.tipo === 'Aborto' && nov.detalle?.abortos?.length) {
+    // Undo aborto: restaurar resultado anterior en cada servicio
+    for (const a of nov.detalle.abortos) {
+      if (a.servicio_id) await sb('PATCH', 'servicios_animal',
+        { resultado: a.resultado_anterior, fecha_tacto: null, fecha_cierre: null, motivo_cierre: null },
+        `?id=eq.${a.servicio_id}`);
+    }
+  } else if (nov?.tipo === 'Destete' && nov.detalle?.terneros?.length) {
+    // Undo destete: devolver terneros al rodeo origen y reabrir ciclos
+    for (const t of nov.detalle.terneros) {
+      if (t.id) await sb('PATCH', 'animales_rodeo', { rodeo_id: t.rodeo_id_origen }, `?id=eq.${t.id}`);
+    }
+    for (const c of (nov.detalle.ciclos_cerrados || [])) {
+      if (c.servicio_id) await sb('PATCH', 'servicios_animal',
+        { fecha_cierre: null, motivo_cierre: null },
+        `?id=eq.${c.servicio_id}`);
+    }
+  } else {
+    // Comportamiento general: borrar servicios y sanidad vinculados
+    await Promise.all([
+      sb('DELETE', 'servicios_animal', null, `?novedad_id=eq.${id}`),
+      sb('DELETE', 'sanidad_animal', null, `?novedad_id=eq.${id}`)
+    ]);
+  }
+
   await sb('DELETE', 'novedades_ganaderas', null, `?id=eq.${id}`);
   novedadesGanaderas = novedadesGanaderas.filter(n => n.id !== id);
   serviciosAnimal = serviciosAnimal.filter(s => s.novedad_id !== id);
