@@ -1714,16 +1714,38 @@ function agregarInsumoManga() {
 function agregarNacimientoRow() {
   const list = document.getElementById('nov-nacimientos-list');
   if (!list) return;
+  const rodeoId = document.getElementById('nov-rodeo-main')?.value;
+  const hembras = rodeoId
+    ? animalesRodeo.filter(a => a.rodeo_id === rodeoId && a.sexo === 'Hembra')
+    : [];
+
+  // Clasificar por estado reproductivo (solo pista visual; el guardado hace fresh fetch)
+  const preñadas = [], pendientes = [], otras = [];
+  for (const h of hembras) {
+    const ciclos = ciclosDeAnimal(h.id);
+    const ult = ciclos.length ? ciclos[ciclos.length - 1] : null;
+    if (ult?.estado === 'preñada') {
+      const fppTxt = ult.fpp ? ' · FPP ' + fmtFecha(ult.fpp.toISOString().slice(0,10)) : '';
+      preñadas.push(`<option value="${h.id}">#${caravanaDisplay(h)} · Preñada${fppTxt}</option>`);
+    } else if (ult?.estado === 'pendiente') {
+      pendientes.push(`<option value="${h.id}">#${caravanaDisplay(h)} · Pendiente</option>`);
+    } else {
+      otras.push(`<option value="${h.id}">#${caravanaDisplay(h)} · Sin preñez registrada</option>`);
+    }
+  }
+  const opts = '<option value="">— Sin identificar —</option>' +
+    preñadas.join('') + pendientes.join('') + otras.join('');
+
   const div = document.createElement('div');
   div.className = 'nacimiento-row';
-  div.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;background:var(--fondo);padding:8px;border-radius:6px';
+  div.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr 1fr 100px auto;gap:8px;align-items:end;margin-bottom:8px;background:var(--fondo);padding:8px;border-radius:6px';
   div.innerHTML = `
     <div class="form-group" style="margin:0"><label>Sexo</label><select class="nac-sexo" onchange="this.closest('.nacimiento-row').querySelector('.nac-cat').innerHTML=catsPorSexo(this.value).map(c=>'<option>'+c+'</option>').join('')"><option>Macho</option><option>Hembra</option></select></div>
     <div class="form-group" style="margin:0"><label>Categoría</label><select class="nac-cat">${CATS_MACHO.map(c=>`<option>${c}</option>`).join('')}</select></div>
     <div class="form-group" style="margin:0"><label>Caravana (opc.)</label><input type="text" class="nac-caravana" placeholder="Ej: 06"></div>
-    <div class="form-group" style="margin:0"><label>Caravana madre</label><input type="text" class="nac-madre" placeholder="Ej: 01"></div>
-    <div class="form-group" style="margin:0"><label>Padre (opc.)</label><input type="text" class="nac-padre" placeholder="Se infiere del servicio"></div>
-    <button type="button" onclick="this.closest('.nacimiento-row').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--rojo);padding-bottom:6px;line-height:1">✕</button>`;
+    <div class="form-group" style="margin:0"><label>Madre</label><select class="nac-madre">${opts}</select></div>
+    <div class="form-group" style="margin:0"><label style="font-size:11px">Nació muerto</label><div style="padding-top:6px"><input type="checkbox" class="nac-muerto" style="width:18px;height:18px;cursor:pointer"></div></div>
+    <button type="button" onclick="this.closest('.nacimiento-row').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--rojo);padding-top:18px;line-height:1">✕</button>`;
   list.appendChild(div);
 }
 
@@ -1908,79 +1930,174 @@ async function procesarNovTrabajoManga(rodeoId, fecha) {
   } else toast('❌ Error al guardar', 'var(--rojo)');
 }
 
+// Dado un array de servicios (DB fresca), devuelve el ciclo abierto (Preñada > Pendiente, más nuevo)
+function _cicloAbiertoFresh(srvsDB) {
+  const srvs = srvsDB.slice().sort((a, b) => {
+    const da = fechaLocal(a.fecha), db = fechaLocal(b.fecha);
+    if (da - db !== 0) return da - db;
+    return (a.created_at || '') < (b.created_at || '') ? -1 : 1;
+  });
+  const ciclos = [];
+  for (const s of srvs) {
+    const esTacto = (s.metodo || '').toLowerCase() === 'tacto';
+    if (!esTacto || !ciclos.length) {
+      const n = { srv: s, tactos: [], filas: [s] };
+      if (esTacto) n.tactos.push(s);
+      ciclos.push(n);
+    } else {
+      ciclos[ciclos.length - 1].tactos.push(s);
+      ciclos[ciclos.length - 1].filas.push(s);
+    }
+  }
+  const abiertos = ciclos.filter(c => {
+    const ut = c.tactos.length ? c.tactos[c.tactos.length - 1] : null;
+    const res = ut?.resultado || c.srv.resultado || 'Pendiente';
+    if (res !== 'Preñada' && res !== 'Pendiente') return false;
+    return !c.filas.some(f => f.fecha_parto);
+  });
+  return (
+    abiertos.slice().reverse().find(c => {
+      const ut = c.tactos.length ? c.tactos[c.tactos.length - 1] : null;
+      return (ut?.resultado || c.srv.resultado) === 'Preñada';
+    }) ||
+    abiertos[abiertos.length - 1] ||
+    null
+  );
+}
+
 async function procesarNovNacimientos(rodeoId, fecha) {
   const filas = document.querySelectorAll('.nacimiento-row');
   if (!filas.length) { toast('Agregá al menos un nacimiento', 'var(--tierra)'); return; }
 
   const rodeo = rodeos.find(r => r.id === rodeoId);
-  const nacimientos = [];
-  let errores = 0;
+  const detalle_nacimientos = [];
+  let ok_count = 0;
+  const errores = [];
+
+  // Crear novedad primero para tener el id (se actualiza al final)
+  const novRes = await sb('POST', 'novedades_ganaderas', {
+    rodeo_id: rodeoId, fecha, tipo: 'Nacimiento', cantidad: 0, descripcion: 'Procesando…', detalle: {}
+  });
+  if (!novRes?.[0]) { toast('❌ Error al crear la novedad', 'var(--rojo)'); return; }
+  const novedadId = novRes[0].id;
 
   for (const fila of filas) {
     const sexo = fila.querySelector('.nac-sexo').value;
-    const caravana = fila.querySelector('.nac-caravana').value.trim();
-    const caravana_madre = fila.querySelector('.nac-madre').value.trim();
-    let caravana_padre = fila.querySelector('.nac-padre').value.trim();
-
-    // Inferir padre del último servicio de la madre
-    if (!caravana_padre && caravana_madre) {
-      const madre = animalesRodeo.find(a =>
-        a.caravana_interna === caravana_madre || a.caravana_electronica === caravana_madre
-      );
-      if (madre) {
-        const ultimoSrv = serviciosAnimal.filter(s => s.animal_id === madre.id && s.resultado === 'Preñada')
-          .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))[0];
-        if (ultimoSrv) caravana_padre = ultimoSrv.toro || '';
-      }
-    }
-
+    const caravana = fila.querySelector('.nac-caravana').value.trim() || null;
+    const madreId = fila.querySelector('.nac-madre').value || null;
+    const nacioMuerto = fila.querySelector('.nac-muerto')?.checked || false;
     const categoria = fila.querySelector('.nac-cat')?.value || (sexo === 'Macho' ? 'Ternero' : 'Ternera');
-    nacimientos.push({ sexo, caravana, caravana_madre, caravana_padre, categoria });
 
-    // Heredar renspa de la madre
-    const madre = animalesRodeo.find(a =>
-      a.caravana_interna === caravana_madre || a.caravana_electronica === caravana_madre
-    );
-    const renspa_id = madre?.renspa_id || null;
+    const madre = madreId ? animalesRodeo.find(a => a.id === madreId) : null;
 
-    const animalRes = await sb('POST', 'animales_rodeo', {
-      rodeo_id: rodeoId, caravana_electronica: caravana || null, sexo, categoria,
-      raza: rodeo?.raza || null, fecha_nacimiento: fecha,
-      caravana_madre: caravana_madre || null, caravana_padre: caravana_padre || null,
-      renspa_id, activo: true
-    });
-    if (!animalRes) { errores++; continue; }
-
-    // Cerrar el servicio activo de la madre con fecha_parto
+    // Fresh fetch de servicios de la madre para encontrar ciclo abierto
+    let cicloAbierto = null;
+    let abiertosCount = 0;
     if (madre) {
-      const srvMadre = serviciosAnimal
-        .filter(s => s.animal_id === madre.id && s.resultado === 'Preñada' && !s.fecha_parto)
-        .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))[0];
-      if (srvMadre) {
-        await sb('PATCH', 'servicios_animal', { fecha_parto: fecha }, `?id=eq.${srvMadre.id}`);
-        srvMadre.fecha_parto = fecha; // actualizar en memoria
+      const srvsDB = await sb('GET', 'servicios_animal', null, `?animal_id=eq.${madre.id}&order=fecha.asc`);
+      if (srvsDB?.length) {
+        cicloAbierto = _cicloAbiertoFresh(srvsDB);
+        // Contar cuántos abiertos hay (para advertir si hay más de uno)
+        const srvs = srvsDB.slice().sort((a, b) => fechaLocal(a.fecha) - fechaLocal(b.fecha));
+        const ciclosT = [];
+        for (const s of srvs) {
+          const esTacto = (s.metodo || '').toLowerCase() === 'tacto';
+          if (!esTacto || !ciclosT.length) { ciclosT.push({ srv: s, tactos: [], filas: [s] }); if (esTacto) ciclosT[ciclosT.length-1].tactos.push(s); }
+          else { ciclosT[ciclosT.length-1].tactos.push(s); ciclosT[ciclosT.length-1].filas.push(s); }
+        }
+        abiertosCount = ciclosT.filter(c => {
+          const ut = c.tactos.length ? c.tactos[c.tactos.length-1] : null;
+          const res = ut?.resultado || c.srv.resultado || 'Pendiente';
+          return (res === 'Preñada' || res === 'Pendiente') && !c.filas.some(f => f.fecha_parto);
+        }).length;
+      }
+
+      if (!cicloAbierto) {
+        const ok = confirm(`La vaca #${caravanaDisplay(madre)} no figura preñada. ¿Registrar el parto de todas formas?`);
+        if (!ok) continue;
+      } else if (abiertosCount > 1) {
+        toast(`⚠️ #${caravanaDisplay(madre)} tiene ${abiertosCount} ciclos abiertos, se usó el más reciente`, 'var(--tierra)');
       }
     }
+
+    const servicioId = cicloAbierto?.srv?.id || null;
+    let caravana_padre = cicloAbierto?.srv?.toro || null;
+
+    if (nacioMuerto) {
+      // Sin animal; cerrar el ciclo directamente
+      if (servicioId) {
+        const p = await sb('PATCH', 'servicios_animal',
+          { fecha_parto: fecha, fecha_cierre: fecha, motivo_cierre: 'Cría muerta' },
+          `?id=eq.${servicioId}`);
+        if (p) {
+          detalle_nacimientos.push({ cria_id: null, madre_id: madre?.id || null, servicio_id: servicioId, nacio_muerto: true });
+          ok_count++;
+        } else {
+          errores.push(`#${caravanaDisplay(madre)} — error al cerrar ciclo`);
+        }
+      } else {
+        // Sin ciclo y nació muerto: solo contar como registrado
+        detalle_nacimientos.push({ cria_id: null, madre_id: madre?.id || null, servicio_id: null, nacio_muerto: true });
+        ok_count++;
+      }
+      continue;
+    }
+
+    // Crear el animal
+    const animalData = {
+      rodeo_id: rodeoId, activo: true, sexo, categoria,
+      caravana_interna: caravana || null,
+      raza: rodeo?.raza || null,
+      fecha_nacimiento: fecha,
+      madre_id: madre?.id || null,
+      caravana_madre: madre ? caravanaDisplay(madre) : null,
+      caravana_padre: caravana_padre || null,
+      renspa_id: madre?.renspa_id || null,
+      novedad_id: novedadId
+    };
+    const animalRes = await sb('POST', 'animales_rodeo', animalData);
+    if (!animalRes?.[0]) {
+      errores.push(madre ? `#${caravanaDisplay(madre)} — error al crear cría` : 'Sin madre — error al crear cría');
+      continue;
+    }
+    const criaId = animalRes[0].id;
+
+    // Registrar el parto en el ciclo (queda en estado lactancia, no se cierra)
+    if (servicioId) {
+      const p = await sb('PATCH', 'servicios_animal',
+        { fecha_parto: fecha, cria_id: criaId },
+        `?id=eq.${servicioId}`);
+      if (!p) {
+        // Rollback: borrar la cría recién creada
+        await sb('DELETE', 'animales_rodeo', null, `?id=eq.${criaId}`);
+        errores.push(`#${caravanaDisplay(madre)} — error al registrar parto (cría eliminada)`);
+        continue;
+      }
+    }
+
+    detalle_nacimientos.push({ cria_id: criaId, madre_id: madre?.id || null, servicio_id: servicioId });
+    ok_count++;
   }
 
-  if (errores > 0) {
-    toast(`❌ Error al crear ${errores} animal(es). Revisá la consola.`, 'var(--rojo)');
-    return;
+  // Actualizar la novedad con resultados reales
+  const desc = detalle_nacimientos.map(n => {
+    const m = n.madre_id ? animalesRodeo.find(a => a.id === n.madre_id) : null;
+    const mLabel = m ? `m:#${caravanaDisplay(m)}` : '?';
+    return `${n.nacio_muerto ? '† ' : ''}${mLabel}`;
+  }).join(', ');
+  await sb('PATCH', 'novedades_ganaderas',
+    { cantidad: ok_count, descripcion: desc, detalle: { nacimientos: detalle_nacimientos } },
+    `?id=eq.${novedadId}`);
+
+  if (errores.length) {
+    toast(`⚠️ ${ok_count} ok · ❌ ${errores.length} error(es): ${errores.slice(0,2).join('; ')}`, 'var(--tierra)');
+  } else {
+    toast(`✅ ${ok_count} nacimiento${ok_count !== 1 ? 's' : ''} registrado${ok_count !== 1 ? 's' : ''}`);
   }
-
-  const desc = nacimientos.map(n => `${n.sexo === 'Macho' ? '♂' : '♀'}${n.caravana ? ' #' + n.caravana : ''}${n.caravana_madre ? ' (m:' + n.caravana_madre + ')' : ''}`).join(', ');
-  const r = await sb('POST', 'novedades_ganaderas', {
-    rodeo_id: rodeoId, fecha, tipo: 'Nacimiento', cantidad: filas.length, descripcion: desc,
-    detalle: { nacimientos }
-  });
-
-  if (r) {
-    toast(`✅ ${filas.length} nacimiento${filas.length !== 1 ? 's' : ''} registrado${filas.length !== 1 ? 's' : ''}`);
-    resetFormNovedad();
-    document.getElementById('form-novedad-wrap').style.display = 'none';
-    tabRodeoActiva = 'novedades';
-    await cargarManga();
-  } else toast('❌ Error', 'var(--rojo)');
+  resetFormNovedad();
+  document.getElementById('form-novedad-wrap').style.display = 'none';
+  tabRodeoActiva = 'novedades';
+  await cargarManga();
 }
 
 async function procesarNovIngreso(rodeoId, fecha) {
