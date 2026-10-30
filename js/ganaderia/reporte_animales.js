@@ -129,17 +129,14 @@ function _ejecutarReporteAnimales(rodeoId, formato) {
   const cabecera = cols.map(c => c.label);
 
   const filas = animales.map(a => {
-    const srvs = serviciosAnimal.filter(s => s.animal_id === a.id).sort((x,y) => new Date(y.fecha)-new Date(x.fecha));
-    const ultSrv = srvs[0];
-    const estReprod = estadoReprodAnimal(a.id);
+    const { etiqueta: estReprod, ciclo: cicloRep } = estadoReproductivo(a.id);
 
     // Fecha parto / probable
     let fechaPartoCelda = '—';
-    if (estReprod === 'Preñada' && ultSrv?.fecha) {
-      const fp = new Date(ultSrv.fecha); fp.setDate(fp.getDate() + 270);
-      fechaPartoCelda = 'Probable: ' + _fmtF(fp);
-    } else if (estReprod === 'Vacía' && ultSrv?.fecha_parto) {
-      fechaPartoCelda = 'Real: ' + ultSrv.fecha_parto;
+    if (estReprod === 'Preñada' && cicloRep?.fpp) {
+      fechaPartoCelda = 'Probable: ' + _fmtF(cicloRep.fpp);
+    } else if (estReprod === 'Vacía' && cicloRep?.fechaPartoEfectiva) {
+      fechaPartoCelda = 'Real: ' + cicloRep.fechaPartoEfectiva;
     }
 
     // Último peso y GDP
@@ -199,15 +196,19 @@ function _abrirPdfAnimales(rodeo, rodeoId, cabecera, filas, animales, camposSele
   const catHtml = Object.entries(cats).sort((a,b)=>b[1]-a[1])
     .map(([k,v]) => `<span style="margin-right:12px"><strong>${v}</strong> ${k}</span>`).join('');
 
-  // Parición (si hay campaña activa y hay vacas)
-  const idsAnimales = new Set(animales.filter(a => a.categoria === 'Vaca').map(a => a.id));
-  const srvsPreñadas = serviciosAnimal.filter(s => idsAnimales.has(s.animal_id) && s.resultado === 'Preñada');
+  // Parición por ciclos
+  let parieron = 0, faltan = 0;
+  for (const vaca of animales.filter(a => a.categoria === 'Vaca')) {
+    const ciclosVaca = ciclosDeAnimal(vaca.id);
+    const masNuevo = ciclosVaca.length ? ciclosVaca[ciclosVaca.length - 1] : null;
+    if (!masNuevo) continue;
+    if (masNuevo.estado === 'parto') parieron++;
+    if (masNuevo.enGestacion) faltan++;
+  }
   let paricionHtml = '';
-  if (srvsPreñadas.length) {
-    const parieron = srvsPreñadas.filter(s => s.fecha_parto).length;
-    const faltan   = srvsPreñadas.filter(s => !s.fecha_parto).length;
+  if (parieron || faltan) {
     paricionHtml = `<div style="margin-top:8px;font-size:13px">
-      🐄 Parición: <strong style="color:#1a7a3a">${parieron} parieron</strong> · <strong style="color:#7a5a00">${faltan} faltan parir</strong>
+      🐄 Parición: <strong style="color:#1a7a3a">${parieron} parieron</strong> · <strong style="color:#7a5a00">${faltan} en gestación</strong>
     </div>`;
   }
 

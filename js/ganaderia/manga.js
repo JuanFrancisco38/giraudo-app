@@ -335,16 +335,34 @@ function renderRodeosManga() {
            </div>`
         : '';
 
-      // Renglón de parición — solo si hay vacas con servicio Preñada en este rodeo
-      const idsRodeo = new Set(animalesDelRodeo.filter(a => esVaca(a)).map(a => a.id));
-      const srvsPrenadasRodeo = serviciosAnimal.filter(s => idsRodeo.has(s.animal_id) && s.resultado === 'Preñada');
+      // Renglón de parición — por ciclos, campaña activa del rodeo
+      const vacasRodeo = animalesDelRodeo.filter(a => esVaca(a) || a.categoria === 'Vaquillona');
+      const campActivaRodeo = campanias.find(c => c.rodeo_id === r.id && c.activa);
       let paricionHtml = '';
-      if (srvsPrenadasRodeo.length) {
-        const parieron = srvsPrenadasRodeo.filter(s => s.fecha_parto).length;
-        const faltan   = srvsPrenadasRodeo.filter(s => !s.fecha_parto).length;
-        paricionHtml = `<div style="font-size:12px;margin-top:6px;color:var(--texto-suave);border-top:1px solid var(--gris-borde);padding-top:6px">
-          🐄 Parición: <strong style="color:#1a7a3a">${parieron} parieron</strong> · <strong style="color:#7a5a00">${faltan} faltan parir</strong>
-        </div>`;
+      {
+        let servidas = 0, preñadas = 0, parieron = 0, faltan = 0, lactando = 0;
+        for (const vaca of vacasRodeo) {
+          const ciclosVaca = ciclosDeAnimal(vaca.id);
+          for (const ciclo of ciclosVaca) {
+            // Filtrar por campaña activa si hay una; si no, últimos 14 meses
+            const ok = campActivaRodeo
+              ? ciclo.campaniaId === campActivaRodeo.id
+              : (ciclo.fechaServicio && (new Date() - new Date(ciclo.fechaServicio)) / 86400000 <= 425);
+            if (!ok) continue;
+            servidas++;
+            if (ciclo.estado === 'preñada') preñadas++;
+            if (ciclo.estado === 'parto')   parieron++;
+            if (ciclo.enGestacion && ciclo.estado !== 'pendiente') faltan++;
+          }
+          if (criasLactantes(vaca).length > 0) lactando++;
+        }
+        if (servidas > 0) {
+          paricionHtml = `<div style="font-size:12px;margin-top:6px;color:var(--texto-suave);border-top:1px solid var(--gris-borde);padding-top:6px;display:flex;flex-wrap:wrap;gap:8px">
+            <span>🐄 <strong style="color:#1a7a3a">${parieron}</strong> parieron</span>
+            <span>· <strong style="color:#7a5a00">${faltan}</strong> faltan parir</span>
+            ${lactando ? `<span>· 🐣 <strong style="color:#1a5f8a">${lactando}</strong> al pie</span>` : ''}
+          </div>`;
+        }
       }
 
       return `<div onclick="seleccionarRodeoManga('${r.id}')" style="cursor:pointer;background:var(--fondo);border:2px solid ${sel ? 'var(--bordo)' : 'var(--gris-borde)'};border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:4px;box-shadow:${sel ? '0 2px 8px rgba(128,0,32,0.15)' : '0 1px 3px rgba(0,0,0,0.05)'}">
@@ -453,22 +471,24 @@ function renderTabIndices(rodeoId, novedades) {
   const campSelecObj = campsRodeo.find(c => c.id === campSelec);
   const novFilt = novRodeo; // novedades sin filtro formal de campaña por ahora
 
-  // Servicios desde servicios_animal (animales individuales), filtrados por campaña si hay una seleccionada
-  const srvRodeoTodos = (window._allServicios || []).filter(s => s.rodeo_id === rodeoId);
-  const srvRodeo = campSelec
-    ? srvRodeoTodos.filter(s => s.campania_id === campSelec)
-    : srvRodeoTodos;
-  const inseminadasSrv = srvRodeo.filter(s => s.metodo === 'IATF' || s.metodo === 'Toro').length;
+  // Servicios/ciclos desde ciclosDeAnimal (por animal del rodeo)
+  const animalesDelRodeoIdx = animalesRodeo.filter(a => a.rodeo_id === rodeoId && (a.categoria === 'Vaca' || a.categoria === 'Vaquillona'));
+  let inseminadasSrv = 0, prenadasSrv = 0;
+  for (const vaca of animalesDelRodeoIdx) {
+    const ciclosVaca = ciclosDeAnimal(vaca.id);
+    for (const ciclo of ciclosVaca) {
+      const ok = campSelec ? ciclo.campaniaId === campSelec : true;
+      if (!ok) continue;
+      if (ciclo.srv.metodo === 'IATF' || ciclo.srv.metodo === 'Toro' || ciclo.srv.metodo === 'Toro suelto') inseminadasSrv++;
+      if (ciclo.estado === 'preñada' || ciclo.estado === 'parto') prenadasSrv++;
+    }
+  }
 
-  // Inseminadas desde novedades de manga (Trabajo de manga - IATF o Inseminación)
+  // Fallback novedades si no hay ciclos individuales
   const inseminadasNov = novFilt
     .filter(n => n.tipo === 'Trabajo de manga' && n.subtipo && (n.subtipo.includes('IATF') || n.subtipo.includes('Inseminación') || n.subtipo.includes('Servicio')))
     .reduce((s, n) => s + (n.cantidad || 0), 0);
   const inseminadas = inseminadasSrv || inseminadasNov;
-
-  // Preñadas desde servicios_animal
-  const prenadasSrv = srvRodeo.filter(s => s.metodo === 'Tacto' && s.resultado === 'Preñada').length;
-  // Preñadas desde novedades de manga (Trabajo de manga - Tacto)
   const tactoNov = novFilt.find(n => n.tipo === 'Trabajo de manga' && n.subtipo && n.subtipo.includes('Tacto'));
   const prenNov  = tactoNov?.detalle?.prenadas || (tactoNov?.cantidad || 0);
   const totalPren = prenadasSrv || prenNov;
@@ -880,48 +900,59 @@ function renderTabAnimales(rodeoId, animales) {
     ${animalesFiltrados.length
       ? `<div class="lotes-grid">${animalesFiltrados.map(a => {
           const color = a.sexo === 'Hembra' ? 'bordo' : 'cielo';
-          const servicios = serviciosAnimal.filter(s => s.animal_id === a.id);
-          const ultimoSrv = servicios[0];
-          const _ref = a.caravana_interna || a.caravana_electronica;
-          const crias = _ref ? animalesRodeo.filter(x => x.caravana_madre === _ref).length : 0;
           const esHembraCard = a.sexo === 'Hembra';
 
-          // Estado reproductivo basado en último servicio; Preñada con fecha_parto ya registrada → Vacía
-          const resUlt = estadoReprodAnimal(a.id);
+          // Estado reproductivo (ciclos.js)
+          const { etiqueta: resUlt, ciclo: cicloCard, vencida: vencidaCard, detalle: detalleReprod, partoSinConfirmar } = estadoReproductivo(a.id);
           const estadoReprod = resUlt || (esHembraCard ? 'Sin datos' : '');
+
+          const vencidaBorder = (vencidaCard || partoSinConfirmar) ? ';border:2px solid #e67e22' : '';
           const colReprod = resUlt === 'Preñada' ? '#1a7a3a' : resUlt === 'Vacía' ? '#b32b2b' : resUlt === 'Pendiente' ? '#7a5a00' : resUlt === 'Abortó' ? '#7a2020' : '#666';
           const bgReprod  = resUlt === 'Preñada' ? '#d4edda' : resUlt === 'Vacía' ? '#fce8e8' : resUlt === 'Pendiente' ? '#fff3cd' : resUlt === 'Abortó' ? '#fce8e8' : '#f0f0f0';
 
-          // Estado fisiológico
-          let estadoFisio = '', colFisio = '', bgFisio = '';
+          // Estado fisiológico (cría al pie real)
+          const lactantesCard = esHembraCard ? criasLactantes(a) : [];
+          let estadoFisio = '', colFisio = '', bgFisio = '', fichaLactancia = '';
           if (esHembraCard) {
-            if (crias > 0) { estadoFisio = 'En lactancia'; colFisio = '#1a5f8a'; bgFisio = '#d0eaf8'; }
-            else           { estadoFisio = 'Seca';         colFisio = '#5a4a1a'; bgFisio = '#f5ecd5'; }
+            if (lactantesCard.length > 0) {
+              estadoFisio = 'En lactancia'; colFisio = '#1a5f8a'; bgFisio = '#d0eaf8';
+              const cria0 = lactantesCard[0];
+              const hoyLact = new Date(); hoyLact.setHours(0,0,0,0);
+              const edadCria = cria0.fecha_nacimiento ? Math.floor((hoyLact - new Date(cria0.fecha_nacimiento)) / 86400000) : null;
+              fichaLactancia = ` · cría #${caravanaDisplay(cria0)}${edadCria != null ? ` · ${edadCria}d` : ''}`;
+            } else {
+              estadoFisio = 'Seca'; colFisio = '#5a4a1a'; bgFisio = '#f5ecd5';
+            }
           }
 
-          // Fecha probable / real de parto
+          // Fecha probable / parió (del ciclo en gestación, o del más nuevo)
+          const fmtFP = d => { const dd=String(d.getDate()).padStart(2,'0'),mm=String(d.getMonth()+1).padStart(2,'0'),aa=String(d.getFullYear()).slice(-2); return `${dd}/${mm}/${aa}`; };
+          const hoyCard = new Date(); hoyCard.setHours(0,0,0,0);
           let fppHtml = '';
-          if (resUlt === 'Preñada' && ultimoSrv?.fecha) {
-            const fSrv = new Date(ultimoSrv.fecha);
-            const fParto = new Date(fSrv); fParto.setDate(fParto.getDate() + 270);
-            const hoyCard = new Date(); hoyCard.setHours(0,0,0,0);
-            const diasG = Math.floor((hoyCard - fSrv) / 86400000);
-            const diasR = Math.floor((fParto - hoyCard) / 86400000);
-            const fmtFP = d => { const dd=String(d.getDate()).padStart(2,'0'),mm=String(d.getMonth()+1).padStart(2,'0'),aa=String(d.getFullYear()).slice(-2); return `${dd}/${mm}/${aa}`; };
-            fppHtml = `<div style="margin-top:6px;text-align:center">
-              <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px">Parto probable</div>
-              <div style="font-size:16px;font-weight:700;color:#1a7a3a">${fmtFP(fParto)}</div>
-              <div style="font-size:13px;color:#555">${diasG} días gest. · ${diasR > 0 ? diasR + ' días' : '¡Vencida!'}</div>
-            </div>`;
-          } else if (resUlt === 'Vacía' && ultimoSrv?.fecha_parto) {
-            const fmtFP = d => { const dd=String(d.getDate()).padStart(2,'0'),mm=String(d.getMonth()+1).padStart(2,'0'),aa=String(d.getFullYear()).slice(-2); return `${dd}/${mm}/${aa}`; };
-            const fParto = new Date(ultimoSrv.fecha_parto);
-            const hoyCard = new Date(); hoyCard.setHours(0,0,0,0);
+          // Buscar ciclo en gestación (puede ser diferente del más nuevo si hay uno viejo en lactancia)
+          const todosLosCiclosCard = ciclosDeAnimal(a.id);
+          const cicloGestCard = todosLosCiclosCard.slice().reverse().find(c => c.enGestacion) || cicloCard;
+          if (resUlt === 'Preñada' || resUlt === 'Pendiente') {
+            const cicloSrc = cicloGestCard || cicloCard;
+            if (cicloSrc?.fpp) {
+              const diasG = cicloSrc.diasGest ?? 0;
+              const diasR = cicloSrc.diasParaParto ?? 0;
+              const flagVenc = vencidaCard ? `<span style="color:#e67e22;font-size:11px">⚠ Vencida</span>` : '';
+              fppHtml = `<div style="margin-top:6px;text-align:center">
+                <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px">Parto probable</div>
+                <div style="font-size:16px;font-weight:700;color:#1a7a3a">${fmtFP(cicloSrc.fpp)}</div>
+                <div style="font-size:13px;color:#555">${diasG} días gest. · ${diasR > 0 ? diasR + ' días' : flagVenc || '¡Vencida!'}</div>
+              </div>`;
+            }
+          } else if (resUlt === 'Vacía' && cicloCard?.fechaPartoEfectiva) {
+            const fParto = new Date(cicloCard.fechaPartoEfectiva);
             const diasDesde = Math.floor((hoyCard - fParto) / 86400000);
+            const sinConfirm = partoSinConfirmar ? `<div style="font-size:10px;color:#e67e22">parto sin confirmar</div>` : '';
             fppHtml = `<div style="margin-top:6px;text-align:center">
-              <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px">Parto</div>
+              <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px">Parió</div>
               <div style="font-size:16px;font-weight:700;color:#1a7a3a">${fmtFP(fParto)}</div>
-              <div style="font-size:13px;color:#555">${diasDesde} días</div>
+              <div style="font-size:13px;color:#555">hace ${diasDesde} días</div>
+              ${sinConfirm}
             </div>`;
           }
 
@@ -952,11 +983,13 @@ function renderTabAnimales(rodeoId, animales) {
 
           const catAmarilla = ['Ternero','Novillito','Novillo'].includes(a.categoria);
           const catNaranja  = ['Ternera','Vaquillona'].includes(a.categoria);
+          const catAmarilla = ['Ternero','Novillito','Novillo'].includes(a.categoria);
+          const catNaranja  = ['Ternera','Vaquillona'].includes(a.categoria);
           const bgCard = resUlt === 'Pre' + '\u00f1' + 'ada' ? '#f0faf3'
             : resUlt === 'Vac' + '\u00ed' + 'a' ? '#fdf3f3'
             : resUlt === 'Abort' + '\u00f3' ? '#fdf3f3'
             : resUlt === 'Pendiente' ? '#fdfaf0'
-            : crias > 0 ? '#eef5fb'
+            : lactantesCard.length > 0 ? '#eef5fb'
             : catAmarilla ? '#fdfbe8'
             : catNaranja  ? '#fdf3e8'
             : '#fafafa';
@@ -964,7 +997,7 @@ function renderTabAnimales(rodeoId, animales) {
             : resUlt === 'Vac' + '\u00ed' + 'a' ? '#e8a0a0'
             : resUlt === 'Abort' + '\u00f3' ? '#e8a0a0'
             : resUlt === 'Pendiente' ? '#d4c060'
-            : crias > 0 ? '#7ab0d8'
+            : lactantesCard.length > 0 ? '#7ab0d8'
             : catAmarilla ? '#d4c840'
             : catNaranja  ? '#d4904a'
             : '#ccc';
@@ -989,12 +1022,12 @@ function renderTabAnimales(rodeoId, animales) {
                 <div style="font-size:14px;color:var(--texto-suave);text-align:center">${a.raza || ''}</div>
                 ${a.caravana_madre ? `<div style="font-size:13px;color:var(--texto-suave);margin-top:3px;text-align:center">Madre: ${a.caravana_madre}</div>` : ''}
                 ${a.renspa_id ? `<div style="font-size:13px;color:var(--cielo);margin-top:3px;text-align:center">🏷️ ${renspaLabel(a.renspa_id) || ''}</div>` : ''}
-                ${crias ? `<div style="font-size:13px;color:var(--verde);margin-top:3px;text-align:center">🐣 ${crias} cría${crias !== 1 ? 's' : ''}</div>` : ''}
+                ${lactantesCard.length ? `<div style="font-size:13px;color:var(--verde);margin-top:3px;text-align:center">🐣 cría activa</div>` : ''}
               </div>
               <!-- datos reproductivos / peso -->
               <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;flex:1;text-align:center">
-                ${esHembraCard && resUlt ? `<div style="background:${bgReprod};color:${colReprod};border-radius:8px;padding:6px 10px;font-size:17px;font-weight:800;width:100%">${estadoReprod}</div>` : ''}
-                ${esHembraCard && estadoFisio ? `<div style="background:${bgFisio};color:${colFisio};border-radius:8px;padding:5px 10px;font-size:15px;font-weight:700;width:100%">${estadoFisio}</div>` : ''}
+                ${esHembraCard && resUlt ? `<div style="background:${bgReprod};color:${colReprod};border-radius:8px;padding:6px 10px;font-size:17px;font-weight:800;width:100%${vencidaBorder}">${estadoReprod}${vencidaCard || partoSinConfirmar ? ' ⚠' : ''}</div>` : ''}
+                ${esHembraCard && estadoFisio ? `<div style="background:${bgFisio};color:${colFisio};border-radius:8px;padding:5px 10px;font-size:14px;font-weight:700;width:100%">${estadoFisio}${fichaLactancia}</div>` : ''}
                 ${fppHtml}
                 ${pesadasCardHtml}
               </div>
@@ -1144,105 +1177,89 @@ function renderContenidoFicha(tab) {
   }
 
   if (tab === 'reproductivo' && esHembra) {
-    const ref = a.caravana_interna || a.caravana_electronica;
+    // Usar ciclosDeAnimal de ciclos.js
+    const ciclosFicha = ciclosDeAnimal(a.id);
 
-    // ── Armar ciclos reproductivos ──────────────────────────
-    // Ordenar servicios cronológicamente (más antiguo primero)
-    const srvOrdenados = [...servicios].sort((x, y) => new Date(x.fecha) - new Date(y.fecha));
-
-    // Agrupar: cada IATF/Toro abre un nuevo ciclo; Tacto se adhiere al ciclo anterior
-    const ciclos = [];
-    srvOrdenados.forEach(s => {
-      const esTacto = (s.metodo || '').toLowerCase() === 'tacto';
-      if (!esTacto || !ciclos.length) {
-        ciclos.push({ srv: s, tactos: esTacto ? [] : [], srvId: s.id });
-        if (esTacto) ciclos[ciclos.length - 1].tactos.push(s);
-      } else {
-        ciclos[ciclos.length - 1].tactos.push(s);
-      }
-    });
-
-    // Para cada ciclo buscar parición entre las crías de este animal
-    const refMadre = a.caravana_interna || a.caravana_electronica;
-    const criasAnimal = animalesRodeo.filter(x => x.caravana_madre && refMadre &&
-      (x.caravana_madre === a.caravana_interna || x.caravana_madre === a.caravana_electronica));
-
-    function paricionDeCiclo(ciclo) {
-      if (!ciclo.srv.fecha) return null;
-      const fSrv = new Date(ciclo.srv.fecha);
-      // Buscar cría nacida entre 180 y 340 días después del servicio
-      return criasAnimal.find(c => {
-        if (!c.fecha_nacimiento) return false;
-        const dias = (new Date(c.fecha_nacimiento) - fSrv) / 86400000;
-        return dias >= 180 && dias <= 340;
-      }) || null;
-    }
-
-    // Banner de gestación activa (ciclo más reciente con Preñada/Pendiente)
-    const cicloActivo = [...ciclos].reverse().find(c => {
-      const resUlt = c.tactos.length
-        ? c.tactos[c.tactos.length - 1].resultado
-        : c.srv.resultado;
-      return resUlt === 'Preñada' || resUlt === 'Pendiente';
-    });
+    // Banner de gestación o lactancia
+    const fmtD = d => new Date(d).toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'});
+    const cicloEnGest = [...ciclosFicha].reverse().find(c => c.enGestacion);
+    const cicloEnLact = [...ciclosFicha].reverse().find(c => c.fase === 'lactancia');
     const bannerHtml = (() => {
-      if (!cicloActivo || !cicloActivo.srv.fecha) return '';
-      const fSrv = new Date(cicloActivo.srv.fecha);
-      const fParto = new Date(fSrv); fParto.setDate(fParto.getDate() + 270);
-      const hoy = new Date(); hoy.setHours(0,0,0,0);
-      const diasG = Math.floor((hoy - fSrv) / 86400000);
-      const diasR = Math.floor((fParto - hoy) / 86400000);
-      const fmtD = d => d.toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'});
-      const badge = diasG >= 270
-        ? `<span class="badge badge-bordo" style="font-size:13px">¡Parto vencido!</span>`
-        : diasR <= 30
-          ? `<span class="badge badge-tierra" style="font-size:13px">Próxima al parto (${diasR} días)</span>`
-          : `<span class="badge badge-verde" style="font-size:13px">En gestación</span>`;
-      return `<div style="background:var(--fondo);border:1px solid var(--gris-borde);border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:16px;align-items:center">
-        ${badge}
-        <div style="display:flex;flex-wrap:wrap;gap:20px">
-          <div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Servicio</div><div style="font-size:15px;font-weight:700">${fmtD(fSrv)}</div></div>
-          <div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Días gestantes</div><div style="font-size:22px;font-weight:800;color:${diasG>=270?'var(--bordo)':'var(--verde)'}">${diasG}</div></div>
-          <div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Parto probable</div><div style="font-size:15px;font-weight:700">${fmtD(fParto)}</div></div>
-        </div>
-      </div>`;
+      let partes = [];
+      if (cicloEnGest) {
+        const diasG = cicloEnGest.diasGest ?? 0;
+        const diasR = cicloEnGest.diasParaParto ?? 0;
+        const badge = diasG >= 270
+          ? `<span class="badge badge-bordo" style="font-size:13px">¡Parto vencido!</span>`
+          : diasR <= 30
+            ? `<span class="badge badge-tierra" style="font-size:13px">Próxima al parto (${diasR} días)</span>`
+            : `<span class="badge badge-verde" style="font-size:13px">En gestación</span>`;
+        partes.push(`<div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center">
+          ${badge}
+          <div style="display:flex;flex-wrap:wrap;gap:20px">
+            <div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Servicio</div><div style="font-size:15px;font-weight:700">${fmtD(cicloEnGest.fechaServicio)}</div></div>
+            <div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Días gestantes</div><div style="font-size:22px;font-weight:800;color:${diasG>=270?'var(--bordo)':'var(--verde)'}">${diasG}</div></div>
+            ${cicloEnGest.fpp ? `<div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Parto probable</div><div style="font-size:15px;font-weight:700">${fmtD(cicloEnGest.fpp)}</div></div>` : ''}
+          </div>
+        </div>`);
+      }
+      if (cicloEnLact && cicloEnLact.cria) {
+        const cria = cicloEnLact.cria;
+        const hoyB = new Date(); hoyB.setHours(0,0,0,0);
+        const edadCria = cria.fecha_nacimiento ? Math.floor((hoyB - new Date(cria.fecha_nacimiento)) / 86400000) : null;
+        partes.push(`<div style="font-size:13px;color:#1a5f8a">🐣 En lactancia · cría #${caravanaDisplay(cria)}${edadCria != null ? ` · ${edadCria} días` : ''}</div>`);
+      }
+      if (!partes.length) return '';
+      return `<div style="background:var(--fondo);border:1px solid var(--gris-borde);border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;flex-direction:column;gap:8px">${partes.join('')}</div>`;
     })();
 
     // Tabla de ciclos
     const colRes = { 'Preñada':'verde','Vacía':'rojo','Repetidora':'tierra','Pendiente':'gray','Abortó':'bordo' };
-    const ciclosHtml = ciclos.length ? `<div class="table-wrap"><table>
+    const ciclosHtml = ciclosFicha.length ? `<div class="table-wrap"><table>
       <thead><tr>
         <th style="width:28px">#</th>
         <th>Inseminación</th><th>Método</th><th>Toro / Semen</th>
         <th>Fecha tacto</th><th>Resultado</th>
-        <th>Parto probable</th><th>Parición</th><th>Cría</th>
+        <th>Parto probable</th><th>Parición</th><th>Cría</th><th>Cierre</th>
         <th>Obs.</th><th></th>
       </tr></thead>
-      <tbody>${[...ciclos].reverse().map((c, i) => {
-        const num = ciclos.length - i;
-        // Resultado final: último tacto o el del propio servicio
+      <tbody>${[...ciclosFicha].reverse().map((c, i) => {
+        const num = ciclosFicha.length - i;
         const ultimoTacto = c.tactos.length ? c.tactos[c.tactos.length - 1] : null;
-        const resultado = ultimoTacto?.resultado || c.srv.resultado || '—';
+        const resultado = c.resultado || '—';
         const fechaTacto = ultimoTacto?.fecha_tacto || ultimoTacto?.fecha || c.srv.fecha_tacto;
-        const paricion = paricionDeCiclo(c);
         const bgRow = resultado === 'Preñada' ? 'background:#f6fdf8'
           : resultado === 'Vacía' ? 'background:#fdf6f6'
           : resultado === 'Abortó' ? 'background:#fdf3f0'
+          : c.fase === 'lactancia' ? 'background:#eef5fb'
           : '';
-        // Tactos adicionales (puede haber más de uno)
         const tactoExtra = c.tactos.length > 1
           ? c.tactos.slice(0, -1).map(t => `<div style="font-size:11px;color:var(--texto-suave);margin-top:2px">${fmtFecha(t.fecha_tacto || t.fecha)} → <span class="badge badge-${colRes[t.resultado]||'gray'}" style="font-size:9px">${t.resultado}</span></div>`).join('')
           : '';
+        // Cierre
+        let cierreTxt = '—';
+        if (c.fase === 'lactancia') {
+          cierreTxt = `<span style="color:#1a5f8a;font-size:11px">En lactancia</span>`;
+        } else if (c.fechaCierre || c.cierreInferido) {
+          const motivo = c.motivoCierre || '';
+          const inferido = c.cierreInferido ? ' <span style="color:#e67e22;font-size:10px">· inferido</span>' : '';
+          cierreTxt = `${motivo}${c.fechaCierre ? ' ' + fmtFecha(c.fechaCierre) : ''}${inferido}`;
+        } else if (c.estado === 'aborto' || c.estado === 'vacia') {
+          cierreTxt = c.motivoCierre || c.estado;
+        }
         return `<tr style="${bgRow}">
           <td style="font-weight:700;color:var(--texto-suave);font-size:13px">${num}</td>
-          <td style="font-weight:600">${fmtFecha(c.srv.fecha)}</td>
+          <td style="font-weight:600">${fmtFecha(c.fechaServicio)}</td>
           <td><span class="badge badge-cielo" style="font-size:11px">${c.srv.metodo || '—'}</span></td>
           <td>${c.srv.toro || '—'}</td>
           <td>${fmtFecha(fechaTacto)}${tactoExtra}</td>
           <td><span class="badge badge-${colRes[resultado]||'gray'}">${resultado}</span></td>
-          <td style="font-weight:600;color:var(--verde)">${c.srv.fecha ? fmtFecha(new Date(new Date(c.srv.fecha).setDate(new Date(c.srv.fecha).getDate()+270))) : '—'}</td>
-          <td style="font-weight:${paricion?'600':'400'};color:${paricion?'var(--verde)':'var(--texto-suave)'}">${paricion ? fmtFecha(paricion.fecha_nacimiento) : (resultado === 'Preñada' ? '<span style="color:var(--verde);font-size:11px">Pendiente</span>' : '—')}</td>
-          <td>${paricion ? `<span class="badge badge-${paricion.sexo==='Hembra'?'bordo':'cielo'}" style="font-size:11px;cursor:pointer" onclick="seleccionarAnimal('${paricion.id}')">#${caravanaDisplay(paricion)}</span>` : '—'}</td>
+          <td style="font-weight:600;color:var(--verde)">${c.fpp ? fmtFecha(c.fpp) : '—'}</td>
+          <td style="font-weight:${c.fechaPartoEfectiva?'600':'400'};color:${c.fechaPartoEfectiva?'var(--verde)':'var(--texto-suave)'}">
+            ${c.fechaPartoEfectiva ? fmtFecha(c.fechaPartoEfectiva) + (c.partoInferido ? '<div style="font-size:10px;color:#e67e22">sin confirmar</div>' : '') : (resultado === 'Preñada' ? '<span style="color:var(--verde);font-size:11px">Pendiente</span>' : '—')}
+          </td>
+          <td>${c.cria ? `<span class="badge badge-${c.cria.sexo==='Hembra'?'bordo':'cielo'}" style="font-size:11px;cursor:pointer" onclick="seleccionarAnimal('${c.cria.id}')">#${caravanaDisplay(c.cria)}</span>` : '—'}</td>
+          <td style="font-size:12px;color:var(--texto-suave)">${cierreTxt}</td>
           <td style="font-size:12px;color:var(--texto-suave)">${c.srv.observaciones || '—'}</td>
           <td><button class="btn btn-danger" style="padding:2px 8px;font-size:11px" onclick="borrarServicio('${c.srv.id}')">🗑️</button></td>
         </tr>`;
