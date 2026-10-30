@@ -949,7 +949,7 @@ function renderTabAnimales(rodeoId, animales) {
               </div>`;
             }
           } else if (resUlt === 'Vacía' && cicloCard?.fechaPartoEfectiva) {
-            const fParto = new Date(cicloCard.fechaPartoEfectiva);
+            const fParto = fechaLocal(cicloCard.fechaPartoEfectiva);
             const diasDesde = Math.floor((hoyCard - fParto) / 86400000);
             const sinConfirm = partoSinConfirmar ? `<div style="font-size:10px;color:#e67e22">parto sin confirmar</div>` : '';
             fppHtml = `<div style="margin-top:6px;text-align:center">
@@ -1189,7 +1189,7 @@ function renderContenidoFicha(tab) {
     const ciclosFicha = ciclosDeAnimal(a.id);
 
     // Banner de gestación o lactancia
-    const fmtD = d => new Date(d).toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'});
+    const fmtD = d => (d instanceof Date) ? d.toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'}) : fmtFecha(d);
     const cicloEnGest = [...ciclosFicha].reverse().find(c => c.enGestacion);
     const cicloEnLact = [...ciclosFicha].reverse().find(c => c.fase === 'lactancia');
     const bannerHtml = (() => {
