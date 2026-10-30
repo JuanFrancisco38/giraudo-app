@@ -1696,7 +1696,7 @@ function renderListaTactoNov(rodeoId) {
       ? `<option value="_toro_suelto">Preñada (toro suelto)</option>`
       : '';
 
-    return `<tr>
+    return `<tr data-animal-id="${a.id}">
       <td><strong>${caravanaDisplay(a)}</strong></td>
       <td>${a.categoria || '—'}</td>
       <td>${infoCiclo}${criaAlPie}</td>
@@ -1706,9 +1706,19 @@ function renderListaTactoNov(rodeoId) {
           onchange="_onChangeTactoResultado(this)">
           ${optsBase}${optsToro}
         </select>
-        <input type="number" class="tacto-meses-nov" data-animal-id="${a.id}"
-          min="1" max="9" placeholder="meses gest."
-          style="font-size:13px;padding:4px 6px;width:110px;display:none;margin-top:4px">
+        <select class="tacto-meses-nov" data-animal-id="${a.id}"
+          style="font-size:13px;padding:4px 6px;display:none;margin-top:4px">
+          <option value="">No sé</option>
+          <option value="1">1 mes</option>
+          <option value="2">2 meses</option>
+          <option value="3">3 meses</option>
+          <option value="4">4 meses</option>
+          <option value="5">5 meses</option>
+          <option value="6">6 meses</option>
+          <option value="7">7 meses</option>
+          <option value="8">8 meses</option>
+          <option value="9">9 meses</option>
+        </select>
       </td>
       <td><input type="date" class="tacto-fecha-nov" data-animal-id="${a.id}" style="font-size:13px;padding:4px 8px"></td>
     </tr>`;
@@ -1726,69 +1736,121 @@ function _onChangeTactoResultado(sel) {
   if (mesesInput) mesesInput.style.display = sel.value === '_toro_suelto' ? '' : 'none';
 }
 
-async function guardarTactoNov(cabecera, novedadId = null) {
+// Valida las filas del tacto sin tocar la DB. Retorna null si hay errores duros (ya marcados en UI),
+// o { confirms: [] } para continuar (con o sin diálogos de confirmación).
+function _prevalidarTactoNov(fechaCabecera) {
   const filas = document.querySelectorAll('.tacto-resultado-nov');
-  const campaniaId = document.getElementById('nov-campania')?.value || null;
   const hoy = new Date(); hoy.setHours(23, 59, 59, 0);
-  let actualizados = 0;
-  const erroresTacto = [];
+  const erroresDuros = [];
+  const confirms = [];
 
   for (const sel of filas) {
     const resultado = sel.value;
-    if (!resultado) continue; // "— Sin cambio —"
+    if (!resultado) continue;
     const srvId = sel.dataset.srvId;
     const animalId = sel.dataset.animalId;
-    const fechaTacto = document.querySelector(`.tacto-fecha-nov[data-animal-id="${animalId}"]`)?.value || cabecera.fecha;
+    const animal = animalesRodeo.find(a => a.id === animalId);
+    const fechaTacto = document.querySelector(`.tacto-fecha-nov[data-animal-id="${animalId}"]`)?.value || fechaCabecera;
 
-    // Validaciones de fecha
-    if (srvId && fechaTacto) {
+    if (fechaTacto && fechaLocal(fechaTacto) > hoy) {
+      erroresDuros.push({ animalId, mensaje: 'fecha futura' }); continue;
+    }
+    if (srvId) {
       const srv = serviciosAnimal.find(s => s.id === srvId);
-      if (srv?.fecha && fechaLocal(fechaTacto) < fechaLocal(srv.fecha)) {
-        const animal = animalesRodeo.find(a => a.id === animalId);
-        erroresTacto.push(`#${caravanaDisplay(animal)} — tacto anterior al servicio`);
-        continue;
+      if (srv?.fecha && fechaTacto && fechaLocal(fechaTacto) < fechaLocal(srv.fecha)) {
+        erroresDuros.push({ animalId, mensaje: `tacto anterior al servicio del ${fmtFecha(srv.fecha)}` }); continue;
+      }
+      if (srv?.fecha && fechaTacto) {
+        const dias = Math.floor((fechaLocal(fechaTacto) - fechaLocal(srv.fecha)) / 86400000);
+        if (dias < 28) confirms.push(`#${caravanaDisplay(animal)}: solo ${dias}d desde el servicio (< 28)`);
+      }
+      if (resultado !== '_toro_suelto') {
+        const resActual = srv?.resultado || 'Pendiente';
+        if (resActual !== 'Pendiente' && resActual !== resultado)
+          confirms.push(`#${caravanaDisplay(animal)}: cambia "${resActual}" → "${resultado}"`);
       }
     }
-    if (fechaTacto && fechaLocal(fechaTacto) > hoy) {
-      const animal = animalesRodeo.find(a => a.id === animalId);
-      erroresTacto.push(`#${caravanaDisplay(animal)} — fecha futura`);
-      continue;
-    }
+  }
+
+  if (erroresDuros.length) {
+    _marcarErroresTactoUI(erroresDuros);
+    toast(`⚠️ ${erroresDuros.length} fila${erroresDuros.length !== 1 ? 's' : ''} inválida${erroresDuros.length !== 1 ? 's' : ''} — corregí antes de guardar`, 'var(--rojo)');
+    return null;
+  }
+  return { confirms };
+}
+
+function _marcarErroresTactoUI(errors) {
+  document.querySelectorAll('.tacto-error-msg').forEach(e => e.remove());
+  document.querySelectorAll('tr[data-animal-id]').forEach(tr => { tr.style.background = ''; });
+  for (const { animalId, mensaje } of errors) {
+    const tr = document.querySelector(`tr[data-animal-id="${animalId}"]`);
+    if (!tr) continue;
+    tr.style.background = '#fce8e8';
+    const msgEl = document.createElement('div');
+    msgEl.className = 'tacto-error-msg';
+    msgEl.style.cssText = 'font-size:11px;color:#c0392b;margin-top:3px;font-weight:600';
+    msgEl.textContent = '⚠ ' + mensaje;
+    const fechaCell = tr.querySelector('.tacto-fecha-nov')?.closest('td');
+    if (fechaCell) fechaCell.appendChild(msgEl);
+  }
+}
+
+// Guarda las filas ya validadas. Retorna { actualizados, detalles, erroresRed }.
+async function guardarTactoNov(cabecera, novedadId = null) {
+  const filas = document.querySelectorAll('.tacto-resultado-nov');
+  const campaniaId = document.getElementById('nov-campania')?.value || null;
+  let actualizados = 0;
+  const detalles = [];
+  const erroresRed = [];
+
+  for (const sel of filas) {
+    const resultado = sel.value;
+    if (!resultado) continue;
+    const srvId = sel.dataset.srvId;
+    const animalId = sel.dataset.animalId;
+    const animal = animalesRodeo.find(a => a.id === animalId);
+    const fechaTacto = document.querySelector(`.tacto-fecha-nov[data-animal-id="${animalId}"]`)?.value || cabecera.fecha;
 
     if (resultado === '_toro_suelto') {
-      // Crear servicio nuevo con metodo=Toro suelto
-      const meses = parseInt(document.querySelector(`.tacto-meses-nov[data-animal-id="${animalId}"]`)?.value) || 3;
-      const fBase = fechaTacto ? fechaLocal(fechaTacto) : fechaLocal(cabecera.fecha);
-      const fEstimada = new Date(fBase.getTime() - meses * 30.44 * 86400000);
-      const fEstStr = fEstimada.getFullYear() + '-' + String(fEstimada.getMonth()+1).padStart(2,'0') + '-' + String(fEstimada.getDate()).padStart(2,'0');
+      const mesesVal = document.querySelector(`.tacto-meses-nov[data-animal-id="${animalId}"]`)?.value;
+      const meses = mesesVal ? parseInt(mesesVal) : null;
+      let fEstStr;
+      if (meses) {
+        const fBase = fechaTacto ? fechaLocal(fechaTacto) : fechaLocal(cabecera.fecha);
+        const fEst = new Date(fBase.getTime() - meses * 30.44 * 86400000);
+        fEstStr = fEst.getFullYear() + '-' + String(fEst.getMonth()+1).padStart(2,'0') + '-' + String(fEst.getDate()).padStart(2,'0');
+      } else {
+        fEstStr = fechaTacto || cabecera.fecha; // sin meses conocidos: fecha del tacto
+      }
       const r = await sb('POST', 'servicios_animal', {
         animal_id: animalId, fecha: fEstStr, metodo: 'Toro suelto',
         resultado: 'Preñada', fecha_tacto: fechaTacto,
         meses_gestacion_tacto: meses, novedad_id: novedadId,
         ...(campaniaId ? { campania_id: campaniaId } : {})
       });
-      if (r) actualizados++;
-      else {
-        const animal = animalesRodeo.find(a => a.id === animalId);
-        erroresTacto.push(`#${caravanaDisplay(animal)} — error al crear servicio`);
-      }
+      if (r?.[0]) {
+        detalles.push({ servicio_id: r[0].id, creado: true, resultado_anterior: null, fecha_tacto_anterior: null });
+        actualizados++;
+      } else erroresRed.push(`#${caravanaDisplay(animal)} — error al crear servicio`);
     } else if (srvId) {
+      const srv = serviciosAnimal.find(s => s.id === srvId);
       const r = await sb('PATCH', 'servicios_animal',
         { resultado, fecha_tacto: fechaTacto },
         `?id=eq.${srvId}`);
-      if (r) actualizados++;
-      else {
-        const animal = animalesRodeo.find(a => a.id === animalId);
-        erroresTacto.push(`#${caravanaDisplay(animal)} — error al guardar`);
-      }
+      if (r) {
+        detalles.push({
+          servicio_id: srvId, creado: false,
+          resultado_anterior: srv?.resultado || 'Pendiente',
+          fecha_tacto_anterior: srv?.fecha_tacto || null
+        });
+        actualizados++;
+      } else erroresRed.push(`#${caravanaDisplay(animal)} — error al guardar`);
     }
-    // Si no hay srvId y no es toro suelto: la vaca no tiene ciclo abierto, salteamos silenciosamente
+    // Sin srvId y no es toro suelto: vaca sin ciclo abierto, salteamos silenciosamente
   }
 
-  if (erroresTacto.length) {
-    toast(`⚠️ ${actualizados} ok · ${erroresTacto.length} error(es): ${erroresTacto.slice(0,2).join('; ')}`, 'var(--tierra)');
-  }
-  return actualizados;
+  return { actualizados, detalles, erroresRed };
 }
 
 function agregarInsumoManga() {
@@ -1954,18 +2016,37 @@ async function procesarNovTrabajoManga(rodeoId, fecha) {
   };
 
   if (esTacto) {
+    // Paso 1: validar sin tocar la DB
+    const precheck = _prevalidarTactoNov(fecha);
+    if (precheck === null) return; // errores duros marcados en UI
+    if (precheck.confirms.length) {
+      if (!confirm(`Atención:\n${precheck.confirms.join('\n')}\n\n¿Guardar de todas formas?`)) return;
+    }
+
+    // Paso 2: crear novedad
     const novRes = await sb('POST', 'novedades_ganaderas', { ...novData });
-    const novedadId = novRes?.[0]?.id || null;
-    const actualizados = await guardarTactoNov({ fecha, observaciones }, novedadId);
-    if (novedadId) await sb('PATCH', 'novedades_ganaderas', { cantidad: actualizados }, `?id=eq.${novedadId}`);
-    const r = novRes;
-    if (r) {
-      toast(`✅ Tacto registrado · ${actualizados} animal${actualizados !== 1 ? 'es' : ''} actualizado${actualizados !== 1 ? 's' : ''}`);
-      resetFormNovedad();
-      document.getElementById('form-novedad-wrap').style.display = 'none';
-      tabRodeoActiva = 'novedades';
-      await cargarManga();
-    } else toast('❌ Error', 'var(--rojo)');
+    if (!novRes?.[0]) { toast('❌ Error al crear novedad', 'var(--rojo)'); return; }
+    const novedadId = novRes[0].id;
+
+    // Paso 3: guardar tactos
+    const { actualizados, detalles, erroresRed } = await guardarTactoNov({ fecha, observaciones }, novedadId);
+    await sb('PATCH', 'novedades_ganaderas',
+      { cantidad: actualizados, detalle: { tactos: detalles } },
+      `?id=eq.${novedadId}`);
+
+    if (erroresRed.length && !actualizados) {
+      toast(`❌ Todos fallaron: ${erroresRed.slice(0,2).join('; ')}`, 'var(--rojo)');
+      return;
+    }
+    if (erroresRed.length) {
+      toast(`⚠️ ${actualizados} ok · ${erroresRed.length} error(es): ${erroresRed.slice(0,2).join('; ')}`, 'var(--tierra)');
+      return;
+    }
+    toast(`✅ Tacto registrado · ${actualizados} animal${actualizados !== 1 ? 'es' : ''} actualizado${actualizados !== 1 ? 's' : ''}`);
+    resetFormNovedad();
+    document.getElementById('form-novedad-wrap').style.display = 'none';
+    tabRodeoActiva = 'novedades';
+    await cargarManga();
     return;
   }
 
@@ -2300,22 +2381,27 @@ async function procesarNovAborto(rodeoId, fecha) {
   const sinCiclo = [];
 
   for (const madre of madres) {
-    // Solo actuar sobre el ciclo abierto (en gestación)
     const ciclos = ciclosDeAnimal(madre.id);
     const cicloAbierto = ciclos.slice().reverse().find(c => c.enGestacion) || null;
     if (!cicloAbierto) { sinCiclo.push(madre); continue; }
 
     const resultado_anterior = cicloAbierto.resultado;
+    const ultimoTacto = cicloAbierto.tactos.length ? cicloAbierto.tactos[cicloAbierto.tactos.length - 1] : null;
+    const fecha_tacto_anterior = ultimoTacto?.fecha_tacto || cicloAbierto.srv.fecha_tacto || null;
+
     const r = await sb('PATCH', 'servicios_animal',
       { resultado: 'Abortó', fecha_tacto: fecha, fecha_cierre: fecha, motivo_cierre: 'Aborto',
         ...(observaciones ? { observaciones } : {}) },
       `?id=eq.${cicloAbierto.id}`);
-    if (r) abortos_detalle.push({ madre_id: madre.id, servicio_id: cicloAbierto.id, resultado_anterior });
+    if (r) abortos_detalle.push({ madre_id: madre.id, servicio_id: cicloAbierto.id, resultado_anterior, fecha_tacto_anterior });
   }
 
-  if (sinCiclo.length) {
-    toast(`⚠️ ${sinCiclo.length} vaca(s) sin ciclo abierto: ${getCaravanaResumen(sinCiclo)}`, 'var(--tierra)');
-    if (!abortos_detalle.length) return;
+  if (!abortos_detalle.length) {
+    const msg = sinCiclo.length
+      ? `⚠️ Ninguna vaca tenía ciclo abierto: ${getCaravanaResumen(sinCiclo)}`
+      : '⚠️ No se registró ningún aborto';
+    toast(msg, 'var(--tierra)');
+    return;
   }
 
   const madresResumen = getCaravanaResumen(madres.filter(m => abortos_detalle.some(a => a.madre_id === m.id)));
@@ -2326,7 +2412,9 @@ async function procesarNovAborto(rodeoId, fecha) {
   });
 
   if (r) {
-    toast(`✅ ${abortos_detalle.length} aborto${abortos_detalle.length !== 1 ? 's' : ''} registrado${abortos_detalle.length !== 1 ? 's' : ''}`);
+    let msg = `✅ ${abortos_detalle.length} aborto${abortos_detalle.length !== 1 ? 's' : ''} registrado${abortos_detalle.length !== 1 ? 's' : ''}`;
+    if (sinCiclo.length) msg += ` · ⚠️ ${sinCiclo.length} sin ciclo: ${getCaravanaResumen(sinCiclo)}`;
+    toast(msg);
     resetFormNovedad();
     document.getElementById('form-novedad-wrap').style.display = 'none';
     tabRodeoActiva = 'novedades';
@@ -2344,14 +2432,29 @@ async function procesarNovDestete(rodeoId, fecha) {
 
   if (!terneros.length) { toast('No se encontraron terneros en este rodeo', 'var(--tierra)'); return; }
 
+  const destino = rodeos.find(r => r.id === destinoId);
+
+  // Crear novedad primero para que, si falla algo al mover los animales, el registro quede
+  const desc = `${terneros.length} ternero${terneros.length !== 1 ? 's' : ''} → ${destino?.nombre || destinoId}${nuevaCat ? ' como ' + nuevaCat : ''} · ${getCaravanaResumen(terneros)}`;
+  const novRes = await sb('POST', 'novedades_ganaderas', {
+    rodeo_id: rodeoId, fecha, tipo: 'Destete', cantidad: terneros.length, descripcion: desc, detalle: {}
+  });
+  if (!novRes?.[0]) { toast('❌ Error al crear novedad', 'var(--rojo)'); return; }
+  const novedadId = novRes[0].id;
+
   const patch = { rodeo_id: destinoId };
   if (nuevaCat) patch.categoria = nuevaCat;
 
+  const terneros_detalle = [];
   const ciclos_cerrados = [];
-  for (const a of terneros) {
-    await sb('PATCH', 'animales_rodeo', patch, `?id=eq.${a.id}`);
+  const errores = [];
 
-    // Cerrar el ciclo de lactancia de la madre
+  for (const a of terneros) {
+    const r = await sb('PATCH', 'animales_rodeo', patch, `?id=eq.${a.id}`);
+    if (!r) { errores.push(caravanaDisplay(a)); continue; }
+
+    terneros_detalle.push({ id: a.id, rodeo_id_origen: rodeoId, categoria_anterior: a.categoria || null });
+
     const madre = madreDe(a);
     if (madre) {
       const ciclos = ciclosDeAnimal(madre.id);
@@ -2365,14 +2468,15 @@ async function procesarNovDestete(rodeoId, fecha) {
     }
   }
 
-  const destino = rodeos.find(r => r.id === destinoId);
-  const desc = `${terneros.length} ternero${terneros.length !== 1 ? 's' : ''} → ${destino?.nombre || destinoId}${nuevaCat ? ' como ' + nuevaCat : ''} · ${getCaravanaResumen(terneros)}`;
-  await sb('POST', 'novedades_ganaderas', {
-    rodeo_id: rodeoId, fecha, tipo: 'Destete', cantidad: terneros.length, descripcion: desc,
-    detalle: { terneros: terneros.map(a => ({ id: a.id, rodeo_id_origen: rodeoId })), ciclos_cerrados }
-  });
+  await sb('PATCH', 'novedades_ganaderas',
+    { cantidad: terneros_detalle.length, detalle: { terneros: terneros_detalle, ciclos_cerrados } },
+    `?id=eq.${novedadId}`);
 
-  toast(`✅ Destete registrado · ${terneros.length} ternero${terneros.length !== 1 ? 's' : ''} trasladados`);
+  if (errores.length) {
+    toast(`⚠️ ${terneros_detalle.length} ok · ${errores.length} error(es): ${errores.join(', ')}`, 'var(--tierra)');
+  } else {
+    toast(`✅ Destete registrado · ${terneros_detalle.length} ternero${terneros_detalle.length !== 1 ? 's' : ''} trasladados`);
+  }
   resetFormNovedad();
   document.getElementById('form-novedad-wrap').style.display = 'none';
   tabRodeoActiva = 'novedades';
@@ -2539,24 +2643,55 @@ async function borrarNovedadManga(id) {
         `?id=eq.${n.servicio_id}`);
     }
   } else if (nov?.tipo === 'Aborto' && nov.detalle?.abortos?.length) {
-    // Undo aborto: restaurar resultado anterior en cada servicio
+    // Undo aborto: restaurar resultado y fecha_tacto anteriores
     for (const a of nov.detalle.abortos) {
       if (a.servicio_id) await sb('PATCH', 'servicios_animal',
-        { resultado: a.resultado_anterior, fecha_tacto: null, fecha_cierre: null, motivo_cierre: null },
+        { resultado: a.resultado_anterior, fecha_tacto: a.fecha_tacto_anterior || null,
+          fecha_cierre: null, motivo_cierre: null },
         `?id=eq.${a.servicio_id}`);
     }
   } else if (nov?.tipo === 'Destete' && nov.detalle?.terneros?.length) {
-    // Undo destete: devolver terneros al rodeo origen y reabrir ciclos
+    // Undo destete: devolver terneros al rodeo origen (con categoría anterior si la hay) y reabrir ciclos
     for (const t of nov.detalle.terneros) {
-      if (t.id) await sb('PATCH', 'animales_rodeo', { rodeo_id: t.rodeo_id_origen }, `?id=eq.${t.id}`);
+      if (!t.id) continue;
+      const patchRev = { rodeo_id: t.rodeo_id_origen };
+      if (t.categoria_anterior) patchRev.categoria = t.categoria_anterior;
+      await sb('PATCH', 'animales_rodeo', patchRev, `?id=eq.${t.id}`);
     }
     for (const c of (nov.detalle.ciclos_cerrados || [])) {
       if (c.servicio_id) await sb('PATCH', 'servicios_animal',
         { fecha_cierre: null, motivo_cierre: null },
         `?id=eq.${c.servicio_id}`);
     }
+  } else if (nov?.tipo === 'Trabajo de manga' && nov.subtipo === 'Tacto / Preñez' && nov.detalle?.tactos?.length) {
+    // Undo tacto: revertir cada fila según si fue creada o actualizada
+    for (const t of nov.detalle.tactos) {
+      if (!t.servicio_id) continue;
+      if (t.creado) {
+        await sb('DELETE', 'servicios_animal', null, `?id=eq.${t.servicio_id}`);
+      } else {
+        await sb('PATCH', 'servicios_animal',
+          { resultado: t.resultado_anterior, fecha_tacto: t.fecha_tacto_anterior || null },
+          `?id=eq.${t.servicio_id}`);
+      }
+    }
   } else {
-    // Comportamiento general: borrar servicios y sanidad vinculados
+    // Comportamiento general: confirmar si hay servicios con tacto/parto ya cargado (A5)
+    const srvAfectados = serviciosAnimal.filter(s => s.novedad_id === id);
+    const srvConDatos = srvAfectados.filter(s =>
+      (s.resultado && s.resultado !== 'Pendiente') || s.fecha_parto || s.cria_id
+    );
+    if (srvConDatos.length) {
+      const detalleConfirm = srvConDatos.map(s => {
+        const a = animalesRodeo.find(x => x.id === s.animal_id);
+        const txt = [];
+        if (s.resultado && s.resultado !== 'Pendiente') txt.push(`resultado: ${s.resultado}`);
+        if (s.fecha_parto) txt.push('tiene parto');
+        if (s.cria_id) txt.push('tiene cría');
+        return `#${caravanaDisplay(a)}: ${txt.join(', ')}`;
+      });
+      if (!confirm(`${srvConDatos.length} servicio${srvConDatos.length !== 1 ? 's' : ''} ya tiene${srvConDatos.length !== 1 ? 'n' : ''} tacto/parto cargado:\n${detalleConfirm.join('\n')}\n\nAl borrar se elimina ese historial. ¿Seguir?`)) return;
+    }
     await Promise.all([
       sb('DELETE', 'servicios_animal', null, `?novedad_id=eq.${id}`),
       sb('DELETE', 'sanidad_animal', null, `?novedad_id=eq.${id}`)

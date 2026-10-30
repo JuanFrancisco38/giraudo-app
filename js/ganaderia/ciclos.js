@@ -46,9 +46,15 @@ function criasDe(animal) {
 // ── Crías actualmente lactantes ───────────────────────────────────────────────
 
 function criasLactantes(animal) {
+  const ciclos = ciclosDeAnimal(animal.id);
+  const criaIdsEnLactancia = new Set(
+    ciclos.filter(c => c.fase === 'lactancia' && c.cria)
+          .map(c => c.cria.id)
+  );
   return criasDe(animal).filter(c =>
     c.activo !== false &&
-    (c.categoria === 'Ternero' || c.categoria === 'Ternera')
+    (c.categoria === 'Ternero' || c.categoria === 'Ternera') &&
+    criaIdsEnLactancia.has(c.id)
   );
 }
 
