@@ -21,6 +21,15 @@
   Módulos disponibles: `admin`, `ganaderia`, `lluvias`.
   Una tabla nueva sin esto queda abierta a cualquiera.
 
+## Antes de pushear
+
+- Después de editar cualquier archivo `.js`, correr `node --check` en cada uno que se tocó.
+  Comando rápido desde la raíz del repo:
+  ```
+  for f in js/*.js js/*/*.js api/*.js; do node --check "$f" || echo "FALLA $f"; done
+  ```
+  No pushear si falla alguno.
+
 ## Permisos de pantallas
 - Toda sección nueva se agrega a `SECCION_MODULO` en `js/auth.js`.
   Si no está en el mapa, queda visible solo para admin.

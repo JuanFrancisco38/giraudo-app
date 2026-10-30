@@ -1,6 +1,7 @@
 ﻿let rodeos = [];
 let trabajosManga = [];
 let animalesRodeo = [];
+let criasInactivas = [];
 let novedadesGanaderas = [];
 let serviciosAnimal = [];
 let sanidadAnimal = [];
@@ -45,7 +46,8 @@ const COLORES_RODEO = {
 async function cargarManga() {
   let indicesCampania, indicesManuales;
   let campaniasCargadas;
-  [rodeos, trabajosManga, animalesRodeo, novedadesGanaderas, serviciosAnimal, sanidadAnimal, renspas, pesadasAnimal, indicesCampania, indicesManuales, campaniasCargadas] = await Promise.all([
+  let _criasInact;
+  [rodeos, trabajosManga, animalesRodeo, novedadesGanaderas, serviciosAnimal, sanidadAnimal, renspas, pesadasAnimal, indicesCampania, indicesManuales, campaniasCargadas, _criasInact] = await Promise.all([
     sb('GET', 'rodeos', null, '?order=created_at.asc&activo=eq.true'),
     sb('GET', 'trabajos_manga', null, '?order=fecha.desc'),
     sb('GET', 'animales_rodeo', null, '?activo=eq.true&order=caravana_interna.asc.nullslast'),
@@ -56,7 +58,8 @@ async function cargarManga() {
     sb('GET', 'pesadas_animal', null, '?order=fecha.asc'),
     sb('GET', 'indices_campania', null, '?order=campania.desc'),
     sb('GET', 'indices_manuales', null, ''),
-    sb('GET', 'campanias_rodeo', null, '?order=created_at.desc')
+    sb('GET', 'campanias_rodeo', null, '?order=created_at.desc'),
+    sb('GET', 'animales_rodeo', null, '?activo=eq.false&caravana_madre=not.is.null')
   ]);
   campanias = campaniasCargadas || [];
   rodeos = rodeos || [];
@@ -64,6 +67,7 @@ async function cargarManga() {
   window._indicesCampania = indicesCampania || [];
   window._indicesManuales = indicesManuales || [];
   animalesRodeo = animalesRodeo || [];
+  criasInactivas = _criasInact || [];
   novedadesGanaderas = novedadesGanaderas || [];
   serviciosAnimal = serviciosAnimal || [];
   window._allServicios = serviciosAnimal;
@@ -932,7 +936,7 @@ function renderTabAnimales(rodeoId, animales) {
           // Buscar ciclo en gestación (puede ser diferente del más nuevo si hay uno viejo en lactancia)
           const todosLosCiclosCard = ciclosDeAnimal(a.id);
           const cicloGestCard = todosLosCiclosCard.slice().reverse().find(c => c.enGestacion) || cicloCard;
-          if (resUlt === 'Preñada' || resUlt === 'Pendiente') {
+          if (resUlt === 'Preñada') {
             const cicloSrc = cicloGestCard || cicloCard;
             if (cicloSrc?.fpp) {
               const diasG = cicloSrc.diasGest ?? 0;
@@ -981,8 +985,6 @@ function renderTabAnimales(rodeoId, animales) {
             </div>`;
           })();
 
-          const catAmarilla = ['Ternero','Novillito','Novillo'].includes(a.categoria);
-          const catNaranja  = ['Ternera','Vaquillona'].includes(a.categoria);
           const catAmarilla = ['Ternero','Novillito','Novillo'].includes(a.categoria);
           const catNaranja  = ['Ternera','Vaquillona'].includes(a.categoria);
           const bgCard = resUlt === 'Pre' + '\u00f1' + 'ada' ? '#f0faf3'
