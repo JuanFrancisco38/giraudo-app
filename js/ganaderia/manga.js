@@ -68,6 +68,7 @@ async function cargarManga() {
   window._indicesManuales = indicesManuales || [];
   animalesRodeo = animalesRodeo || [];
   criasInactivas = _criasInact || [];
+  _rebuildMadreIdx();
   novedadesGanaderas = novedadesGanaderas || [];
   serviciosAnimal = serviciosAnimal || [];
   window._allServicios = serviciosAnimal;

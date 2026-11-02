@@ -15,29 +15,58 @@ function fechaLocal(s) {
 
 // ── Helpers de madre/cría ─────────────────────────────────────────────────────
 
+// Índice de hembras por caravana (texto). Reconstruir con _rebuildMadreIdx() tras cada carga.
+let _madreIdx = null;
+
+function _rebuildMadreIdx() {
+  _madreIdx = new Map();
+  for (const a of animalesRodeo) {
+    if (a.sexo !== 'Hembra') continue;
+    for (const ref of [a.caravana_interna, a.caravana_electronica]) {
+      if (!ref) continue;
+      if (!_madreIdx.has(ref)) _madreIdx.set(ref, []);
+      _madreIdx.get(ref).push(a);
+    }
+  }
+}
+
+// Busca la madre de una cría por caravana_madre (sin madre_id).
+// Devuelve la hembra si es única o si sólo una está en el mismo rodeo; null si ambigua o inexistente.
+function madrePorTexto(cria) {
+  if (!cria || cria.madre_id) return null;
+  const ref = cria.caravana_madre;
+  if (!ref) return null;
+  const idx = _madreIdx !== null ? _madreIdx : (_rebuildMadreIdx(), _madreIdx);
+  const candidatas = idx.get(ref) || [];
+  if (candidatas.length === 0) return null;
+  if (candidatas.length === 1) return candidatas[0];
+  const mismoRodeo = candidatas.filter(a => a.rodeo_id === cria.rodeo_id);
+  if (mismoRodeo.length === 1) return mismoRodeo[0];
+  return null; // ambigua
+}
+
 function madreDe(cria) {
   if (!cria) return null;
   if (cria.madre_id) return animalesRodeo.find(a => a.id === cria.madre_id) || null;
-  const ref = cria.caravana_madre;
-  if (!ref) return null;
-  return animalesRodeo.find(a => a.caravana_interna === ref || a.caravana_electronica === ref) || null;
+  return madrePorTexto(cria);
 }
 
 function criasDe(animal) {
   if (!animal) return [];
   // Activas: por id directo
   const porId = animalesRodeo.filter(a => a.madre_id === animal.id);
-  // Activas: por caravana
+  // Por texto: solo si madrePorTexto resuelve a este animal (evita falsos positivos en caravanas repetidas)
   const ref = animal.caravana_interna || animal.caravana_electronica;
-  const porCaravana = ref ? animalesRodeo.filter(a => a.caravana_madre === ref) : [];
-  // Inactivas: por caravana (solo las que tienen caravana_madre, sin madre_id aún)
-  const inactPorCaravana = ref
-    ? (typeof criasInactivas !== 'undefined' ? criasInactivas : []).filter(a => a.caravana_madre === ref)
+  const porTextoActivas = ref
+    ? animalesRodeo.filter(a => !a.madre_id && a.caravana_madre === ref && madrePorTexto(a)?.id === animal.id)
+    : [];
+  const porTextoInact = ref
+    ? (typeof criasInactivas !== 'undefined' ? criasInactivas : []).filter(a => !a.madre_id && a.caravana_madre === ref && madrePorTexto(a)?.id === animal.id)
     : [];
   // Unión sin repetidos
   const ids = new Set(porId.map(a => a.id));
   const union = [...porId];
-  for (const a of [...porCaravana, ...inactPorCaravana]) {
+  for (const a of [...porTextoActivas, ...porTextoInact]) {
     if (!ids.has(a.id)) { ids.add(a.id); union.push(a); }
   }
   return union;
