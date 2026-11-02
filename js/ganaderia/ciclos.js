@@ -326,3 +326,24 @@ function estadoReproductivo(animalId) {
 function estadoReprodAnimal(animalId) {
   return estadoReproductivo(animalId).etiqueta;
 }
+
+// ── Resumen de parición (tarjetas de rodeo y resumen del PDF) ─────────────────
+// Devuelve { servidas, parieron, faltan, lactando } para un set de vacas.
+// Si campActivaId es null, usa ventana de 425 días.
+function resumenParicion(vacas, campActivaId) {
+  let servidas = 0, parieron = 0, faltan = 0, lactando = 0;
+  for (const vaca of vacas) {
+    const ciclosVaca = ciclosDeAnimal(vaca.id);
+    for (const ciclo of ciclosVaca) {
+      const ok = campActivaId
+        ? ciclo.campaniaId === campActivaId
+        : (ciclo.fechaServicio && (new Date() - new Date(ciclo.fechaServicio)) / 86400000 <= 425);
+      if (!ok) continue;
+      servidas++;
+      if (ciclo.estado === 'parto')   parieron++;
+      if (ciclo.enGestacion && ciclo.estado !== 'pendiente') faltan++;
+    }
+    if (criasLactantes(vaca).length > 0) lactando++;
+  }
+  return { servidas, parieron, faltan, lactando };
+}

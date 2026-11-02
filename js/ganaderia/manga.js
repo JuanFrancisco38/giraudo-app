@@ -351,22 +351,7 @@ function renderRodeosManga() {
       const campActivaRodeo = campanias.find(c => c.rodeo_id === r.id && c.activa);
       let paricionHtml = '';
       {
-        let servidas = 0, preñadas = 0, parieron = 0, faltan = 0, lactando = 0;
-        for (const vaca of vacasRodeo) {
-          const ciclosVaca = ciclosDeAnimal(vaca.id);
-          for (const ciclo of ciclosVaca) {
-            // Filtrar por campaña activa si hay una; si no, últimos 14 meses
-            const ok = campActivaRodeo
-              ? ciclo.campaniaId === campActivaRodeo.id
-              : (ciclo.fechaServicio && (new Date() - new Date(ciclo.fechaServicio)) / 86400000 <= 425);
-            if (!ok) continue;
-            servidas++;
-            if (ciclo.estado === 'preñada') preñadas++;
-            if (ciclo.estado === 'parto')   parieron++;
-            if (ciclo.enGestacion && ciclo.estado !== 'pendiente') faltan++;
-          }
-          if (criasLactantes(vaca).length > 0) lactando++;
-        }
+        const { servidas, parieron, faltan, lactando } = resumenParicion(vacasRodeo, campActivaRodeo?.id || null);
         if (servidas > 0) {
           paricionHtml = `<div style="font-size:12px;margin-top:6px;color:var(--texto-suave);border-top:1px solid var(--gris-borde);padding-top:6px;display:flex;flex-wrap:wrap;gap:8px">
             <span>🐄 <strong style="color:#1a7a3a">${parieron}</strong> parieron</span>

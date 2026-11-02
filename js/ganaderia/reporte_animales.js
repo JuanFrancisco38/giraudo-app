@@ -210,19 +210,15 @@ function _abrirPdfAnimales(rodeo, rodeoId, cabecera, filas, animales, camposSele
   const catHtml = Object.entries(cats).sort((a,b)=>b[1]-a[1])
     .map(([k,v]) => `<span style="margin-right:12px"><strong>${v}</strong> ${k}</span>`).join('');
 
-  // Parición por ciclos
-  let parieron = 0, faltan = 0;
-  for (const vaca of animales.filter(a => a.categoria === 'Vaca')) {
-    const ciclosVaca = ciclosDeAnimal(vaca.id);
-    const masNuevo = ciclosVaca.length ? ciclosVaca[ciclosVaca.length - 1] : null;
-    if (!masNuevo) continue;
-    if (masNuevo.estado === 'parto') parieron++;
-    if (masNuevo.enGestacion) faltan++;
-  }
+  // Parición por ciclos — usa la misma lógica que las tarjetas de rodeo
+  const rodeoDelReporte = rodeos?.find(r => r.id === rodeoId);
+  const campActivaPdf = campanias?.find(c => c.rodeo_id === rodeoId && c.activa);
+  const vacasPdf = animales.filter(a => a.categoria === 'Vaca' || a.categoria === 'Vaquillona');
+  const { servidas: servidasPdf, parieron, faltan, lactando } = resumenParicion(vacasPdf, campActivaPdf?.id || null);
   let paricionHtml = '';
-  if (parieron || faltan) {
+  if (servidasPdf > 0) {
     paricionHtml = `<div style="margin-top:8px;font-size:13px">
-      🐄 Parición: <strong style="color:#1a7a3a">${parieron} parieron</strong> · <strong style="color:#7a5a00">${faltan} en gestación</strong>
+      🐄 Parición: <strong style="color:#1a7a3a">${parieron} parieron</strong> · <strong style="color:#7a5a00">${faltan} en gestación</strong>${lactando ? ` · 🐣 <strong style="color:#1a5f8a">${lactando} al pie</strong>` : ''}
     </div>`;
   }
 
