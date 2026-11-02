@@ -137,7 +137,7 @@ function _ejecutarReporteAnimales(rodeoId, formato) {
     if (estReprod === 'Preñada' && cicloRep?.fpp) {
       fechaPartoCelda = 'Probable: ' + _fmtF(cicloRep.fpp);
     } else if (estReprod === 'Vacía' && cicloRep?.fechaPartoEfectiva) {
-      fechaPartoCelda = 'Real: ' + cicloRep.fechaPartoEfectiva;
+      fechaPartoCelda = 'Real: ' + fmtFecha(cicloRep.fechaPartoEfectiva);
     }
 
     // Último peso y GDP
@@ -154,7 +154,7 @@ function _ejecutarReporteAnimales(rodeoId, formato) {
 
     // Último sanitario
     const ultSanit = sanidadAnimal.filter(s => s.animal_id === a.id).sort((x,y) => new Date(y.fecha)-new Date(x.fecha))[0];
-    const ultSanitCelda = ultSanit ? `${ultSanit.fecha} · ${ultSanit.tipo || ''}` : '—';
+    const ultSanitCelda = ultSanit ? `${fmtFecha(ultSanit.fecha)} · ${ultSanit.tipo || ''}` : '—';
 
     const map = {
       caravana_interna:     a.caravana_interna || '—',
@@ -162,7 +162,7 @@ function _ejecutarReporteAnimales(rodeoId, formato) {
       categoria:     a.categoria || '—',
       sexo:          a.sexo || '—',
       raza:          a.raza || '—',
-      fecha_nac:     a.fecha_nacimiento || '—',
+      fecha_nac:     fmtFecha(a.fecha_nacimiento),
       madre:         a.caravana_madre || '—',
       padre:         a.caravana_padre || '—',
       renspa:        renspaLabel(a.renspa_id) || '—',
