@@ -2250,14 +2250,14 @@ async function procesarNovNacimientos(rodeoId, fecha) {
           { fecha_parto: fecha, fecha_cierre: fecha, motivo_cierre: 'Cría muerta' },
           `?id=eq.${servicioId}`);
         if (p) {
-          detalle_nacimientos.push({ cria_id: null, madre_id: madre?.id || null, servicio_id: servicioId, nacio_muerto: true });
+          detalle_nacimientos.push({ cria_id: null, madre_id: madre?.id || null, servicio_id: servicioId, nacio_muerto: true, sexo, caravana });
           ok_count++;
         } else {
           errores.push(`#${caravanaDisplay(madre)} — error al cerrar ciclo`);
         }
       } else {
         // Sin ciclo y nació muerto: solo contar como registrado
-        detalle_nacimientos.push({ cria_id: null, madre_id: madre?.id || null, servicio_id: null, nacio_muerto: true });
+        detalle_nacimientos.push({ cria_id: null, madre_id: madre?.id || null, servicio_id: null, nacio_muerto: true, sexo, caravana });
         ok_count++;
       }
       continue;
@@ -2295,15 +2295,17 @@ async function procesarNovNacimientos(rodeoId, fecha) {
       }
     }
 
-    detalle_nacimientos.push({ cria_id: criaId, madre_id: madre?.id || null, servicio_id: servicioId });
+    detalle_nacimientos.push({ cria_id: criaId, madre_id: madre?.id || null, servicio_id: servicioId, sexo, caravana });
     ok_count++;
   }
 
   // Actualizar la novedad con resultados reales
   const desc = detalle_nacimientos.map(n => {
     const m = n.madre_id ? animalesRodeo.find(a => a.id === n.madre_id) : null;
-    const mLabel = m ? `m:#${caravanaDisplay(m)}` : '?';
-    return `${n.nacio_muerto ? '† ' : ''}${mLabel}`;
+    const sx = n.sexo === 'Macho' ? '♂' : '♀';
+    const cr = n.caravana ? ` #${n.caravana}` : '';
+    const mm = m ? ` (m:${caravanaDisplay(m)})` : '';
+    return `${n.nacio_muerto ? '† ' : ''}${sx}${cr}${mm}`.trim();
   }).join(', ');
   await sb('PATCH', 'novedades_ganaderas',
     { cantidad: ok_count, descripcion: desc, detalle: { nacimientos: detalle_nacimientos } },
