@@ -53,15 +53,19 @@ function madreDe(cria) {
 
 function criasDe(animal) {
   if (!animal) return [];
-  // Activas: por id directo
-  const porId = animalesRodeo.filter(a => a.madre_id === animal.id);
+  const inact = typeof criasInactivas !== 'undefined' ? criasInactivas : [];
+  // Por id directo (activas e inactivas)
+  const porId = [
+    ...animalesRodeo.filter(a => a.madre_id === animal.id),
+    ...inact.filter(a => a.madre_id === animal.id)
+  ];
   // Por texto: solo si madrePorTexto resuelve a este animal (evita falsos positivos en caravanas repetidas)
   const ref = animal.caravana_interna || animal.caravana_electronica;
   const porTextoActivas = ref
     ? animalesRodeo.filter(a => !a.madre_id && a.caravana_madre === ref && madrePorTexto(a)?.id === animal.id)
     : [];
   const porTextoInact = ref
-    ? (typeof criasInactivas !== 'undefined' ? criasInactivas : []).filter(a => !a.madre_id && a.caravana_madre === ref && madrePorTexto(a)?.id === animal.id)
+    ? inact.filter(a => !a.madre_id && a.caravana_madre === ref && madrePorTexto(a)?.id === animal.id)
     : [];
   // Unión sin repetidos
   const ids = new Set(porId.map(a => a.id));
