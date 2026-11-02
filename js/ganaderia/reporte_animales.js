@@ -110,7 +110,7 @@ function _getAnimalesFiltrados(rodeoId) {
     (a.caravana_electronica || '').toLowerCase().includes(fCar));
   if (fSexo) lista = lista.filter(a => a.sexo === fSexo);
   if (fCat)  lista = lista.filter(a => a.categoria === fCat);
-  if (fRep)  lista = lista.filter(a => estadoReprodAnimal(a.id) === fRep);
+  if (fRep)  lista = lista.filter(a => tieneVidaReproductiva(a) && estadoReprodAnimal(a.id) === fRep);
   if (fFechaDesde) lista = lista.filter(a => a.fecha_nacimiento >= fFechaDesde);
   if (fFechaHasta) lista = lista.filter(a => a.fecha_nacimiento <= fFechaHasta);
   if (fRenspa) lista = lista.filter(a => a.renspa_id === fRenspa);
@@ -132,24 +132,27 @@ function _ejecutarReporteAnimales(rodeoId, formato) {
   const cabecera = cols.map(c => c.label);
 
   const filas = animales.map(a => {
-    const { etiqueta: estReprod, ciclo: cicloRep } = estadoReproductivo(a.id);
+    const repro = tieneVidaReproductiva(a);
 
-    // Último parto: ciclo más nuevo con fechaPartoEfectiva (independientemente del estado actual)
-    const ciclosAnimal = ciclosDeAnimal(a.id);
-    const cicloConParto = [...ciclosAnimal].reverse().find(c => c.fechaPartoEfectiva);
-    let ultPartoCelda = '—';
-    if (cicloConParto) {
-      ultPartoCelda = fmtFecha(cicloConParto.fechaPartoEfectiva);
-      if (cicloConParto.partoInferido) ultPartoCelda += ' (sin confirmar)';
-    }
+    // Datos reproductivos — solo para quien tiene vida reproductiva
+    let estReprod = '—', ultPartoCelda = '—', partoProbableCelda = '—';
+    if (repro) {
+      const { etiqueta } = estadoReproductivo(a.id);
+      estReprod = etiqueta || '—';
 
-    // Parto probable: ciclo en gestación con resultado Preñada
-    const cicloGest = [...ciclosAnimal].reverse().find(c => c.enGestacion && c.resultado === 'Preñada');
-    let partoProbableCelda = '—';
-    if (cicloGest?.fpp) {
-      const hoy = new Date(); hoy.setHours(0,0,0,0);
-      partoProbableCelda = _fmtF(cicloGest.fpp);
-      if (cicloGest.fpp < hoy) partoProbableCelda += ' (vencido)';
+      const ciclosAnimal = ciclosDeAnimal(a.id);
+      const cicloConParto = [...ciclosAnimal].reverse().find(c => c.fechaPartoEfectiva);
+      if (cicloConParto) {
+        ultPartoCelda = fmtFecha(cicloConParto.fechaPartoEfectiva);
+        if (cicloConParto.partoInferido) ultPartoCelda += ' (sin confirmar)';
+      }
+
+      const cicloGest = [...ciclosAnimal].reverse().find(c => c.enGestacion && c.resultado === 'Preñada');
+      if (cicloGest?.fpp) {
+        const hoy = new Date(); hoy.setHours(0,0,0,0);
+        partoProbableCelda = _fmtF(cicloGest.fpp);
+        if (cicloGest.fpp < hoy) partoProbableCelda += ' (vencido)';
+      }
     }
 
     // Último peso y GDP
