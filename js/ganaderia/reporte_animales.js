@@ -16,6 +16,7 @@ const CAMPOS_REPORTE = [
   { id: 'ultimo_peso',   label: 'Último peso (kg)',     def: true  },
   { id: 'gdp',           label: 'GDP (kg/día)',         def: false },
   { id: 'ultimo_sanit',  label: 'Último evento sanitario', def: false },
+  { id: 'cria_al_pie',  label: 'Cría al pie',             def: false },
 ];
 
 let _reporteState = null;
@@ -183,6 +184,15 @@ function _ejecutarReporteAnimales(rodeoId, formato) {
       ultimo_peso:   ultPes ? ultPes.peso_kg + ' kg' : '—',
       gdp:           gdp !== '—' ? gdp + ' kg/día' : '—',
       ultimo_sanit:  ultSanitCelda,
+      cria_al_pie:   (() => {
+        const crias = criasLactantes(a);
+        if (!crias.length) return '—';
+        return crias.map(c => {
+          const parts = [c.caravana_interna || ''];
+          if (c.caravana_electronica) parts.push(`E:${c.caravana_electronica}`);
+          return parts.filter(Boolean).join(' ') || c.id;
+        }).join(', ');
+      })(),
     };
     return cols.map(c => map[c.id] ?? '—');
   });
