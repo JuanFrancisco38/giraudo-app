@@ -1,7 +1,8 @@
 // Generador de reportes de animales — PDF (print) y Excel (SheetJS)
 
 const CAMPOS_REPORTE = [
-  { id: 'caravana',      label: 'Caravana',             def: true  },
+  { id: 'caravana_interna',     label: 'Caravana interna',     def: true  },
+  { id: 'caravana_electronica', label: 'Caravana electrónica', def: true  },
   { id: 'categoria',     label: 'Categoría',            def: true  },
   { id: 'sexo',          label: 'Sexo',                 def: false },
   { id: 'raza',          label: 'Raza',                 def: true  },
@@ -33,7 +34,7 @@ function abrirModalReporteAnimales(rodeoId) {
     `<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:2px 0">
       <input type="checkbox" class="rep-animal" data-id="${a.id}" checked>
       <span style="font-weight:600">#${caravanaDisplay(a)}</span>
-      <span style="color:var(--texto-suave)">${a.categoria || ''} ${a.raza ? '· ' + a.raza : ''}</span>
+      <span style="color:var(--texto-suave)">${a.categoria || ''} ${a.raza ? '· ' + a.raza : ''}${a.caravana_electronica ? ` <span style="font-size:10px;color:var(--texto-suave)">E: ${a.caravana_electronica}</span>` : ''}</span>
     </label>`
   ).join('');
 
@@ -156,7 +157,8 @@ function _ejecutarReporteAnimales(rodeoId, formato) {
     const ultSanitCelda = ultSanit ? `${ultSanit.fecha} · ${ultSanit.tipo || ''}` : '—';
 
     const map = {
-      caravana:      caravanaDisplay(a),
+      caravana_interna:     a.caravana_interna || '—',
+      caravana_electronica: a.caravana_electronica ? { t: 's', v: a.caravana_electronica } : '—',
       categoria:     a.categoria || '—',
       sexo:          a.sexo || '—',
       raza:          a.raza || '—',
@@ -178,7 +180,7 @@ function _ejecutarReporteAnimales(rodeoId, formato) {
     _exportarAnimalesXlsx(rodeo, cabecera, filas, animales);
   } else {
     cerrarModalReporte();
-    _abrirPdfAnimales(rodeo, rodeoId, cabecera, filas, animales, camposSelec);
+    _abrirPdfAnimales(rodeo, rodeoId, cabecera, filas, animales, camposSelec, cols);
   }
 }
 
@@ -189,7 +191,7 @@ function _exportarAnimalesXlsx(rodeo, cabecera, filas, animales) {
   }], `animales_${(rodeo?.nombre || 'rodeo').toLowerCase().replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}`);
 }
 
-function _abrirPdfAnimales(rodeo, rodeoId, cabecera, filas, animales, camposSelec) {
+function _abrirPdfAnimales(rodeo, rodeoId, cabecera, filas, animales, camposSelec, cols) {
   // Resumen de totales
   const cats = {};
   animales.forEach(a => { cats[a.categoria || 'Sin cat.'] = (cats[a.categoria || 'Sin cat.'] || 0) + 1; });
@@ -215,7 +217,12 @@ function _abrirPdfAnimales(rodeo, rodeoId, cabecera, filas, animales, camposSele
   const tablaCols = cabecera.map(h => `<th style="background:#8B1A2F;color:#fff;padding:7px 10px;font-size:12px;text-align:left;white-space:nowrap">${h}</th>`).join('');
   const tablaFilas = filas.map((f, i) =>
     `<tr style="background:${i%2===0?'#fff':'#f7f4f4'}">
-      ${f.map(v => `<td style="padding:6px 10px;font-size:12px;border-bottom:1px solid #eee">${v}</td>`).join('')}
+      ${f.map((v, ci) => {
+        const colId = cols?.[ci]?.id || '';
+        const nowrap = colId === 'caravana_electronica' ? 'white-space:nowrap;' : '';
+        const txt = (v && typeof v === 'object' && 't' in v) ? v.v : v;
+        return `<td style="padding:6px 10px;font-size:12px;border-bottom:1px solid #eee;${nowrap}">${txt}</td>`;
+      }).join('')}
     </tr>`
   ).join('');
 
