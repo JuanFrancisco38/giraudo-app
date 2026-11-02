@@ -3324,6 +3324,19 @@ function _calcularControles(filtroRodeoId) {
     controles.push({ tipo: 'madre_inexistente', animal: c });
   }
 
+  // Control: registros reproductivos en animal que no corresponde
+  // (machos, toros, terneros, o ternera con sexo Hembra pero no Vaquillona/Vaca)
+  const animalesConSrvError = animalesRodeo.filter(a =>
+    (!filtroRodeoId || a.rodeo_id === filtroRodeoId) &&
+    !tieneVidaReproductiva(a) &&
+    serviciosAnimal.some(s => s.animal_id === a.id)
+  );
+  for (const animal of animalesConSrvError) {
+    const srvs = serviciosAnimal.filter(s => s.animal_id === animal.id)
+      .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    controles.push({ tipo: 'repro_en_no_reproductivo', animal, srvs });
+  }
+
   return controles;
 }
 
@@ -3336,9 +3349,10 @@ function _labelTipoControl(tipo) {
     tacto_toca:          '📋 Toca tacto',
     tacto_atrasado:      '🔴 Tacto atrasado',
     tacto_anterior:      '❌ Tacto anterior al servicio',
-    madre_inexistente:   '❓ Cría con madre inexistente',
-    ciclo_baja:          '⚠️ Ciclo abierto en animal dado de baja',
-    ternero_largo:       '📅 Ternero/a con más de 330 días',
+    madre_inexistente:           '❓ Cría con madre inexistente',
+    ciclo_baja:                  '⚠️ Ciclo abierto en animal dado de baja',
+    ternero_largo:               '📅 Ternero/a con más de 330 días',
+    repro_en_no_reproductivo:    '⚠️ Registros reproductivos en animal que no corresponde',
   };
   return labels[tipo] || tipo;
 }
@@ -3466,6 +3480,10 @@ function _htmlFilaControl(tipo, c, hoy) {
   } else if (tipo === 'ternero_largo') {
     info = `${c.dias} días · nacido ${fmtFecha(a.fecha_nacimiento)}`;
     botones = `<button class="btn btn-secondary" style="font-size:11px;padding:3px 8px" onclick="_ctrlAbrirDestete('${a.rodeo_id}')">¿Se destetó?</button>`;
+  } else if (tipo === 'repro_en_no_reproductivo') {
+    const ultSrv = c.srvs[0];
+    info = `${a.categoria || '—'}, ${a.sexo || '—'} · ${c.srvs.length} registro${c.srvs.length !== 1 ? 's' : ''} · último: ${fmtFecha(ultSrv?.fecha)}`;
+    botones = `<button class="btn btn-secondary" style="font-size:11px;padding:3px 8px" onclick="seleccionarAnimal('${a.id}')">Ver ficha</button>`;
   }
 
   return `<div style="background:var(--fondo-alt,var(--gris-fondo));border:1px solid var(--gris-borde);border-radius:7px;padding:10px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px">
