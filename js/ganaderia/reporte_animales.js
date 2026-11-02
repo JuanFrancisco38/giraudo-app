@@ -10,8 +10,9 @@ const CAMPOS_REPORTE = [
   { id: 'madre',         label: 'Madre',                def: true  },
   { id: 'padre',         label: 'Padre',                def: false },
   { id: 'renspa',        label: 'RENSPA',               def: false },
-  { id: 'estado_reprod', label: 'Estado reproductivo',  def: true  },
-  { id: 'fecha_parto',   label: 'Parto / Parto probable', def: true },
+  { id: 'estado_reprod',  label: 'Estado reproductivo',  def: true  },
+  { id: 'ultimo_parto',   label: 'Último parto',         def: true  },
+  { id: 'parto_probable', label: 'Parto probable',       def: true  },
   { id: 'ultimo_peso',   label: 'Último peso (kg)',     def: true  },
   { id: 'gdp',           label: 'GDP (kg/día)',         def: false },
   { id: 'ultimo_sanit',  label: 'Último evento sanitario', def: false },
@@ -132,12 +133,22 @@ function _ejecutarReporteAnimales(rodeoId, formato) {
   const filas = animales.map(a => {
     const { etiqueta: estReprod, ciclo: cicloRep } = estadoReproductivo(a.id);
 
-    // Fecha parto / probable
-    let fechaPartoCelda = '—';
-    if (estReprod === 'Preñada' && cicloRep?.fpp) {
-      fechaPartoCelda = 'Probable: ' + _fmtF(cicloRep.fpp);
-    } else if (estReprod === 'Vacía' && cicloRep?.fechaPartoEfectiva) {
-      fechaPartoCelda = 'Real: ' + fmtFecha(cicloRep.fechaPartoEfectiva);
+    // Último parto: ciclo más nuevo con fechaPartoEfectiva (independientemente del estado actual)
+    const ciclosAnimal = ciclosDeAnimal(a.id);
+    const cicloConParto = [...ciclosAnimal].reverse().find(c => c.fechaPartoEfectiva);
+    let ultPartoCelda = '—';
+    if (cicloConParto) {
+      ultPartoCelda = fmtFecha(cicloConParto.fechaPartoEfectiva);
+      if (cicloConParto.partoInferido) ultPartoCelda += ' (sin confirmar)';
+    }
+
+    // Parto probable: ciclo en gestación con resultado Preñada
+    const cicloGest = [...ciclosAnimal].reverse().find(c => c.enGestacion && c.resultado === 'Preñada');
+    let partoProbableCelda = '—';
+    if (cicloGest?.fpp) {
+      const hoy = new Date(); hoy.setHours(0,0,0,0);
+      partoProbableCelda = _fmtF(cicloGest.fpp);
+      if (cicloGest.fpp < hoy) partoProbableCelda += ' (vencido)';
     }
 
     // Último peso y GDP
@@ -166,8 +177,9 @@ function _ejecutarReporteAnimales(rodeoId, formato) {
       madre:         a.caravana_madre || '—',
       padre:         a.caravana_padre || '—',
       renspa:        renspaLabel(a.renspa_id) || '—',
-      estado_reprod: estReprod || '—',
-      fecha_parto:   fechaPartoCelda,
+      estado_reprod:  estReprod || '—',
+      ultimo_parto:   ultPartoCelda,
+      parto_probable: partoProbableCelda,
       ultimo_peso:   ultPes ? ultPes.peso_kg + ' kg' : '—',
       gdp:           gdp !== '—' ? gdp + ' kg/día' : '—',
       ultimo_sanit:  ultSanitCelda,
