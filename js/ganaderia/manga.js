@@ -3314,15 +3314,36 @@ function _calcularControles(filtroRodeoId) {
     if (dias > 330) controles.push({ tipo: 'ternero_largo', animal: t, dias });
   }
 
-  // Control: cría con madre inexistente (caravana_madre sin match)
-  const criasHuerfanas = animalesRodeo.filter(a =>
-    a.caravana_madre &&
-    !a.madre_id &&
-    (!filtroRodeoId || a.rodeo_id === filtroRodeoId) &&
-    !animalesRodeo.find(m => m.caravana_interna === a.caravana_madre || m.caravana_electronica === a.caravana_madre)
+  // Control: caravana_interna o electrónica repetida en el mismo rodeo
+  {
+    const porRef = new Map(); // ref → [animales]
+    for (const a of animalesRodeo) {
+      if (filtroRodeoId && a.rodeo_id !== filtroRodeoId) continue;
+      for (const ref of [a.caravana_interna, a.caravana_electronica]) {
+        if (!ref) continue;
+        if (!porRef.has(ref)) porRef.set(ref, []);
+        porRef.get(ref).push(a);
+      }
+    }
+    for (const [ref, grupo] of porRef) {
+      if (grupo.length >= 2) controles.push({ tipo: 'caravana_repetida', ref, grupo });
+    }
+  }
+
+  // Control: cría con madre inexistente o ambigua (caravana_madre sin match único)
+  const criasConCarMadre = animalesRodeo.filter(a =>
+    a.caravana_madre && !a.madre_id && (!filtroRodeoId || a.rodeo_id === filtroRodeoId)
   );
-  for (const c of criasHuerfanas) {
-    controles.push({ tipo: 'madre_inexistente', animal: c });
+  for (const c of criasConCarMadre) {
+    const ref = c.caravana_madre;
+    const idx = _madreIdx !== null ? _madreIdx : (_rebuildMadreIdx(), _madreIdx);
+    const candidatas = idx.get(ref) || [];
+    if (candidatas.length === 0) {
+      controles.push({ tipo: 'madre_inexistente', animal: c });
+    } else if (!madrePorTexto(c)) {
+      // candidatas.length > 1 y ambigua (sin resolución por rodeo)
+      controles.push({ tipo: 'madre_ambigua', animal: c, candidatas });
+    }
   }
 
   // Control: registros reproductivos en animal que no corresponde
@@ -3350,7 +3371,9 @@ function _labelTipoControl(tipo) {
     tacto_toca:          '📋 Toca tacto',
     tacto_atrasado:      '🔴 Tacto atrasado',
     tacto_anterior:      '❌ Tacto anterior al servicio',
+    caravana_repetida:           '⚠️ Caravana repetida',
     madre_inexistente:           '❓ Cría con madre inexistente',
+    madre_ambigua:               '❓ Cría con madre ambigua',
     ciclo_baja:                  '⚠️ Ciclo abierto en animal dado de baja',
     ternero_largo:               '📅 Ternero/a con más de 330 días',
     repro_en_no_reproductivo:    '⚠️ Registros reproductivos en animal que no corresponde',
@@ -3425,6 +3448,22 @@ function _htmlFiltroRodeoControles(valorActual) {
 }
 
 function _htmlFilaControl(tipo, c, hoy) {
+  // caravana_repetida no tiene un solo animal sino un grupo
+  if (tipo === 'caravana_repetida') {
+    const rodeos_ = c.grupo.map(g => {
+      const rd = rodeos.find(r => r.id === g.rodeo_id);
+      return `${g.categoria || g.sexo} (${rd?.nombre || '—'})`;
+    }).join(', ');
+    const bots = c.grupo.map(g =>
+      `<button class="btn btn-secondary" style="font-size:11px;padding:3px 8px" onclick="seleccionarAnimal('${g.id}')">Ver ${caravanaDisplay(g)}</button>`
+    ).join('');
+    return `<div style="background:var(--fondo-alt,var(--gris-fondo));border:1px solid var(--gris-borde);border-radius:7px;padding:10px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+      <span style="font-weight:700;min-width:60px">#${c.ref}</span>
+      <span style="font-size:12px;flex:1;min-width:100px">${rodeos_}</span>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${bots}</div>
+    </div>`;
+  }
+
   const a = c.animal;
   const cara = `#${caravanaDisplay(a)}`;
   const rodeoNombre = rodeos.find(r => r.id === a.rodeo_id)?.nombre || '';
@@ -3472,6 +3511,13 @@ function _htmlFilaControl(tipo, c, hoy) {
     const fTacto = c.tacto.fecha_tacto || c.tacto.fecha;
     info = `Servicio ${fmtFecha(c.ciclo.fechaServicio)} · Tacto ${fmtFecha(fTacto)}`;
     botones = `<button class="btn btn-secondary" style="font-size:11px;padding:3px 8px" onclick="_ctrlCorregirFechaTacto('${c.tacto.id}','${c.ciclo.fechaServicio}')">Corregir fecha</button>`;
+  } else if (tipo === 'madre_ambigua') {
+    const cands = c.candidatas.map(m => {
+      const rd = rodeos.find(r => r.id === m.rodeo_id);
+      return `#${caravanaDisplay(m)} (${rd?.nombre || '—'})`;
+    }).join(', ');
+    info = `Caravana madre: ${a.caravana_madre} · posibles: ${cands}`;
+    botones = `<button class="btn btn-secondary" style="font-size:11px;padding:3px 8px" onclick="_ctrlElegirMadre('${a.id}')">Elegir madre</button>`;
   } else if (tipo === 'madre_inexistente') {
     info = `Caravana madre: ${a.caravana_madre || '—'}`;
     botones = `<button class="btn btn-secondary" style="font-size:11px;padding:3px 8px" onclick="_ctrlElegirMadre('${a.id}')">Elegir madre</button>`;
