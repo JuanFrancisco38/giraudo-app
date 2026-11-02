@@ -821,6 +821,7 @@ function renderTabAnimales(rodeoId, animales) {
   if (fSexo) animalesFiltrados = animalesFiltrados.filter(a => a.sexo === fSexo);
   if (fCat) animalesFiltrados = animalesFiltrados.filter(a => a.categoria === fCat);
   if (fRep) animalesFiltrados = animalesFiltrados.filter(a => {
+    if (!tieneVidaReproductiva(a)) return false;
     return estadoReprodAnimal(a.id) === fRep;
   });
   if (fFechaDesde) animalesFiltrados = animalesFiltrados.filter(a => a.fecha_nacimiento >= fFechaDesde);
@@ -1088,7 +1089,7 @@ function switchTabAnimal(tab) {
 function renderFichaAnimal(animalId) {
   const a = animalesRodeo.find(x => x.id === animalId);
   if (!a) return '';
-  const esHembra = a.sexo === 'Hembra';
+  const esHembra = tieneVidaReproductiva(a);
   const madre = animalesRodeo.find(x => x.caravana === a.caravana_madre);
   const cria_ref = a.caravana_interna || a.caravana_electronica;
   const crias = cria_ref ? animalesRodeo.filter(x => x.caravana_madre === cria_ref) : [];
@@ -1520,7 +1521,7 @@ function onChangeRodeoNovedad() {
   if (tipo === 'Pesada' && rodeoId) renderListaPesadaNov(rodeoId);
   if (tipo === 'Nacimiento' && rodeoId) {
     // Refrescar el select de madre en las filas de nacimiento ya abiertas
-    const hembras = animalesRodeo.filter(a => a.rodeo_id === rodeoId && a.sexo === 'Hembra');
+    const hembras = animalesRodeo.filter(a => a.rodeo_id === rodeoId && tieneVidaReproductiva(a));
     const preñadas = [], pendientes = [], otras = [];
     for (const h of hembras) {
       const ciclos = ciclosDeAnimal(h.id);
@@ -1657,9 +1658,9 @@ function getCaravanaResumen(animales) {
 function renderListaTactoNov(rodeoId) {
   const lista = document.getElementById('nov-tacto-lista');
   if (!lista) return;
-  const hembras = animalesRodeo.filter(a => a.rodeo_id === rodeoId && a.sexo === 'Hembra');
+  const hembras = animalesRodeo.filter(a => a.rodeo_id === rodeoId && tieneVidaReproductiva(a));
   if (!hembras.length) {
-    lista.innerHTML = '<div style="color:var(--texto-suave);font-size:13px">No hay hembras identificadas en este rodeo. Cargalas primero desde la pestaña Animales.</div>';
+    lista.innerHTML = '<div style="color:var(--texto-suave);font-size:13px">No hay vacas/vaquillonas identificadas en este rodeo. Cargalas primero desde la pestaña Animales.</div>';
     return;
   }
 
@@ -1896,7 +1897,7 @@ function agregarNacimientoRow() {
   if (!list) return;
   const rodeoId = document.getElementById('nov-rodeo-main')?.value;
   const hembras = rodeoId
-    ? animalesRodeo.filter(a => a.rodeo_id === rodeoId && a.sexo === 'Hembra')
+    ? animalesRodeo.filter(a => a.rodeo_id === rodeoId && tieneVidaReproductiva(a))
     : [];
 
   // Clasificar por estado reproductivo (solo pista visual; el guardado hace fresh fetch)
@@ -2401,7 +2402,7 @@ async function procesarNovRetiroToros(rodeoId, fecha) {
 
 async function procesarNovAborto(rodeoId, fecha) {
   const observaciones = document.getElementById('aborto-obs').value.trim();
-  const madres = getAnimalesPorSelector('sel-aborto', rodeoId, a => a.sexo === 'Hembra');
+  const madres = getAnimalesPorSelector('sel-aborto', rodeoId, a => tieneVidaReproductiva(a));
 
   const abortos_detalle = [];
   const sinCiclo = [];
@@ -3235,7 +3236,7 @@ function _calcularControles(filtroRodeoId) {
   const controles = [];
 
   const hembras = animalesRodeo.filter(a =>
-    a.sexo === 'Hembra' && (!filtroRodeoId || a.rodeo_id === filtroRodeoId)
+    tieneVidaReproductiva(a) && (!filtroRodeoId || a.rodeo_id === filtroRodeoId)
   );
 
   for (const animal of hembras) {
