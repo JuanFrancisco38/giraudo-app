@@ -13,6 +13,26 @@ function fechaLocal(s) {
   return new Date(s);
 }
 
+// ── Edad del animal ───────────────────────────────────────────────────────────
+
+// Devuelve { dias, meses, texto } o null si no hay fecha o es futura.
+function edadAnimal(fechaNac) {
+  if (!fechaNac) return null;
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const nac = fechaLocal(fechaNac);
+  const dias = Math.floor((hoy - nac) / 86400000);
+  if (isNaN(dias) || dias < 0) return null;
+  const meses = Math.floor(dias / 30.44);
+  let texto;
+  if (dias < 90)        texto = `${dias} d (${meses} m)`;
+  else if (meses < 24)  texto = `${meses} meses`;
+  else {
+    const años = Math.floor(meses / 12), resto = meses % 12;
+    texto = resto ? `${años} años ${resto} m` : `${años} años`;
+  }
+  return { dias, meses, texto };
+}
+
 // ── Helpers de madre/cría ─────────────────────────────────────────────────────
 
 // Índice de hembras por caravana (texto). Reconstruir con _rebuildMadreIdx() tras cada carga.

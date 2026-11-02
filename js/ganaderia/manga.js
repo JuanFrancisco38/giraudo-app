@@ -926,9 +926,8 @@ function renderTabAnimales(rodeoId, animales) {
             if (lactantesCard.length > 0) {
               estadoFisio = 'En lactancia'; colFisio = '#1a5f8a'; bgFisio = '#d0eaf8';
               const cria0 = lactantesCard[0];
-              const hoyLact = new Date(); hoyLact.setHours(0,0,0,0);
-              const edadCria = cria0.fecha_nacimiento ? Math.floor((hoyLact - new Date(cria0.fecha_nacimiento)) / 86400000) : null;
-              fichaLactancia = ` · cría #${caravanaDisplay(cria0)}${edadCria != null ? ` · ${edadCria}d` : ''}`;
+              const edadCria0 = edadAnimal(cria0.fecha_nacimiento);
+              fichaLactancia = ` · cría #${caravanaDisplay(cria0)}${edadCria0 ? ` · ${edadCria0.texto}` : ''}`;
             } else if (a.categoria === 'Vaca') {
               // "Seca" solo para vacas; vaquillonas sin cría no muestran estado fisiológico
               estadoFisio = 'Seca'; colFisio = '#5a4a1a'; bgFisio = '#f5ecd5';
@@ -974,21 +973,17 @@ function renderTabAnimales(rodeoId, animales) {
           const ultPesCard = pesadasCard.length ? pesadasCard[pesadasCard.length-1] : null;
           const pesadasCardHtml = (() => {
             if (!ultPesCard) return '';
-            const hoyC = new Date(); hoyC.setHours(0,0,0,0);
-            const nacC = a.fecha_nacimiento ? new Date(a.fecha_nacimiento) : null;
-            const diasEdad = nacC ? Math.floor((hoyC - nacC) / 86400000) : null;
-            const mesesEdad = diasEdad != null ? Math.floor(diasEdad / 30.44) : null;
+            const nacC = a.fecha_nacimiento ? fechaLocal(a.fecha_nacimiento) : null;
             let gdpCard = '—';
             if (pesadasCard.length >= 2) {
               const primera = pesadasCard[0];
-              const d = Math.floor((new Date(ultPesCard.fecha)-new Date(primera.fecha))/86400000);
+              const d = Math.floor((fechaLocal(ultPesCard.fecha) - fechaLocal(primera.fecha)) / 86400000);
               if (d > 0) gdpCard = ((ultPesCard.peso_kg - primera.peso_kg) / d).toFixed(2) + ' kg/día';
             } else if (nacC) {
-              const d = Math.floor((new Date(ultPesCard.fecha) - nacC) / 86400000);
+              const d = Math.floor((fechaLocal(ultPesCard.fecha) - nacC) / 86400000);
               if (d > 0) gdpCard = (ultPesCard.peso_kg / d).toFixed(2) + ' kg/día';
             }
             return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:110px">
-              ${diasEdad != null ? `<div style="text-align:center"><div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px">Edad</div><div style="font-size:17px;font-weight:800;color:var(--cielo)">${diasEdad} d <span style="font-size:14px;font-weight:500">(${mesesEdad}m)</span></div></div>` : ''}
               <div style="text-align:center"><div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px">Último peso</div><div style="font-size:20px;font-weight:800;color:var(--verde)">${ultPesCard.peso_kg} kg</div></div>
               <div style="text-align:center"><div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.5px">GDP</div><div style="font-size:15px;font-weight:700;color:var(--tierra)">${gdpCard}</div></div>
             </div>`;
@@ -1030,6 +1025,7 @@ function renderTabAnimales(rodeoId, animales) {
                 ${a.caravana_interna && a.caravana_electronica ? `<div style="font-size:13px;color:var(--texto-suave);text-align:center">E: ${a.caravana_electronica}</div>` : ''}
                 <div style="font-size:14px;color:var(--texto-suave);text-align:center">${a.raza || ''}</div>
                 ${a.caravana_madre ? `<div style="font-size:13px;color:var(--texto-suave);margin-top:3px;text-align:center">Madre: ${a.caravana_madre}</div>` : ''}
+                ${(() => { const e = edadAnimal(a.fecha_nacimiento); return e ? `<div style="font-size:14px;color:var(--cielo);margin-top:3px;text-align:center">Edad: ${e.texto}</div>` : ''; })()}
                 ${a.renspa_id ? `<div style="font-size:13px;color:var(--cielo);margin-top:3px;text-align:center">🏷️ ${renspaLabel(a.renspa_id) || ''}</div>` : ''}
                 ${repro && lactantesCard.length ? `<div style="font-size:13px;color:var(--verde);margin-top:3px;text-align:center">🐣 cría activa</div>` : ''}
               </div>
@@ -1329,25 +1325,21 @@ function renderContenidoFicha(tab) {
     const pesadas = pesadasDelAnimal || [];
     // Edad del animal
     const edadHtml = (() => {
-      if (!a.fecha_nacimiento) return '';
-      const hoy = new Date(); hoy.setHours(0,0,0,0);
-      const nac = new Date(a.fecha_nacimiento);
-      const dias = Math.floor((hoy - nac) / 86400000);
-      const meses = Math.floor(dias / 30.44);
+      const edad = edadAnimal(a.fecha_nacimiento);
+      if (!edad) return '';
       return `<div style="display:inline-flex;gap:16px;background:var(--fondo);border:1px solid var(--gris-borde);border-radius:8px;padding:10px 16px;margin-bottom:14px;align-items:center">
-        <div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Edad</div><div style="font-size:20px;font-weight:800;color:var(--cielo)">${dias} días <span style="font-size:14px;font-weight:500;color:var(--texto-suave)">(${meses} meses)</span></div></div>
+        <div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Edad</div><div style="font-size:20px;font-weight:800;color:var(--cielo)">${edad.texto}${edad.dias < 90 ? '' : ` <span style="font-size:14px;font-weight:500;color:var(--texto-suave)">(${edad.dias} días)</span>`}</div></div>
         ${pesadas.length ? (() => {
           const ult = pesadas[pesadas.length-1];
           const primera = pesadas[0];
-          const nac = a.fecha_nacimiento ? new Date(a.fecha_nacimiento) : null;
-          // GDP: entre pesadas si hay más de una; si hay solo una, desde nacimiento
+          const nac = a.fecha_nacimiento ? fechaLocal(a.fecha_nacimiento) : null;
           let gdpTotal = '—';
           let gdpLabel = 'GDP promedio';
           if (pesadas.length >= 2) {
-            const diasTotal = Math.floor((new Date(ult.fecha) - new Date(primera.fecha)) / 86400000);
+            const diasTotal = Math.floor((fechaLocal(ult.fecha) - fechaLocal(primera.fecha)) / 86400000);
             if (diasTotal > 0) gdpTotal = ((ult.peso_kg - primera.peso_kg) / diasTotal).toFixed(2);
           } else if (nac) {
-            const diasDesdeNac = Math.floor((new Date(ult.fecha) - nac) / 86400000);
+            const diasDesdeNac = Math.floor((fechaLocal(ult.fecha) - nac) / 86400000);
             if (diasDesdeNac > 0) { gdpTotal = (ult.peso_kg / diasDesdeNac).toFixed(2); gdpLabel = 'GDP desde nac.'; }
           }
           return `<div style="text-align:center"><div style="font-size:11px;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Último peso</div><div style="font-size:20px;font-weight:800;color:var(--verde)">${ult.peso_kg} kg</div><div style="font-size:11px;color:var(--texto-suave)">${fmtFecha(ult.fecha)}</div></div>
