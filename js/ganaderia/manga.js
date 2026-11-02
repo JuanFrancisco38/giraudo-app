@@ -26,6 +26,20 @@ function caravanaDisplay(a) {
   return a.caravana_interna || a.caravana_electronica || 'S/N';
 }
 
+// Devuelve true si hay que cancelar la operación porque el usuario rechazó guardar la caravana duplicada.
+// excludeId: id a ignorar (para edición del mismo animal).
+function _confirmarCaravanaDuplicada(ref, tipo, excludeId) {
+  if (!ref) return false;
+  const existentes = animalesRodeo.filter(a => a.id !== excludeId &&
+    (a.caravana_interna === ref || a.caravana_electronica === ref));
+  if (!existentes.length) return false;
+  const lista = existentes.map(a => {
+    const rd = rodeos.find(r => r.id === a.rodeo_id);
+    return `#${caravanaDisplay(a)} (${a.categoria || a.sexo}, ${rd?.nombre || '—'})`;
+  }).join(', ');
+  return !confirm(`La caravana ${tipo} "${ref}" ya existe en: ${lista}.\n¿Guardar igual?`);
+}
+
 function catsPorSexo(sexo) {
   return sexo === 'Macho' ? CATS_MACHO : CATS_HEMBRA;
 }
@@ -2245,6 +2259,7 @@ async function procesarNovNacimientos(rodeoId, fecha) {
     }
 
     // Crear el animal
+    if (_confirmarCaravanaDuplicada(caravana, 'interna de cría', null)) continue;
     const animalData = {
       rodeo_id: rodeoId, activo: true, sexo, categoria,
       caravana_interna: caravana || null,
@@ -2315,10 +2330,12 @@ async function procesarNovIngreso(rodeoId, fecha) {
   let ok = true;
   const n = caravanas.length || cantidad;
   for (let i = 0; i < n; i++) {
+    const carElec = caravanas[i] || null;
+    if (_confirmarCaravanaDuplicada(carElec, 'electrónica', null)) continue;
     const renspa_id = document.getElementById('ing-renspa')?.value || null;
     const r = await sb('POST', 'animales_rodeo', {
       rodeo_id: rodeoId, fecha_nacimiento: null,
-      caravana_electronica: caravanas[i] || null, sexo, categoria, raza: raza || null, activo: true,
+      caravana_electronica: carElec, sexo, categoria, raza: raza || null, activo: true,
       renspa_id: renspa_id || null
     });
     if (!r) ok = false;
@@ -2793,10 +2810,14 @@ async function borrarTrabajoManga(id) {
 }
 
 async function guardarAnimalManga(rodeoId) {
+  const _carInt = document.getElementById('an-caravana-interna').value.trim() || null;
+  const _carElec = document.getElementById('an-caravana-electronica').value.trim() || null;
+  if (_confirmarCaravanaDuplicada(_carInt, 'interna', null)) return;
+  if (_confirmarCaravanaDuplicada(_carElec, 'electrónica', null)) return;
   const data = {
     rodeo_id: rodeoId, activo: true,
-    caravana_interna: document.getElementById('an-caravana-interna').value.trim() || null,
-    caravana_electronica: document.getElementById('an-caravana-electronica').value.trim() || null,
+    caravana_interna: _carInt,
+    caravana_electronica: _carElec,
     sexo: document.getElementById('an-sexo').value,
     categoria: document.getElementById('an-cat').value,
     raza: document.getElementById('an-raza').value.trim() || null,
@@ -2817,9 +2838,13 @@ function toggleEditarAnimal(id) {
 }
 
 async function guardarEdicionAnimal(id) {
+  const _carInt = document.getElementById('edit-caravana-interna').value.trim() || null;
+  const _carElec = document.getElementById('edit-caravana-electronica').value.trim() || null;
+  if (_confirmarCaravanaDuplicada(_carInt, 'interna', id)) return;
+  if (_confirmarCaravanaDuplicada(_carElec, 'electrónica', id)) return;
   const data = {
-    caravana_interna: document.getElementById('edit-caravana-interna').value.trim() || null,
-    caravana_electronica: document.getElementById('edit-caravana-electronica').value.trim() || null,
+    caravana_interna: _carInt,
+    caravana_electronica: _carElec,
     sexo: document.getElementById('edit-sexo').value,
     categoria: document.getElementById('edit-cat').value,
     raza: document.getElementById('edit-raza').value.trim() || null,
