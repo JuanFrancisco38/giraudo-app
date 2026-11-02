@@ -327,6 +327,15 @@ function estadoReprodAnimal(animalId) {
   return estadoReproductivo(animalId).etiqueta;
 }
 
+// ── Regla de vida reproductiva ────────────────────────────────────────────────
+// Una hembra tiene vida reproductiva desde Vaquillona.
+// Si por error de categoría ya tiene servicios, también cuenta (no esconder datos).
+function tieneVidaReproductiva(a) {
+  if (!a || a.sexo !== 'Hembra') return false;
+  if (a.categoria === 'Vaquillona' || a.categoria === 'Vaca') return true;
+  return serviciosAnimal.some(s => s.animal_id === a.id);
+}
+
 // ── Resumen de parición (tarjetas de rodeo y resumen del PDF) ─────────────────
 // Devuelve { servidas, parieron, faltan, lactando } para un set de vacas.
 // Si campActivaId es null, usa ventana de 425 días.
