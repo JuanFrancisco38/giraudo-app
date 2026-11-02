@@ -801,13 +801,6 @@ function filtrarAnimales(rodeoId) {
   renderDetalleManga();
 }
 
-function estadoReprodAnimal(animalId) {
-  const srvs = serviciosAnimal.filter(s => s.animal_id === animalId);
-  if (!srvs.length) return 'Sin registro';
-  const ultimo = srvs.sort((a, b) => new Date(b.fecha) - new Date(a.fecha))[0];
-  if (ultimo.resultado === 'Preñada' && ultimo.fecha_parto) return 'Vacía';
-  return ultimo.resultado || 'Sin registro';
-}
 
 function renderTabAnimales(rodeoId, animales) {
   const cardStyle = 'border:1.5px solid #ccc;border-radius:10px;padding:12px;cursor:pointer;transition:box-shadow .15s,border-color .15s';
@@ -871,7 +864,7 @@ function renderTabAnimales(rodeoId, animales) {
       </select>
       <select id="f-rep-${rodeoId}" style="font-size:13px;padding:5px 8px" onchange="renderDetalleManga()">
         <option value="" ${!fRep?'selected':''}>Estado reproductivo</option>
-        ${['Preñada','Vacía','Pendiente','Repetidora','Abortó','Sin registro'].map(v=>`<option ${fRep===v?'selected':''}>${v}</option>`).join('')}
+        ${['Preñada','Vacía','Abortó','Pendiente','Sin registro'].map(v=>`<option ${fRep===v?'selected':''}>${v}</option>`).join('')}
       </select>
       <div style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--texto-suave)">
         Nac. desde <input type="date" id="f-fecha-desde-${rodeoId}" value="${fFechaDesde}" style="font-size:12px;padding:4px 6px" onchange="renderDetalleManga()">
